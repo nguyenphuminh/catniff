@@ -1,0 +1,32 @@
+{
+  "name": "catniff",
+  "version": "0.1.0",
+  "description": "A cute autograd engine for Javascript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nguyenphuminh/catniff.git"
+  },
+  "keywords": [
+    "cats",
+    "catniff",
+    "autograd",
+    "ml",
+    "dl",
+    "ai",
+    "maths",
+    "gradient"
+  ],
+  "author": "nguyenphuminh",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/nguyenphuminh/catniff/issues"
+  },
+  "homepage": "https://github.com/nguyenphuminh/catniff#readme",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
