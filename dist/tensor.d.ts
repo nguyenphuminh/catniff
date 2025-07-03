@@ -11,6 +11,7 @@ export declare class TensorMath {
     static lt(tA: Tensor, tB: Tensor): Tensor;
     static ge(tA: Tensor, tB: Tensor): Tensor;
     static le(tA: Tensor, tB: Tensor): Tensor;
+    static eq(tA: Tensor, tB: Tensor): Tensor;
     static neg(tA: Tensor): Tensor;
     static exp(tA: Tensor): Tensor;
     static log(tA: Tensor): Tensor;

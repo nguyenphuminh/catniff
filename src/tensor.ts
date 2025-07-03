@@ -281,6 +281,34 @@ export class TensorMath {
         throw new Error("Inputs are not tensors");
     }
 
+    static eq(tA: Tensor, tB: Tensor): Tensor {
+        if (typeof tA === "number" && typeof tB === "number") {
+            return tA === tB ? 1 : 0;
+        } else if (Array.isArray(tA) && Array.isArray(tB)) {
+            const outLen = Math.max(tA.length, tB.length);
+
+            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+                throw new Error("Inputs are incompatible tensors");
+            }
+
+            const result: Tensor[] = [];
+            
+            for (let i = 0; i < outLen; i++) {
+                const subA = tA[tA.length === 1 ? 0 : i];
+                const subB = tB[tB.length === 1 ? 0 : i];
+                result.push(TensorMath.eq(subA, subB));
+            }
+
+            return result;
+        } else if (Array.isArray(tA) && typeof tB === "number") {
+            return tA.map(subA => TensorMath.eq(subA, tB));
+        } else if (typeof tA === "number" && Array.isArray(tB)) {
+            return tB.map(subB => TensorMath.eq(tA, subB));
+        }
+
+        throw new Error("Inputs are not tensors");
+    }
+
     static neg(tA: Tensor): Tensor {
         if (typeof tA === "number") {
             return -tA;

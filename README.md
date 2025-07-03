@@ -41,13 +41,26 @@ All available APIs are in `./src/tensor.ts`.
 
 To compute the gradient of our mathematical expression, we use the `Node` class to dynamically build our DAG:
 ```js
-const { Node } = require("catniff");
+const { Node } = require("../index");
 
-const X = new Node([ 1, 2, 3 ]);
-const L = x.pow(2).add(x); // X^2 + X
+const X = new Node([
+    [ 0.5, -1.0 ],
+    [ 2.0,  0.0 ]
+]);
 
-L.backward();
-console.log(x.grad);
+const Y = new Node([
+    [ 1.0, -2.0 ],
+    [ 0.5,  1.5 ]
+]);
+
+const D = X.sub(Y);
+const E = D.exp();
+const F = E.add(1);
+const G = F.log();
+
+G.backward();
+
+console.log(X.grad, Y.grad);
 ```
 
 All available APIs are in `./src/autograd.ts`.
