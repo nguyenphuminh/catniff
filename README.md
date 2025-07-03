@@ -1,4 +1,4 @@
-## Catniff
+# Catniff
 
 Catniff is a small and experimental tensor library and autograd engine inspired by [micrograd](https://github.com/karpathy/micrograd). The name is a play on "catnip" and "differentiation".
 
