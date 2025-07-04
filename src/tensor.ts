@@ -29,284 +29,251 @@ export class TensorMath {
         return shape;
     }
 
+    static padShape(tA: Tensor, tB: Tensor): [Tensor[], Tensor[]] {
+        let dimA = TensorMath.getShape(tA).length;
+        let dimB = TensorMath.getShape(tB).length;
+
+        while (dimA < dimB) {
+            dimA++;
+            tA = [tA];
+        }
+
+        while (dimA > dimB) {
+            dimB++;
+            tB = [tB];
+        }
+
+        return [tA as Tensor[], tB as Tensor[]];
+    }
+
     static add(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA + tB;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.add(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.add(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.add(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.add(subA, subB));
+        }
+
+        return result;
     }
 
     static sub(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA - tB;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.sub(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.sub(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.sub(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.sub(subA, subB));
+        }
+
+        return result;
     }
 
     static mul(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA * tB;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.mul(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.mul(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.mul(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.mul(subA, subB));
+        }
+
+        return result;
     }
 
     static pow(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA ** tB;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.pow(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.pow(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.pow(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.pow(subA, subB));
+        }
+
+        return result;
     }
 
     static div(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA / tB;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.div(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.div(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.div(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.div(subA, subB));
+        }
+
+        return result;
     }
 
     static gt(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA > tB ? 1 : 0;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.gt(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.gt(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.gt(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.gt(subA, subB));
+        }
+
+        return result;
     }
 
     static lt(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA < tB ? 1 : 0;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.lt(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.lt(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.lt(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.lt(subA, subB));
+        }
+
+        return result;
     }
 
     static ge(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA >= tB ? 1 : 0;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.ge(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.ge(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.ge(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.ge(subA, subB));
+        }
+
+        return result;
     }
 
     static le(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA <= tB ? 1 : 0;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.le(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.le(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.le(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.le(subA, subB));
+        }
+
+        return result;
     }
 
     static eq(tA: Tensor, tB: Tensor): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
             return tA === tB ? 1 : 0;
-        } else if (Array.isArray(tA) && Array.isArray(tB)) {
-            const outLen = Math.max(tA.length, tB.length);
-
-            if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-                throw new Error("Inputs are incompatible tensors");
-            }
-
-            const result: Tensor[] = [];
-            
-            for (let i = 0; i < outLen; i++) {
-                const subA = tA[tA.length === 1 ? 0 : i];
-                const subB = tB[tB.length === 1 ? 0 : i];
-                result.push(TensorMath.eq(subA, subB));
-            }
-
-            return result;
-        } else if (Array.isArray(tA) && typeof tB === "number") {
-            return tA.map(subA => TensorMath.eq(subA, tB));
-        } else if (typeof tA === "number" && Array.isArray(tB)) {
-            return tB.map(subB => TensorMath.eq(tA, subB));
         }
 
-        throw new Error("Inputs are not tensors");
+        [tA, tB] = TensorMath.padShape(tA, tB);
+        const outLen = Math.max(tA.length, tB.length);
+
+        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
+            throw new Error("Inputs are incompatible tensors");
+        }
+
+        const result: Tensor[] = [];
+        
+        for (let i = 0; i < outLen; i++) {
+            const subA = tA[tA.length === 1 ? 0 : i];
+            const subB = tB[tB.length === 1 ? 0 : i];
+            result.push(TensorMath.eq(subA, subB));
+        }
+
+        return result;
     }
 
     static neg(tA: Tensor): Tensor {

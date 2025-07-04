@@ -31,7 +31,7 @@ There is a built-in `TensorMath` class to help with Tensor arithmetic, for examp
 const { TensorMath } = require("catniff");
 
 const A = [ 1, 2, 3 ];
-const B = 3
+const B = 3;
 console.log(TensorMath.add(A, B));
 ```
 
@@ -41,7 +41,7 @@ All available APIs are in `./src/tensor.ts`.
 
 To compute the gradient of our mathematical expression, we use the `Node` class to dynamically build our DAG:
 ```js
-const { Node } = require("../index");
+const { Node } = require("catniff");
 
 const X = new Node([
     [ 0.5, -1.0 ],

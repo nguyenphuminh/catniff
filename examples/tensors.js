@@ -1,4 +1,4 @@
-const { Node } = require("../index");
+const { Node, TensorMath } = require("../index");
 
 const X = new Node([
     [ 0.5, -1.0 ],

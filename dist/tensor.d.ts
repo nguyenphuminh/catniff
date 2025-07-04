@@ -2,6 +2,7 @@ export type Tensor = number | Tensor[];
 export declare class TensorMath {
     static create(num: number, shape: number[]): Tensor;
     static getShape(tA: Tensor): number[];
+    static padShape(tA: Tensor, tB: Tensor): [Tensor[], Tensor[]];
     static add(tA: Tensor, tB: Tensor): Tensor;
     static sub(tA: Tensor, tB: Tensor): Tensor;
     static mul(tA: Tensor, tB: Tensor): Tensor;
