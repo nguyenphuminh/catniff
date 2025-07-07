@@ -69,6 +69,7 @@ All available APIs are in `./src/autograd.ts`.
 
 I'm mostly just learning and playing with this currently, so there are no concrete plans yet, but here are what I currently have in mind:
 
+* Fix whatever is the problem right now (there are a lot of problems right now lol).
 * GPU acceleration.
 * Some general neural net APIs.
 
