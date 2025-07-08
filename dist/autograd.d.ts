@@ -33,5 +33,6 @@ export declare class Node {
     sigmoid(): Node;
     tanh(): Node;
     backward(): void;
-    forceNode(value: Node | number): Node;
+    static forceNode(value: Node | number): Node;
+    static addGrad(node: Node, accumGrad: Tensor): void;
 }

@@ -19,4 +19,8 @@ export declare class TensorMath {
     static relu(tA: Tensor): Tensor;
     static sigmoid(tA: Tensor): Tensor;
     static tanh(tA: Tensor): Tensor;
+    static squeezeAxis(tA: Tensor, axis: number): Tensor;
+    static squeeze(tA: Tensor, dims?: number[] | number): Tensor;
+    static sumAxis(tA: Tensor, axis: number): Tensor;
+    static sum(tA: Tensor, dims?: number[] | number, keepDims?: boolean): Tensor;
 }

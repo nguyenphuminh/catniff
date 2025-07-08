@@ -15,10 +15,10 @@ export class TensorMath {
 
         return out;
     }
-    
+
     static getShape(tA: Tensor): number[] {
         const shape: number[] = [];
-        
+
         let subA = tA;
 
         while (Array.isArray(subA)) {
@@ -59,7 +59,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -82,7 +82,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -105,7 +105,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -128,7 +128,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -151,7 +151,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -174,7 +174,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -197,7 +197,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -220,7 +220,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -243,7 +243,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -266,7 +266,7 @@ export class TensorMath {
         }
 
         const result: Tensor[] = [];
-        
+
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
@@ -322,5 +322,73 @@ export class TensorMath {
         } else {
             return tA.map(subA => TensorMath.tanh(subA));
         }
+    }
+
+    static squeezeAxis(tA: Tensor, axis: number): Tensor {
+        if (typeof tA === "number") return tA;
+
+        if (axis === 0) {
+            return tA[0];
+        } else {
+            return tA.map(slice => TensorMath.squeezeAxis(slice, axis - 1));
+        }
+    }
+
+    static squeeze(tA: Tensor, dims?: number[] | number): Tensor {
+        if (typeof tA === "number") return tA;
+        if (typeof dims === "number") { dims = [dims]; }
+        if (typeof dims === "undefined") {
+            const shape = TensorMath.getShape(tA);
+
+            dims = [];
+
+            for (let index = 0; index < shape.length; index++) {
+                if (shape[index] === 1) {
+                    dims.push(index);
+                }
+            }
+        }
+
+        dims = [...dims].sort((a, b) => b - a);
+
+        let out: Tensor = tA;
+
+        for (const axis of dims) {
+            out = TensorMath.squeezeAxis(out, axis);
+        }
+
+        return out;
+    }
+
+    static sumAxis(tA: Tensor, axis: number): Tensor {
+        if (typeof tA === "number") return tA;
+
+        if (axis === 0) {
+            let result = tA[0];
+
+            for (let i = 1; i < tA.length; i++) {
+                result = TensorMath.add(result, tA[i]);
+            }
+
+            return [result];
+        } else {
+            return tA.map(slice => TensorMath.sumAxis(slice as Tensor[], axis - 1));
+        }
+    }
+
+    static sum(tA: Tensor, dims?: number[] | number, keepDims: boolean = false): Tensor {
+        if (typeof tA === "number") return tA;
+        if (typeof dims === "number") { dims = [dims]; }
+        if (typeof dims === "undefined") { dims = Array.from({ length: TensorMath.getShape(tA).length }, (_, index) => index); }
+
+        dims = [...dims].sort((a, b) => b - a);
+
+        let out: Tensor = tA;
+
+        for (const axis of dims) {
+            out = TensorMath.sumAxis(out, axis);
+        }
+
+        return keepDims ? out : TensorMath.squeeze(out, dims);
     }
 }

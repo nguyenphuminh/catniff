@@ -1,6 +1,19 @@
 import { Tensor, TensorMath } from "./tensor";
 
-const { add, sub, mul, pow, div, neg, exp, log, relu, sigmoid, tanh, ge } = TensorMath;
+const {
+    add,
+    sub,
+    mul,
+    pow,
+    div,
+    neg,
+    exp,
+    log,
+    relu,
+    sigmoid,
+    tanh,
+    ge
+} = TensorMath;
 
 export enum OP {
     NONE,
@@ -35,42 +48,42 @@ export class Node {
     }
 
     add(other: Node | number): Node {
-        other = this.forceNode(other);
+        other = Node.forceNode(other);
         const out = new Node(add(this.value, other.value), [this, other], OP.ADD);
 
         out.feedBackward = () => {
             // x + y d/dx = 1, note that we apply the chain rule continuously so out.grad is multiplied into our derivative
-            this.grad = add(this.grad, out.grad);
+            Node.addGrad(this, out.grad);
             // x + y d/dy = 1
-            other.grad = add(other.grad, out.grad);
+            Node.addGrad(other, out.grad);
         }
 
         return out;
     }
 
     sub(other: Node | number): Node {
-        other = this.forceNode(other);
+        other = Node.forceNode(other);
         const out = new Node(sub(this.value, other.value), [this, other], OP.SUB);
 
         out.feedBackward = () => {
             // x - y d/dx = 1
-            this.grad = add(this.grad, out.grad);
+            Node.addGrad(this, out.grad);
             // x - y d/dy = -1
-            other.grad = add(other.grad, neg(out.grad));
+            Node.addGrad(other, neg(out.grad));
         }
 
         return out;
     }
 
     mul(other: Node | number): Node {
-        other = this.forceNode(other);
+        other = Node.forceNode(other);
         const out = new Node(mul(this.value, other.value), [this, other], OP.MUL);
 
         out.feedBackward = () => {
             // x * y d/dx = y
-            this.grad = add(this.grad, mul(out.grad, other.value));
+            Node.addGrad(this, mul(out.grad, other.value));
             // x + y d/dy = x
-            other.grad = add(other.grad, mul(out.grad, this.value));
+            Node.addGrad(other, mul(out.grad, this.value));
         }
 
         return out;
@@ -82,9 +95,9 @@ export class Node {
 
             out.feedBackward = () => {
                 // x^a d/dx = a*x^(a-1)
-                this.grad = add(this.grad, mul(out.grad, mul(other.value, pow(this.value, sub(other.value, 1)))));
+                Node.addGrad(this, mul(out.grad, mul(other.value, pow(this.value, sub(other.value, 1)))));
                 // x^a d/da = x^a*lnx
-                other.grad = add(other.grad, mul(out.grad, mul(pow(this.value, other.value), log(this.value))));
+                Node.addGrad(other, mul(out.grad, mul(pow(this.value, other.value), log(this.value))));
             }
 
             return out;
@@ -93,21 +106,21 @@ export class Node {
         const out = new Node(pow(this.value, other), [this], OP.POW);
 
         out.feedBackward = () => {
-            this.grad = add(this.grad, mul(out.grad, mul(other, pow(this.value, sub(other, 1)))));
+            Node.addGrad(this, mul(out.grad, mul(other, pow(this.value, sub(other, 1)))));
         }
 
         return out;
     }
 
     div(other: Node | number): Node {
-        other = this.forceNode(other);
+        other = Node.forceNode(other);
         const out = new Node(div(this.value, other.value), [this, other], OP.DIV);
 
         out.feedBackward = () => {
             // x/y d/dx = 1/y
-            this.grad = add(this.grad, div(out.grad, other.value));
+            Node.addGrad(this, div(out.grad, other.value));
             // x/y d/dy = -x/y^2
-            other.grad = add(other.grad, mul(out.grad, div(neg(this.value), pow(other.value, 2))));
+            Node.addGrad(other, mul(out.grad, div(neg(this.value), pow(other.value, 2))));
         }
 
         return out;
@@ -118,7 +131,7 @@ export class Node {
 
         out.feedBackward = () => {
             // -x d/dx = -1
-            this.grad = add(this.grad, neg(out.grad));
+            Node.addGrad(this, neg(out.grad));
         }
 
         return out;
@@ -130,7 +143,7 @@ export class Node {
 
         out.feedBackward = () => {
             // e^x d/dx = e^x
-            this.grad = add(this.grad, mul(out.grad, expResult));
+            Node.addGrad(this, mul(out.grad, expResult));
         }
 
         return out;
@@ -141,7 +154,7 @@ export class Node {
 
         out.feedBackward = () => {
             // lnx d/dx = 1/x
-            this.grad = add(this.grad, div(out.grad, this.value));
+            Node.addGrad(this, div(out.grad, this.value));
         }
 
         return out;
@@ -150,7 +163,7 @@ export class Node {
     relu(): Node {
         const out = new Node(relu(this.value), [this], OP.RELU);
         out.feedBackward = () => {
-            this.grad = add(this.grad, mul(out.grad, ge(this.value, 0)));
+            Node.addGrad(this, mul(out.grad, ge(this.value, 0)));
         };
 
         return out;
@@ -161,7 +174,7 @@ export class Node {
 
         const out = new Node(sigmoidResult, [this], OP.SIGMOID);
         out.feedBackward = () => {
-            this.grad = add(this.grad, mul(mul(out.grad, sigmoidResult), sub(1, sigmoidResult)));
+            Node.addGrad(this, mul(mul(out.grad, sigmoidResult), sub(1, sigmoidResult)));
         };
 
         return out;
@@ -172,7 +185,7 @@ export class Node {
 
         const out = new Node(tanhResult, [this], OP.TANH);
         out.feedBackward = () => {
-            this.grad = add(this.grad, mul(out.grad, sub(1, mul(tanhResult, tanhResult))));
+            Node.addGrad(this, mul(out.grad, sub(1, mul(tanhResult, tanhResult))));
         };
 
         return out;
@@ -203,9 +216,35 @@ export class Node {
         }
     }
 
-    forceNode(value: Node | number): Node {
+    static forceNode(value: Node | number): Node {
         if (value instanceof Node) return value;
 
         return new Node(value);
+    }
+
+    static addGrad(node: Node, accumGrad: Tensor) {
+        const axesToSqueeze = [];
+        const axesToReduce = [];
+
+        const shape = node.shape;
+        const gradShape = TensorMath.getShape(accumGrad);
+
+        const paddedDims = gradShape.length - shape.length;
+
+        for (let i = 0; i < paddedDims; i++) {
+            axesToReduce.push(i);
+            axesToSqueeze.push(i);
+        }
+
+        for (let i = 0; i < shape.length; i++) {
+            if (shape[i] === 1 && gradShape[i+paddedDims] > 1) {
+                axesToReduce.push(i+paddedDims);
+            }
+        }
+
+        const reducedGrad = TensorMath.sum(accumGrad, axesToReduce, true);
+        const squeezedGrad = TensorMath.squeeze(reducedGrad, axesToSqueeze);
+
+        node.grad = add(squeezedGrad, node.grad);
     }
 }

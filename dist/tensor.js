@@ -253,5 +253,67 @@ class TensorMath {
             return tA.map(subA => TensorMath.tanh(subA));
         }
     }
+    static squeezeAxis(tA, axis) {
+        if (typeof tA === "number")
+            return tA;
+        if (axis === 0) {
+            return tA[0];
+        }
+        else {
+            return tA.map(slice => TensorMath.squeezeAxis(slice, axis - 1));
+        }
+    }
+    static squeeze(tA, dims) {
+        if (typeof tA === "number")
+            return tA;
+        if (typeof dims === "number") {
+            dims = [dims];
+        }
+        if (typeof dims === "undefined") {
+            const shape = TensorMath.getShape(tA);
+            dims = [];
+            for (let index = 0; index < shape.length; index++) {
+                if (shape[index] === 1) {
+                    dims.push(index);
+                }
+            }
+        }
+        dims = [...dims].sort((a, b) => b - a);
+        let out = tA;
+        for (const axis of dims) {
+            out = TensorMath.squeezeAxis(out, axis);
+        }
+        return out;
+    }
+    static sumAxis(tA, axis) {
+        if (typeof tA === "number")
+            return tA;
+        if (axis === 0) {
+            let result = tA[0];
+            for (let i = 1; i < tA.length; i++) {
+                result = TensorMath.add(result, tA[i]);
+            }
+            return [result];
+        }
+        else {
+            return tA.map(slice => TensorMath.sumAxis(slice, axis - 1));
+        }
+    }
+    static sum(tA, dims, keepDims = false) {
+        if (typeof tA === "number")
+            return tA;
+        if (typeof dims === "number") {
+            dims = [dims];
+        }
+        if (typeof dims === "undefined") {
+            dims = Array.from({ length: TensorMath.getShape(tA).length }, (_, index) => index);
+        }
+        dims = [...dims].sort((a, b) => b - a);
+        let out = tA;
+        for (const axis of dims) {
+            out = TensorMath.sumAxis(out, axis);
+        }
+        return keepDims ? out : TensorMath.squeeze(out, dims);
+    }
 }
 exports.TensorMath = TensorMath;
