@@ -26,7 +26,7 @@ console.log(x.grad); // 5
 
 Tensors in Catniff are either numbers (scalars/0-D tensors) or multidimensional number arrays (n-D tensors).
 
-There is a built-in `TensorMath` class to help with Tensor arithmetic, for example:
+There is a built-in `TensorMath` class to help with tensor arithmetic, for example:
 ```js
 const { TensorMath } = require("catniff");
 
@@ -70,6 +70,8 @@ All available APIs are in `./src/autograd.ts`.
 I'm mostly just learning and playing with this currently, so there are no concrete plans yet, but here are what I currently have in mind:
 
 * Fix whatever is the problem right now (there are a lot of problems right now lol).
+* Add more tensor ops.
+* Proper documentation.
 * GPU acceleration.
 * Some general neural net APIs.
 

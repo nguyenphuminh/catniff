@@ -11,7 +11,9 @@ export declare enum OP {
     LOG = 8,
     RELU = 9,
     SIGMOID = 10,
-    TANH = 11
+    TANH = 11,
+    T = 12,
+    MM = 13
 }
 export declare class Node {
     value: Tensor;
@@ -32,6 +34,8 @@ export declare class Node {
     relu(): Node;
     sigmoid(): Node;
     tanh(): Node;
+    t(): Node;
+    mm(other: Node | number): Node;
     backward(): void;
     static forceNode(value: Node | number): Node;
     static addGrad(node: Node, accumGrad: Tensor): void;

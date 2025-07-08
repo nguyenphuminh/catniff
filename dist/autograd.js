@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Node = exports.OP = void 0;
 const tensor_1 = require("./tensor");
-const { add, sub, mul, pow, div, neg, exp, log, relu, sigmoid, tanh, ge } = tensor_1.TensorMath;
+const { add, sub, mul, pow, div, neg, exp, log, relu, sigmoid, tanh, ge, t, mm } = tensor_1.TensorMath;
 var OP;
 (function (OP) {
     OP[OP["NONE"] = 0] = "NONE";
@@ -17,6 +17,8 @@ var OP;
     OP[OP["RELU"] = 9] = "RELU";
     OP[OP["SIGMOID"] = 10] = "SIGMOID";
     OP[OP["TANH"] = 11] = "TANH";
+    OP[OP["T"] = 12] = "T";
+    OP[OP["MM"] = 13] = "MM";
 })(OP || (exports.OP = OP = {}));
 class Node {
     value;
@@ -61,7 +63,7 @@ class Node {
         out.feedBackward = () => {
             // x * y d/dx = y
             Node.addGrad(this, mul(out.grad, other.value));
-            // x + y d/dy = x
+            // x * y d/dy = x
             Node.addGrad(other, mul(out.grad, this.value));
         };
         return out;
@@ -139,6 +141,22 @@ class Node {
         const out = new Node(tanhResult, [this], OP.TANH);
         out.feedBackward = () => {
             Node.addGrad(this, mul(out.grad, sub(1, mul(tanhResult, tanhResult))));
+        };
+        return out;
+    }
+    t() {
+        const out = new Node(t(this.value), [this], OP.T);
+        out.feedBackward = () => {
+            Node.addGrad(this, t(out.grad));
+        };
+        return out;
+    }
+    mm(other) {
+        other = Node.forceNode(other);
+        const out = new Node(mm(this.value, other.value), [this, other], OP.MM);
+        out.feedBackward = () => {
+            Node.addGrad(this, mm(out.grad, t(other.value)));
+            Node.addGrad(other, mm(t(this.value), out.grad));
         };
         return out;
     }

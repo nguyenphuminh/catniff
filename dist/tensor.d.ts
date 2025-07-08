@@ -23,4 +23,6 @@ export declare class TensorMath {
     static squeeze(tA: Tensor, dims?: number[] | number): Tensor;
     static sumAxis(tA: Tensor, axis: number): Tensor;
     static sum(tA: Tensor, dims?: number[] | number, keepDims?: boolean): Tensor;
+    static t(tA: Tensor): Tensor;
+    static mm(tA: Tensor, tB: Tensor): Tensor;
 }

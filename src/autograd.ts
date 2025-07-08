@@ -12,7 +12,9 @@ const {
     relu,
     sigmoid,
     tanh,
-    ge
+    ge,
+    t,
+    mm
 } = TensorMath;
 
 export enum OP {
@@ -27,7 +29,9 @@ export enum OP {
     LOG,
     RELU,
     SIGMOID,
-    TANH
+    TANH,
+    T,
+    MM
 }
 
 export class Node {
@@ -82,7 +86,7 @@ export class Node {
         out.feedBackward = () => {
             // x * y d/dx = y
             Node.addGrad(this, mul(out.grad, other.value));
-            // x + y d/dy = x
+            // x * y d/dy = x
             Node.addGrad(other, mul(out.grad, this.value));
         }
 
@@ -162,6 +166,7 @@ export class Node {
 
     relu(): Node {
         const out = new Node(relu(this.value), [this], OP.RELU);
+
         out.feedBackward = () => {
             Node.addGrad(this, mul(out.grad, ge(this.value, 0)));
         };
@@ -171,8 +176,8 @@ export class Node {
 
     sigmoid(): Node {
         const sigmoidResult = sigmoid(this.value);
-
         const out = new Node(sigmoidResult, [this], OP.SIGMOID);
+
         out.feedBackward = () => {
             Node.addGrad(this, mul(mul(out.grad, sigmoidResult), sub(1, sigmoidResult)));
         };
@@ -182,11 +187,33 @@ export class Node {
 
     tanh(): Node {
         const tanhResult = tanh(this.value);
-
         const out = new Node(tanhResult, [this], OP.TANH);
+
         out.feedBackward = () => {
             Node.addGrad(this, mul(out.grad, sub(1, mul(tanhResult, tanhResult))));
         };
+
+        return out;
+    }
+
+    t(): Node {
+        const out = new Node(t(this.value), [this], OP.T);
+
+        out.feedBackward = () => {
+            Node.addGrad(this, t(out.grad));
+        };
+
+        return out;
+    }
+
+    mm(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(mm(this.value, other.value), [this, other], OP.MM);
+
+        out.feedBackward = () => {
+            Node.addGrad(this, mm(out.grad, t(other.value)));
+            Node.addGrad(other, mm(t(this.value), out.grad));
+        }
 
         return out;
     }

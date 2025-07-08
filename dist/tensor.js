@@ -315,5 +315,43 @@ class TensorMath {
         }
         return keepDims ? out : TensorMath.squeeze(out, dims);
     }
+    static t(tA) {
+        const shapeA = TensorMath.getShape(tA);
+        if (shapeA.length !== 2)
+            throw new Error("Input is not a matrix");
+        const matA = tA;
+        const matARows = matA.length;
+        const matACols = matA[0].length;
+        const matATranspose = Array.from({ length: matACols }, () => new Array(matARows).fill(0));
+        for (let i = 0; i < matARows; i++) {
+            for (let j = 0; j < matACols; j++) {
+                matATranspose[j][i] = matA[i][j];
+            }
+        }
+        return matATranspose;
+    }
+    static mm(tA, tB) {
+        const shapeA = TensorMath.getShape(tA);
+        const shapeB = TensorMath.getShape(tB);
+        if (shapeA.length !== 2 || shapeB.length !== 2)
+            throw new Error("Inputs are not matrices");
+        const matA = tA;
+        const matB = tB;
+        const matARows = matA.length;
+        const matACols = matA[0].length;
+        const matBRows = matB.length;
+        const matBCols = matB[0].length;
+        if (matACols !== matBRows)
+            throw new Error("Invalid matrices shape for multiplication");
+        const matC = Array.from({ length: matARows }, () => new Array(matBCols).fill(0));
+        for (let i = 0; i < matARows; i++) {
+            for (let j = 0; j < matBCols; j++) {
+                for (let k = 0; k < matACols; k++) {
+                    matC[i][j] += matA[i][k] * matB[k][j];
+                }
+            }
+        }
+        return matC;
+    }
 }
 exports.TensorMath = TensorMath;
