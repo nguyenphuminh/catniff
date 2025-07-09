@@ -6,13 +6,34 @@ const {
     mul,
     pow,
     div,
+    gt,
+    lt,
+    ge,
+    le,
+    eq,
     neg,
+    abs,
+    sign,
+    sin,
+    cos,
+    tan,
+    asin,
+    acos,
+    atan,
+    sinh,
+    cosh,
+    asinh,
+    acosh,
+    atanh,
+    sqrt,
     exp,
     log,
+    log2,
+    log10,
+    log1p,
     relu,
     sigmoid,
     tanh,
-    ge,
     t,
     mm
 } = TensorMath;
@@ -24,9 +45,31 @@ export enum OP {
     MUL,
     POW,
     DIV,
+    GE,
+    LE,
+    GT,
+    LT,
+    EQ,
     NEG,
+    ABS,
+    SIGN,
+    SIN,
+    COS,
+    TAN,
+    ASIN,
+    ACOS,
+    ATAN,
+    SINH,
+    COSH,
+    ASINH,
+    ACOSH,
+    ATANH,
+    SQRT,
     EXP,
     LOG,
+    LOG2,
+    LOG10,
+    LOG1P,
     RELU,
     SIGMOID,
     TANH,
@@ -130,12 +173,222 @@ export class Node {
         return out;
     }
 
+    ge(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(ge(this.value, other.value), [this, other], OP.GE);
+
+        out.feedBackward = () => {
+            // We consider the derivative of ge to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    le(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(le(this.value, other.value), [this, other], OP.LE);
+
+        out.feedBackward = () => {
+            // We consider the derivative of le to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    gt(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(gt(this.value, other.value), [this, other], OP.GT);
+
+        out.feedBackward = () => {
+            // We consider the derivative of gt to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    lt(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(lt(this.value, other.value), [this, other], OP.LT);
+
+        out.feedBackward = () => {
+            // We consider the derivative of lt to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    eq(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(eq(this.value, other.value), [this, other], OP.EQ);
+
+        out.feedBackward = () => {
+            // We consider the derivative of eq to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
     neg(): Node {
         const out = new Node(neg(this.value), [this], OP.NEG);
 
         out.feedBackward = () => {
             // -x d/dx = -1
             Node.addGrad(this, neg(out.grad));
+        }
+
+        return out;
+    }
+
+    abs(): Node {
+        const out = new Node(abs(this.value), [this], OP.ABS);
+
+        out.feedBackward = () => {
+            // |x| d/dx = sign(x)
+            Node.addGrad(this, mul(out.grad, sign(this.value)));
+        }
+
+        return out;
+    }
+
+    sign(): Node {
+        const out = new Node(sign(this.value), [this], OP.SIGN);
+
+        out.feedBackward = () => {
+            // We consider the derivative of sign to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    sin(): Node {
+        const out = new Node(sin(this.value), [this], OP.SIN);
+
+        out.feedBackward = () => {
+            // sinx d/dx = cosx
+            Node.addGrad(this, mul(out.grad, cos(this.value)));
+        }
+
+        return out;
+    }
+
+    cos(): Node {
+        const out = new Node(cos(this.value), [this], OP.COS);
+
+        out.feedBackward = () => {
+            // cosx d/dx = -sinx
+            Node.addGrad(this, mul(out.grad, neg(sin(this.value))));
+        }
+
+        return out;
+    }
+
+    tan(): Node {
+        const tanResult = tan(this.value);
+        const out = new Node(tanResult, [this], OP.TAN);
+
+        out.feedBackward = () => {
+            // tanx d/dx = 1+(tanx)^2
+            Node.addGrad(this, mul(out.grad, add(1, pow(tanResult, 2))));
+        }
+
+        return out;
+    }
+
+    asin(): Node {
+        const out = new Node(asin(this.value), [this], OP.ASIN);
+
+        out.feedBackward = () => {
+            // asinx d/dx = 1/sqrt(1-x^2)
+            Node.addGrad(this, div(out.grad, sqrt(sub(1, pow(this.value, 2)))));
+        }
+
+        return out;
+    }
+
+    acos(): Node {
+        const out = new Node(acos(this.value), [this], OP.ACOS);
+
+        out.feedBackward = () => {
+            // acosx d/dx = -1/sqrt(1-x^2)
+            Node.addGrad(this, neg(div(out.grad, sqrt(sub(1, pow(this.value, 2))))));
+        }
+
+        return out;
+    }
+
+    atan(): Node {
+        const out = new Node(atan(this.value), [this], OP.ATAN);
+
+        out.feedBackward = () => {
+            // atanx d/dx = 1/(1+x^2)
+            Node.addGrad(this, div(out.grad, add(1, pow(this.value, 2))));
+        }
+
+        return out;
+    }
+
+    sinh(): Node {
+        const out = new Node(sinh(this.value), [this], OP.SINH);
+
+        out.feedBackward = () => {
+            // sinhx d/dx = coshx
+            Node.addGrad(this, mul(out.grad, cosh(this.value)));
+        }
+
+        return out;
+    }
+
+    cosh(): Node {
+        const out = new Node(cosh(this.value), [this], OP.COSH);
+
+        out.feedBackward = () => {
+            // coshx d/dx = sinhx
+            Node.addGrad(this, mul(out.grad, sinh(this.value)));
+        }
+
+        return out;
+    }
+
+    asinh(): Node {
+        const out = new Node(asinh(this.value), [this], OP.ASINH);
+
+        out.feedBackward = () => {
+            // asinhx d/dx = 1/sqrt(1+x^2)
+            Node.addGrad(this, div(out.grad, sqrt(add(1, pow(this.value, 2)))));
+        }
+
+        return out;
+    }
+
+    acosh(): Node {
+        const out = new Node(acosh(this.value), [this], OP.ACOSH);
+
+        out.feedBackward = () => {
+            // acosx d/dx = 1/(sqrt(x-1)*sqrt(x+1))
+            Node.addGrad(this, div(out.grad, mul(sqrt(sub(this.value, 1)), sqrt(add(this.value, 1)))));
+        }
+
+        return out;
+    }
+
+    atanh(): Node {
+        const out = new Node(atanh(this.value), [this], OP.ATANH);
+
+        out.feedBackward = () => {
+            // atanx d/dx = 1/(1-x^2)
+            Node.addGrad(this, div(out.grad, sub(1, pow(this.value, 2))));
+        }
+
+        return out;
+    }
+
+    sqrt(): Node {
+        const sqrtResult = sqrt(this.value);
+        const out = new Node(sqrtResult, [this], OP.SQRT);
+
+        out.feedBackward = () => {
+            // sqrt(x) d/dx = 1/(2*sqrt(x))
+            Node.addGrad(this, div(out.grad, mul(2, sqrtResult)));
         }
 
         return out;
@@ -159,6 +412,39 @@ export class Node {
         out.feedBackward = () => {
             // lnx d/dx = 1/x
             Node.addGrad(this, div(out.grad, this.value));
+        }
+
+        return out;
+    }
+
+    log2(): Node {
+        const out = new Node(log2(this.value), [this], OP.LOG2);
+
+        out.feedBackward = () => {
+            // log2(x) d/dx = 1/(xln2)
+            Node.addGrad(this, div(out.grad, mul(this.value, Math.log(2))));
+        }
+
+        return out;
+    }
+
+    log10(): Node {
+        const out = new Node(log10(this.value), [this], OP.LOG10);
+
+        out.feedBackward = () => {
+            // log2(x) d/dx = 1/(xln10)
+            Node.addGrad(this, div(out.grad, mul(this.value, Math.log(10))));
+        }
+
+        return out;
+    }
+
+    log1p(): Node {
+        const out = new Node(log1p(this.value), [this], OP.LOG1P);
+
+        out.feedBackward = () => {
+            // ln(1+x) d/dx = 1/(1+x)
+            Node.addGrad(this, div(out.grad, add(this.value, 1)));
         }
 
         return out;

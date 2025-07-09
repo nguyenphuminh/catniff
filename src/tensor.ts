@@ -46,9 +46,9 @@ export class TensorMath {
         return [tA as Tensor[], tB as Tensor[]];
     }
 
-    static add(tA: Tensor, tB: Tensor): Tensor {
+    static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor {
         if (typeof tA === "number" && typeof tB === "number") {
-            return tA + tB;
+            return op(tA, tB);
         }
 
         [tA, tB] = TensorMath.padShape(tA, tB);
@@ -63,265 +63,150 @@ export class TensorMath {
         for (let i = 0; i < outLen; i++) {
             const subA = tA[tA.length === 1 ? 0 : i];
             const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.add(subA, subB));
+            result.push(TensorMath.elementWiseAB(subA, subB, op));
         }
 
         return result;
+    }
+
+    static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor {
+        if (typeof tA === "number") {
+            return op(tA);
+        } else {
+            return tA.map(subA => TensorMath.elementWiseSelf(subA, op));
+        }
+    }
+
+    static add(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA + tB);
     }
 
     static sub(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA - tB;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.sub(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA - tB);
     }
 
     static mul(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA * tB;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.mul(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA * tB);
     }
 
     static pow(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA ** tB;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.pow(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA ** tB);
     }
 
     static div(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA / tB;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.div(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA / tB);
     }
 
     static gt(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA > tB ? 1 : 0;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.gt(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA > tB ? 1 : 0);
     }
 
     static lt(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA < tB ? 1 : 0;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.lt(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA < tB ? 1 : 0);
     }
 
     static ge(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA >= tB ? 1 : 0;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.ge(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA >= tB ? 1 : 0);
     }
 
     static le(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA <= tB ? 1 : 0;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.le(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA <= tB ? 1 : 0);
     }
 
     static eq(tA: Tensor, tB: Tensor): Tensor {
-        if (typeof tA === "number" && typeof tB === "number") {
-            return tA === tB ? 1 : 0;
-        }
-
-        [tA, tB] = TensorMath.padShape(tA, tB);
-        const outLen = Math.max(tA.length, tB.length);
-
-        if (tA.length !== tB.length && tA.length !== 1 && tB.length !== 1) {
-            throw new Error("Inputs are incompatible tensors");
-        }
-
-        const result: Tensor[] = [];
-
-        for (let i = 0; i < outLen; i++) {
-            const subA = tA[tA.length === 1 ? 0 : i];
-            const subB = tB[tB.length === 1 ? 0 : i];
-            result.push(TensorMath.eq(subA, subB));
-        }
-
-        return result;
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA === tB ? 1 : 0);
     }
 
     static neg(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return -tA;
-        } else {
-            return tA.map(subA => TensorMath.neg(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => -tA);
+    }
+
+    static abs(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.abs(tA));
+    }
+
+    static sign(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.sign(tA));
+    }
+
+    static sin(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.sin(tA));
+    }
+
+    static cos(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.cos(tA));
+    }
+
+    static tan(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.tan(tA));
+    }
+
+    static asin(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.asin(tA));
+    }
+
+    static acos(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.acos(tA));
+    }
+
+    static atan(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.atan(tA));
+    }
+
+    static sinh(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.sinh(tA));
+    }
+
+    static cosh(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.cosh(tA));
+    }
+
+    static asinh(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.asinh(tA));
+    }
+
+    static acosh(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.acosh(tA));
+    }
+
+    static atanh(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.atanh(tA));
+    }
+
+    static sqrt(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.sqrt(tA));
     }
 
     static exp(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return Math.exp(tA);
-        } else {
-            return tA.map(subA => TensorMath.exp(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.exp(tA));
     }
 
     static log(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return Math.log(tA);
-        } else {
-            return tA.map(subA => TensorMath.log(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.log(tA));
+    }
+
+    static log2(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.log2(tA));
+    }
+
+    static log10(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.log10(tA));
+    }
+
+    static log1p(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.log(tA));
     }
 
     static relu(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return Math.max(tA, 0);
-        } else {
-            return tA.map(subA => TensorMath.relu(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.max(tA, 0));
     }
 
     static sigmoid(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return 1 / (1 + Math.exp(-tA));
-        } else {
-            return tA.map(subA => TensorMath.sigmoid(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => 1 / (1 + Math.exp(-tA)));
     }
 
     static tanh(tA: Tensor): Tensor {
-        if (typeof tA === "number") {
-            return Math.tanh(tA);
-        } else {
-            return tA.map(subA => TensorMath.tanh(subA));
-        }
+        return TensorMath.elementWiseSelf(tA, (tA) => Math.tanh(tA));
     }
 
     static squeezeAxis(tA: Tensor, axis: number): Tensor {
