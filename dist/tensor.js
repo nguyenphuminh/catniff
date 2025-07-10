@@ -266,6 +266,20 @@ class TensorMath {
         }
         return matATranspose;
     }
+    static dot(tA, tB) {
+        const shapeA = TensorMath.getShape(tA);
+        const shapeB = TensorMath.getShape(tB);
+        if (shapeA.length !== 1 || shapeB.length !== 1 || shapeA[0] !== shapeB[0])
+            throw new Error("Inputs are not 1D tensors");
+        const vectLen = shapeA[0];
+        const vectA = tA;
+        const vectB = tB;
+        let sum = 0;
+        for (let index = 0; index < vectLen; index++) {
+            sum += vectA[index] * vectB[index];
+        }
+        return sum;
+    }
     static mm(tA, tB) {
         const shapeA = TensorMath.getShape(tA);
         const shapeB = TensorMath.getShape(tB);
@@ -289,19 +303,32 @@ class TensorMath {
         }
         return matC;
     }
-    static dot(tA, tB) {
+    static mv(tA, tB) {
         const shapeA = TensorMath.getShape(tA);
         const shapeB = TensorMath.getShape(tB);
-        if (shapeA.length !== 1 || shapeB.length !== 1 || shapeA[0] !== shapeB[0])
-            throw new Error("Inputs are not 1D tensors");
-        const vectLen = shapeA[0];
-        const vectA = tA;
-        const vectB = tB;
-        let sum = 0;
-        for (let index = 0; index < vectLen; index++) {
-            sum += vectA[index] * vectB[index];
+        if (shapeA.length !== 2 || shapeB.length !== 1)
+            throw new Error("Input is not a 2D and 1D tensor pair");
+        const matA = tA;
+        const matB = tB.map(el => [el]); // Turn the 1D tensor into a nx1 matrix (vector)
+        return TensorMath.mm(matA, matB).map(el => el[0]);
+    }
+    static matmul(tA, tB) {
+        const shapeA = TensorMath.getShape(tA);
+        const shapeB = TensorMath.getShape(tB);
+        if (shapeA.length === 1 && shapeB.length === 1) {
+            return TensorMath.dot(tA, tB);
         }
-        return sum;
+        else if (shapeA.length === 1 && shapeB.length === 2) {
+            return TensorMath.mm([tA], tB)[0];
+        }
+        else if (shapeA.length === 2 && shapeB.length === 1) {
+            return TensorMath.mv(tA, tB);
+        }
+        else if (shapeA.length === 2 && shapeB.length === 2) {
+            return TensorMath.mm(tA, tB);
+        }
+        // Batched matmul will come when general nD transpose is done
+        throw new Error(`Shapes [] and [] are not supported`);
     }
 }
 exports.TensorMath = TensorMath;

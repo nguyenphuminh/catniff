@@ -45,8 +45,10 @@ export declare enum OP {
     SIGMOID = 42,
     TANH = 43,
     T = 44,
-    MM = 45,
-    DOT = 46
+    DOT = 45,
+    MM = 46,
+    MV = 47,
+    MATMUL = 48
 }
 export declare class Node {
     value: Tensor;
@@ -56,26 +58,26 @@ export declare class Node {
     op: OP;
     feedBackward: Function;
     constructor(value: Tensor, children?: Node[], op?: OP);
-    add(other: Node | number): Node;
-    sub(other: Node | number): Node;
-    mul(other: Node | number): Node;
-    pow(other: Node | number): Node;
-    div(other: Node | number): Node;
-    ge(other: Node | number): Node;
-    le(other: Node | number): Node;
-    gt(other: Node | number): Node;
-    lt(other: Node | number): Node;
-    eq(other: Node | number): Node;
-    logicalAnd(other: Node | number): Node;
-    logicalOr(other: Node | number): Node;
-    logicalXor(other: Node | number): Node;
+    add(other: Node | Tensor): Node;
+    sub(other: Node | Tensor): Node;
+    mul(other: Node | Tensor): Node;
+    pow(other: Node | Tensor): Node;
+    div(other: Node | Tensor): Node;
+    ge(other: Node | Tensor): Node;
+    le(other: Node | Tensor): Node;
+    gt(other: Node | Tensor): Node;
+    lt(other: Node | Tensor): Node;
+    eq(other: Node | Tensor): Node;
+    logicalAnd(other: Node | Tensor): Node;
+    logicalOr(other: Node | Tensor): Node;
+    logicalXor(other: Node | Tensor): Node;
     logicalNot(): Node;
-    bitwiseAnd(other: Node | number): Node;
-    bitwiseOr(other: Node | number): Node;
-    bitwiseXor(other: Node | number): Node;
+    bitwiseAnd(other: Node | Tensor): Node;
+    bitwiseOr(other: Node | Tensor): Node;
+    bitwiseXor(other: Node | Tensor): Node;
     bitwiseNot(): Node;
-    bitwiseLeftShift(other: Node | number): Node;
-    bitwiseRightShift(other: Node | number): Node;
+    bitwiseLeftShift(other: Node | Tensor): Node;
+    bitwiseRightShift(other: Node | Tensor): Node;
     neg(): Node;
     abs(): Node;
     sign(): Node;
@@ -100,9 +102,11 @@ export declare class Node {
     sigmoid(): Node;
     tanh(): Node;
     t(): Node;
-    mm(other: Node | number): Node;
-    dot(other: Node | number): Node;
+    dot(other: Node | Tensor): Node;
+    mm(other: Node | Tensor): Node;
+    mv(other: Node | Tensor): Node;
+    matmul(other: Node | Tensor): Node;
     backward(): void;
-    static forceNode(value: Node | number): Node;
+    static forceNode(value: Node | Tensor): Node;
     static addGrad(node: Node, accumGrad: Tensor): void;
 }

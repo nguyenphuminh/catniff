@@ -45,8 +45,10 @@ const {
     sigmoid,
     tanh,
     t,
+    dot,
     mm,
-    dot
+    mv,
+    matmul
 } = TensorMath;
 
 export enum OP {
@@ -95,8 +97,10 @@ export enum OP {
     SIGMOID,
     TANH,
     T,
+    DOT,
     MM,
-    DOT
+    MV,
+    MATMUL
 }
 
 export class Node {
@@ -116,7 +120,7 @@ export class Node {
         this.feedBackward = () => {};
     }
 
-    add(other: Node | number): Node {
+    add(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(add(this.value, other.value), [this, other], OP.ADD);
 
@@ -130,7 +134,7 @@ export class Node {
         return out;
     }
 
-    sub(other: Node | number): Node {
+    sub(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(sub(this.value, other.value), [this, other], OP.SUB);
 
@@ -144,7 +148,7 @@ export class Node {
         return out;
     }
 
-    mul(other: Node | number): Node {
+    mul(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(mul(this.value, other.value), [this, other], OP.MUL);
 
@@ -158,7 +162,7 @@ export class Node {
         return out;
     }
 
-    pow(other: Node | number): Node {
+    pow(other: Node | Tensor): Node {
         if (other instanceof Node) {
             const out = new Node(pow(this.value, other.value), [this, other], OP.POW);
 
@@ -181,7 +185,7 @@ export class Node {
         return out;
     }
 
-    div(other: Node | number): Node {
+    div(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(div(this.value, other.value), [this, other], OP.DIV);
 
@@ -195,7 +199,7 @@ export class Node {
         return out;
     }
 
-    ge(other: Node | number): Node {
+    ge(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(ge(this.value, other.value), [this, other], OP.GE);
 
@@ -206,7 +210,7 @@ export class Node {
         return out;
     }
 
-    le(other: Node | number): Node {
+    le(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(le(this.value, other.value), [this, other], OP.LE);
 
@@ -217,7 +221,7 @@ export class Node {
         return out;
     }
 
-    gt(other: Node | number): Node {
+    gt(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(gt(this.value, other.value), [this, other], OP.GT);
 
@@ -228,7 +232,7 @@ export class Node {
         return out;
     }
 
-    lt(other: Node | number): Node {
+    lt(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(lt(this.value, other.value), [this, other], OP.LT);
 
@@ -239,7 +243,7 @@ export class Node {
         return out;
     }
 
-    eq(other: Node | number): Node {
+    eq(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(eq(this.value, other.value), [this, other], OP.EQ);
 
@@ -250,7 +254,7 @@ export class Node {
         return out;
     }
 
-    logicalAnd(other: Node | number): Node {
+    logicalAnd(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(logicalAnd(this.value, other.value), [this, other], OP.LOGICALAND);
 
@@ -261,7 +265,7 @@ export class Node {
         return out;
     }
 
-    logicalOr(other: Node | number): Node {
+    logicalOr(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(logicalOr(this.value, other.value), [this, other], OP.LOGICALOR);
 
@@ -272,7 +276,7 @@ export class Node {
         return out;
     }
 
-    logicalXor(other: Node | number): Node {
+    logicalXor(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(logicalXor(this.value, other.value), [this, other], OP.LOGICALXOR);
 
@@ -293,7 +297,7 @@ export class Node {
         return out;
     }
 
-    bitwiseAnd(other: Node | number): Node {
+    bitwiseAnd(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(bitwiseAnd(this.value, other.value), [this, other], OP.BITWISEAND);
 
@@ -304,7 +308,7 @@ export class Node {
         return out;
     }
 
-    bitwiseOr(other: Node | number): Node {
+    bitwiseOr(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(bitwiseOr(this.value, other.value), [this, other], OP.BITWISEOR);
 
@@ -315,7 +319,7 @@ export class Node {
         return out;
     }
 
-    bitwiseXor(other: Node | number): Node {
+    bitwiseXor(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(bitwiseXor(this.value, other.value), [this, other], OP.BITWISEXOR);
 
@@ -336,7 +340,7 @@ export class Node {
         return out;
     }
 
-    bitwiseLeftShift(other: Node | number): Node {
+    bitwiseLeftShift(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(bitwiseLeftShift(this.value, other.value), [this, other], OP.BITWISELEFTSHIFT);
 
@@ -347,7 +351,7 @@ export class Node {
         return out;
     }
 
-    bitwiseRightShift(other: Node | number): Node {
+    bitwiseRightShift(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(bitwiseRightShift(this.value, other.value), [this, other], OP.BITWISERIGHTSHIFT);
 
@@ -622,7 +626,19 @@ export class Node {
         return out;
     }
 
-    mm(other: Node | number): Node {
+    dot(other: Node | Tensor): Node {
+        other = Node.forceNode(other);
+        const out = new Node(dot(this.value, other.value), [this, other], OP.DOT);
+
+        out.feedBackward = () => {
+            Node.addGrad(this, mul(out.grad, other.value));
+            Node.addGrad(other, mul(out.grad, this.value));
+        }
+
+        return out;
+    }
+
+    mm(other: Node | Tensor): Node {
         other = Node.forceNode(other);
         const out = new Node(mm(this.value, other.value), [this, other], OP.MM);
 
@@ -634,13 +650,46 @@ export class Node {
         return out;
     }
 
-    dot(other: Node | number): Node {
+    mv(other: Node | Tensor): Node {
         other = Node.forceNode(other);
-        const out = new Node(dot(this.value, other.value), [this, other], OP.DOT);
+        const out = new Node(mv(this.value, other.value), [this, other], OP.MV);
 
         out.feedBackward = () => {
-            Node.addGrad(this, mul(out.grad, other.value));
-            Node.addGrad(other, mul(out.grad, this.value));
+            const outGradMat = (out.grad as number[]).map(el => [el]);
+
+            Node.addGrad(this, mm(outGradMat, [other.value]));
+            Node.addGrad(other, mv(t(this.value), out.grad));
+        }
+
+        return out;
+    }
+
+    matmul(other: Node | Tensor): Node {
+        other = Node.forceNode(other);
+        const out = new Node(matmul(this.value, other.value), [this, other], OP.MATMUL);
+
+        if (this.shape.length === 1 && other.shape.length === 1) {
+            out.feedBackward = () => {
+                Node.addGrad(this, mul(out.grad, other.value));
+                Node.addGrad(other, mul(out.grad, this.value));
+            }
+        } else if (this.shape.length === 1 && other.shape.length === 2) {
+            out.feedBackward = () => {
+                Node.addGrad(this, matmul(out.grad, t(other.value)));
+                Node.addGrad(other, mm(t([this.value]), [out.grad]));
+            }
+        } else if (this.shape.length === 2 && other.shape.length === 1) {
+            out.feedBackward = () => {
+                const outGradMat = (out.grad as number[]).map(el => [el]);
+
+                Node.addGrad(this, mm(outGradMat, [other.value]));
+                Node.addGrad(other, mv(t(this.value), out.grad));
+            }
+        } else if (this.shape.length === 2 && other.shape.length === 2) {
+            out.feedBackward = () => {
+                Node.addGrad(this, mm(out.grad, t(other.value)));
+                Node.addGrad(other, mm(t(this.value), out.grad));
+            }
         }
 
         return out;
@@ -671,7 +720,7 @@ export class Node {
         }
     }
 
-    static forceNode(value: Node | number): Node {
+    static forceNode(value: Node | Tensor): Node {
         if (value instanceof Node) return value;
 
         return new Node(value);
