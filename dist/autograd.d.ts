@@ -72,6 +72,7 @@ export declare class Node {
     bitwiseAnd(other: Node | number): Node;
     bitwiseOr(other: Node | number): Node;
     bitwiseXor(other: Node | number): Node;
+    bitwiseNot(): Node;
     bitwiseLeftShift(other: Node | number): Node;
     bitwiseRightShift(other: Node | number): Node;
     neg(): Node;

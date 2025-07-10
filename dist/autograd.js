@@ -223,6 +223,13 @@ class Node {
         };
         return out;
     }
+    bitwiseNot() {
+        const out = new Node(bitwiseNot(this.value), [this], OP.BITWISENOT);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
     bitwiseLeftShift(other) {
         other = Node.forceNode(other);
         const out = new Node(bitwiseLeftShift(this.value, other.value), [this, other], OP.BITWISELEFTSHIFT);
