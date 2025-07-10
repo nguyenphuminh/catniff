@@ -45,7 +45,8 @@ const {
     sigmoid,
     tanh,
     t,
-    mm
+    mm,
+    dot
 } = TensorMath;
 
 export enum OP {
@@ -94,7 +95,8 @@ export enum OP {
     SIGMOID,
     TANH,
     T,
-    MM
+    MM,
+    DOT
 }
 
 export class Node {
@@ -627,6 +629,18 @@ export class Node {
         out.feedBackward = () => {
             Node.addGrad(this, mm(out.grad, t(other.value)));
             Node.addGrad(other, mm(t(this.value), out.grad));
+        }
+
+        return out;
+    }
+
+    dot(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(dot(this.value, other.value), [this, other], OP.DOT);
+
+        out.feedBackward = () => {
+            Node.addGrad(this, mul(out.grad, other.value));
+            Node.addGrad(other, mul(out.grad, this.value));
         }
 
         return out;

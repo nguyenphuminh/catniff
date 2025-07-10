@@ -289,5 +289,19 @@ class TensorMath {
         }
         return matC;
     }
+    static dot(tA, tB) {
+        const shapeA = TensorMath.getShape(tA);
+        const shapeB = TensorMath.getShape(tB);
+        if (shapeA.length !== 1 || shapeB.length !== 1 || shapeA[0] !== shapeB[0])
+            throw new Error("Inputs are not 1D tensors");
+        const vectLen = shapeA[0];
+        const vectA = tA;
+        const vectB = tB;
+        let sum = 0;
+        for (let index = 0; index < vectLen; index++) {
+            sum += vectA[index] * vectB[index];
+        }
+        return sum;
+    }
 }
 exports.TensorMath = TensorMath;

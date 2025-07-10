@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Node = exports.OP = void 0;
 const tensor_1 = require("./tensor");
-const { add, sub, mul, pow, div, gt, lt, ge, le, eq, logicalAnd, logicalOr, logicalXor, logicalNot, bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, bitwiseLeftShift, bitwiseRightShift, neg, abs, sign, sin, cos, tan, asin, acos, atan, sinh, cosh, asinh, acosh, atanh, sqrt, exp, log, log2, log10, log1p, relu, sigmoid, tanh, t, mm } = tensor_1.TensorMath;
+const { add, sub, mul, pow, div, gt, lt, ge, le, eq, logicalAnd, logicalOr, logicalXor, logicalNot, bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, bitwiseLeftShift, bitwiseRightShift, neg, abs, sign, sin, cos, tan, asin, acos, atan, sinh, cosh, asinh, acosh, atanh, sqrt, exp, log, log2, log10, log1p, relu, sigmoid, tanh, t, mm, dot } = tensor_1.TensorMath;
 var OP;
 (function (OP) {
     OP[OP["NONE"] = 0] = "NONE";
@@ -51,6 +51,7 @@ var OP;
     OP[OP["TANH"] = 43] = "TANH";
     OP[OP["T"] = 44] = "T";
     OP[OP["MM"] = 45] = "MM";
+    OP[OP["DOT"] = 46] = "DOT";
 })(OP || (exports.OP = OP = {}));
 class Node {
     value;
@@ -444,6 +445,15 @@ class Node {
         out.feedBackward = () => {
             Node.addGrad(this, mm(out.grad, t(other.value)));
             Node.addGrad(other, mm(t(this.value), out.grad));
+        };
+        return out;
+    }
+    dot(other) {
+        other = Node.forceNode(other);
+        const out = new Node(dot(this.value, other.value), [this, other], OP.DOT);
+        out.feedBackward = () => {
+            Node.addGrad(this, mul(out.grad, other.value));
+            Node.addGrad(other, mul(out.grad, this.value));
         };
         return out;
     }

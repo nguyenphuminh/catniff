@@ -45,7 +45,8 @@ export declare enum OP {
     SIGMOID = 42,
     TANH = 43,
     T = 44,
-    MM = 45
+    MM = 45,
+    DOT = 46
 }
 export declare class Node {
     value: Tensor;
@@ -100,6 +101,7 @@ export declare class Node {
     tanh(): Node;
     t(): Node;
     mm(other: Node | number): Node;
+    dot(other: Node | number): Node;
     backward(): void;
     static forceNode(value: Node | number): Node;
     static addGrad(node: Node, accumGrad: Tensor): void;

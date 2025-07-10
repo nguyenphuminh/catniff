@@ -54,4 +54,5 @@ export declare class TensorMath {
     static sum(tA: Tensor, dims?: number[] | number, keepDims?: boolean): Tensor;
     static t(tA: Tensor): Tensor;
     static mm(tA: Tensor, tB: Tensor): Tensor;
+    static dot(tA: Tensor, tB: Tensor): Tensor;
 }
