@@ -117,6 +117,46 @@ export class TensorMath {
         return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA === tB ? 1 : 0);
     }
 
+    static logicalAnd(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA === 1 && tB === 1 ? 1 : 0);
+    }
+
+    static logicalOr(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA === 1 || tB === 1 ? 1 : 0);
+    }
+
+    static logicalXor(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => (tA === 1 || tB === 1) && tA !== tB ? 1 : 0);
+    }
+
+    static logicalNot(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => tA === 1 ? 0 : 1);
+    }
+
+    static bitwiseAnd(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA & tB);
+    }
+
+    static bitwiseOr(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA | tB);
+    }
+
+    static bitwiseXor(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA ^ tB);
+    }
+
+    static bitwiseNot(tA: Tensor): Tensor {
+        return TensorMath.elementWiseSelf(tA, (tA) => ~tA);
+    }
+
+    static bitwiseLeftShift(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA << tB);
+    }
+
+    static bitwiseRightShift(tA: Tensor, tB: Tensor): Tensor {
+        return TensorMath.elementWiseAB(tA, tB, (tA, tB) => tA >> tB);
+    }
+
     static neg(tA: Tensor): Tensor {
         return TensorMath.elementWiseSelf(tA, (tA) => -tA);
     }

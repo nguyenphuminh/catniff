@@ -15,6 +15,16 @@ export declare class TensorMath {
     static ge(tA: Tensor, tB: Tensor): Tensor;
     static le(tA: Tensor, tB: Tensor): Tensor;
     static eq(tA: Tensor, tB: Tensor): Tensor;
+    static logicalAnd(tA: Tensor, tB: Tensor): Tensor;
+    static logicalOr(tA: Tensor, tB: Tensor): Tensor;
+    static logicalXor(tA: Tensor, tB: Tensor): Tensor;
+    static logicalNot(tA: Tensor): Tensor;
+    static bitwiseAnd(tA: Tensor, tB: Tensor): Tensor;
+    static bitwiseOr(tA: Tensor, tB: Tensor): Tensor;
+    static bitwiseXor(tA: Tensor, tB: Tensor): Tensor;
+    static bitwiseNot(tA: Tensor): Tensor;
+    static bitwiseLeftShift(tA: Tensor, tB: Tensor): Tensor;
+    static bitwiseRightShift(tA: Tensor, tB: Tensor): Tensor;
     static neg(tA: Tensor): Tensor;
     static abs(tA: Tensor): Tensor;
     static sign(tA: Tensor): Tensor;

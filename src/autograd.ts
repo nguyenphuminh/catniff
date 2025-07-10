@@ -11,6 +11,16 @@ const {
     ge,
     le,
     eq,
+    logicalAnd,
+    logicalOr,
+    logicalXor,
+    logicalNot,
+    bitwiseAnd,
+    bitwiseOr,
+    bitwiseXor,
+    bitwiseNot,
+    bitwiseLeftShift,
+    bitwiseRightShift,
     neg,
     abs,
     sign,
@@ -50,6 +60,16 @@ export enum OP {
     GT,
     LT,
     EQ,
+    LOGICALAND,
+    LOGICALOR,
+    LOGICALXOR,
+    LOGICALNOT,
+    BITWISEAND,
+    BITWISEOR,
+    BITWISEXOR,
+    BITWISENOT,
+    BITWISELEFTSHIFT,
+    BITWISERIGHTSHIFT,
     NEG,
     ABS,
     SIGN,
@@ -223,6 +243,104 @@ export class Node {
 
         out.feedBackward = () => {
             // We consider the derivative of eq to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    logicalAnd(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(logicalAnd(this.value, other.value), [this, other], OP.LOGICALAND);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    logicalOr(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(logicalOr(this.value, other.value), [this, other], OP.LOGICALOR);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    logicalXor(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(logicalXor(this.value, other.value), [this, other], OP.LOGICALXOR);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    logicalNot(): Node {
+        const out = new Node(logicalNot(this.value), [this], OP.LOGICALNOT);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    bitwiseAnd(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseAnd(this.value, other.value), [this, other], OP.BITWISEAND);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    bitwiseOr(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseOr(this.value, other.value), [this, other], OP.BITWISEOR);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    bitwiseXor(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseXor(this.value, other.value), [this, other], OP.BITWISEXOR);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    bitwiseLeftShift(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseLeftShift(this.value, other.value), [this, other], OP.BITWISELEFTSHIFT);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        }
+
+        return out;
+    }
+
+    bitwiseRightShift(other: Node | number): Node {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseRightShift(this.value, other.value), [this, other], OP.BITWISERIGHTSHIFT);
+
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
         }
 
         return out;

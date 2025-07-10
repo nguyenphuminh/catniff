@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Node = exports.OP = void 0;
 const tensor_1 = require("./tensor");
-const { add, sub, mul, pow, div, gt, lt, ge, le, eq, neg, abs, sign, sin, cos, tan, asin, acos, atan, sinh, cosh, asinh, acosh, atanh, sqrt, exp, log, log2, log10, log1p, relu, sigmoid, tanh, t, mm } = tensor_1.TensorMath;
+const { add, sub, mul, pow, div, gt, lt, ge, le, eq, logicalAnd, logicalOr, logicalXor, logicalNot, bitwiseAnd, bitwiseOr, bitwiseXor, bitwiseNot, bitwiseLeftShift, bitwiseRightShift, neg, abs, sign, sin, cos, tan, asin, acos, atan, sinh, cosh, asinh, acosh, atanh, sqrt, exp, log, log2, log10, log1p, relu, sigmoid, tanh, t, mm } = tensor_1.TensorMath;
 var OP;
 (function (OP) {
     OP[OP["NONE"] = 0] = "NONE";
@@ -16,31 +16,41 @@ var OP;
     OP[OP["GT"] = 8] = "GT";
     OP[OP["LT"] = 9] = "LT";
     OP[OP["EQ"] = 10] = "EQ";
-    OP[OP["NEG"] = 11] = "NEG";
-    OP[OP["ABS"] = 12] = "ABS";
-    OP[OP["SIGN"] = 13] = "SIGN";
-    OP[OP["SIN"] = 14] = "SIN";
-    OP[OP["COS"] = 15] = "COS";
-    OP[OP["TAN"] = 16] = "TAN";
-    OP[OP["ASIN"] = 17] = "ASIN";
-    OP[OP["ACOS"] = 18] = "ACOS";
-    OP[OP["ATAN"] = 19] = "ATAN";
-    OP[OP["SINH"] = 20] = "SINH";
-    OP[OP["COSH"] = 21] = "COSH";
-    OP[OP["ASINH"] = 22] = "ASINH";
-    OP[OP["ACOSH"] = 23] = "ACOSH";
-    OP[OP["ATANH"] = 24] = "ATANH";
-    OP[OP["SQRT"] = 25] = "SQRT";
-    OP[OP["EXP"] = 26] = "EXP";
-    OP[OP["LOG"] = 27] = "LOG";
-    OP[OP["LOG2"] = 28] = "LOG2";
-    OP[OP["LOG10"] = 29] = "LOG10";
-    OP[OP["LOG1P"] = 30] = "LOG1P";
-    OP[OP["RELU"] = 31] = "RELU";
-    OP[OP["SIGMOID"] = 32] = "SIGMOID";
-    OP[OP["TANH"] = 33] = "TANH";
-    OP[OP["T"] = 34] = "T";
-    OP[OP["MM"] = 35] = "MM";
+    OP[OP["LOGICALAND"] = 11] = "LOGICALAND";
+    OP[OP["LOGICALOR"] = 12] = "LOGICALOR";
+    OP[OP["LOGICALXOR"] = 13] = "LOGICALXOR";
+    OP[OP["LOGICALNOT"] = 14] = "LOGICALNOT";
+    OP[OP["BITWISEAND"] = 15] = "BITWISEAND";
+    OP[OP["BITWISEOR"] = 16] = "BITWISEOR";
+    OP[OP["BITWISEXOR"] = 17] = "BITWISEXOR";
+    OP[OP["BITWISENOT"] = 18] = "BITWISENOT";
+    OP[OP["BITWISELEFTSHIFT"] = 19] = "BITWISELEFTSHIFT";
+    OP[OP["BITWISERIGHTSHIFT"] = 20] = "BITWISERIGHTSHIFT";
+    OP[OP["NEG"] = 21] = "NEG";
+    OP[OP["ABS"] = 22] = "ABS";
+    OP[OP["SIGN"] = 23] = "SIGN";
+    OP[OP["SIN"] = 24] = "SIN";
+    OP[OP["COS"] = 25] = "COS";
+    OP[OP["TAN"] = 26] = "TAN";
+    OP[OP["ASIN"] = 27] = "ASIN";
+    OP[OP["ACOS"] = 28] = "ACOS";
+    OP[OP["ATAN"] = 29] = "ATAN";
+    OP[OP["SINH"] = 30] = "SINH";
+    OP[OP["COSH"] = 31] = "COSH";
+    OP[OP["ASINH"] = 32] = "ASINH";
+    OP[OP["ACOSH"] = 33] = "ACOSH";
+    OP[OP["ATANH"] = 34] = "ATANH";
+    OP[OP["SQRT"] = 35] = "SQRT";
+    OP[OP["EXP"] = 36] = "EXP";
+    OP[OP["LOG"] = 37] = "LOG";
+    OP[OP["LOG2"] = 38] = "LOG2";
+    OP[OP["LOG10"] = 39] = "LOG10";
+    OP[OP["LOG1P"] = 40] = "LOG1P";
+    OP[OP["RELU"] = 41] = "RELU";
+    OP[OP["SIGMOID"] = 42] = "SIGMOID";
+    OP[OP["TANH"] = 43] = "TANH";
+    OP[OP["T"] = 44] = "T";
+    OP[OP["MM"] = 45] = "MM";
 })(OP || (exports.OP = OP = {}));
 class Node {
     value;
@@ -155,6 +165,77 @@ class Node {
         const out = new Node(eq(this.value, other.value), [this, other], OP.EQ);
         out.feedBackward = () => {
             // We consider the derivative of eq to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    logicalAnd(other) {
+        other = Node.forceNode(other);
+        const out = new Node(logicalAnd(this.value, other.value), [this, other], OP.LOGICALAND);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    logicalOr(other) {
+        other = Node.forceNode(other);
+        const out = new Node(logicalOr(this.value, other.value), [this, other], OP.LOGICALOR);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    logicalXor(other) {
+        other = Node.forceNode(other);
+        const out = new Node(logicalXor(this.value, other.value), [this, other], OP.LOGICALXOR);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    logicalNot() {
+        const out = new Node(logicalNot(this.value), [this], OP.LOGICALNOT);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    bitwiseAnd(other) {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseAnd(this.value, other.value), [this, other], OP.BITWISEAND);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    bitwiseOr(other) {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseOr(this.value, other.value), [this, other], OP.BITWISEOR);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    bitwiseXor(other) {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseXor(this.value, other.value), [this, other], OP.BITWISEXOR);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    bitwiseLeftShift(other) {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseLeftShift(this.value, other.value), [this, other], OP.BITWISELEFTSHIFT);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
+        };
+        return out;
+    }
+    bitwiseRightShift(other) {
+        other = Node.forceNode(other);
+        const out = new Node(bitwiseRightShift(this.value, other.value), [this, other], OP.BITWISERIGHTSHIFT);
+        out.feedBackward = () => {
+            // We consider the derivative of this to be 0, which does not add to current grad, so this function is just empty
         };
         return out;
     }

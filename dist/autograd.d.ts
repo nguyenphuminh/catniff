@@ -11,31 +11,41 @@ export declare enum OP {
     GT = 8,
     LT = 9,
     EQ = 10,
-    NEG = 11,
-    ABS = 12,
-    SIGN = 13,
-    SIN = 14,
-    COS = 15,
-    TAN = 16,
-    ASIN = 17,
-    ACOS = 18,
-    ATAN = 19,
-    SINH = 20,
-    COSH = 21,
-    ASINH = 22,
-    ACOSH = 23,
-    ATANH = 24,
-    SQRT = 25,
-    EXP = 26,
-    LOG = 27,
-    LOG2 = 28,
-    LOG10 = 29,
-    LOG1P = 30,
-    RELU = 31,
-    SIGMOID = 32,
-    TANH = 33,
-    T = 34,
-    MM = 35
+    LOGICALAND = 11,
+    LOGICALOR = 12,
+    LOGICALXOR = 13,
+    LOGICALNOT = 14,
+    BITWISEAND = 15,
+    BITWISEOR = 16,
+    BITWISEXOR = 17,
+    BITWISENOT = 18,
+    BITWISELEFTSHIFT = 19,
+    BITWISERIGHTSHIFT = 20,
+    NEG = 21,
+    ABS = 22,
+    SIGN = 23,
+    SIN = 24,
+    COS = 25,
+    TAN = 26,
+    ASIN = 27,
+    ACOS = 28,
+    ATAN = 29,
+    SINH = 30,
+    COSH = 31,
+    ASINH = 32,
+    ACOSH = 33,
+    ATANH = 34,
+    SQRT = 35,
+    EXP = 36,
+    LOG = 37,
+    LOG2 = 38,
+    LOG10 = 39,
+    LOG1P = 40,
+    RELU = 41,
+    SIGMOID = 42,
+    TANH = 43,
+    T = 44,
+    MM = 45
 }
 export declare class Node {
     value: Tensor;
@@ -55,6 +65,15 @@ export declare class Node {
     gt(other: Node | number): Node;
     lt(other: Node | number): Node;
     eq(other: Node | number): Node;
+    logicalAnd(other: Node | number): Node;
+    logicalOr(other: Node | number): Node;
+    logicalXor(other: Node | number): Node;
+    logicalNot(): Node;
+    bitwiseAnd(other: Node | number): Node;
+    bitwiseOr(other: Node | number): Node;
+    bitwiseXor(other: Node | number): Node;
+    bitwiseLeftShift(other: Node | number): Node;
+    bitwiseRightShift(other: Node | number): Node;
     neg(): Node;
     abs(): Node;
     sign(): Node;
