@@ -17,4 +17,4 @@ const G = F.log();
 
 G.backward();
 
-console.log(X.grad, Y.grad, X);
+console.log(X.grad, Y.grad);
