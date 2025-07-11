@@ -415,3 +415,6 @@ export class TensorMath {
         throw new Error(`Shapes [] and [] are not supported`);
     }
 }
+
+export const TM = TensorMath;
+export const TMath = TensorMath;

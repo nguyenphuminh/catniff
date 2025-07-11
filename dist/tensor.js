@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TensorMath = void 0;
+exports.TMath = exports.TM = exports.TensorMath = void 0;
 class TensorMath {
     static create(num, shape) {
         if (shape.length === 0) {
@@ -332,3 +332,5 @@ class TensorMath {
     }
 }
 exports.TensorMath = TensorMath;
+exports.TM = TensorMath;
+exports.TMath = TensorMath;

@@ -1,6 +1,6 @@
 {
   "name": "catniff",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "A cute autograd engine for Javascript",
   "main": "index.js",
   "scripts": {
@@ -25,7 +25,8 @@
     "framework",
     "neural-network",
     "machine-learning",
-    "deep-learning"
+    "deep-learning",
+    "micrograd"
   ],
   "author": "nguyenphuminh",
   "license": "GPL-3.0",

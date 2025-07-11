@@ -58,3 +58,5 @@ export declare class TensorMath {
     static mv(tA: Tensor, tB: Tensor): Tensor;
     static matmul(tA: Tensor, tB: Tensor): Tensor;
 }
+export declare const TM: typeof TensorMath;
+export declare const TMath: typeof TensorMath;

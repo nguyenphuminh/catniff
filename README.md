@@ -1,6 +1,6 @@
 # Catniff
 
-Catniff is a small and experimental tensor library and autograd engine inspired by [micrograd](https://github.com/karpathy/micrograd). The name is a play on "catnip" and "differentiation".
+Catniff is an experimental tensor ops library and autograd engine inspired by [micrograd](https://github.com/karpathy/micrograd), and its name is a play on "catnip" and "differentiation". The project is heavily in-dev currently, so keep in mind that APIs can be unstable and backwards-incompatible.
 
 ## Setup
 
@@ -22,6 +22,8 @@ L.backward();
 console.log(x.grad); // 5
 ```
 
+View all examples in [`./examples`](./examples).
+
 ## Tensors
 
 Tensors in Catniff are either numbers (scalars/0-D tensors) or multidimensional number arrays (n-D tensors).
@@ -35,11 +37,21 @@ const B = 3;
 console.log(TensorMath.add(A, B));
 ```
 
+If you want to be concise, you can use `TM` or `TMath`:
+```js
+const { TM, TMath } = require("catniff");
+
+const A = [ 1, 2, 3 ];
+const B = 3;
+console.log(TM.add(A, B));
+console.log(TMath.add(A, B));
+```
+
 All available APIs are in `./src/tensor.ts`.
 
 ## Autograd
 
-To compute the gradient of our mathematical expression, we use the `Node` class to dynamically build our DAG:
+To compute the gradient wrt muliple variables of our mathematical expression, we use the `Node` class to dynamically build our DAG:
 ```js
 const { Node } = require("catniff");
 
