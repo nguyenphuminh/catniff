@@ -51,7 +51,7 @@ All available APIs are in `./src/tensor.ts`.
 
 ## Autograd
 
-To compute the gradient wrt muliple variables of our mathematical expression, we use the `Node` class to dynamically build our DAG:
+To compute the gradient wrt multiple variables of our mathematical expression, we use the `Node` class to dynamically build our DAG:
 ```js
 const { Node } = require("catniff");
 
@@ -79,7 +79,7 @@ All available APIs are in `./src/autograd.ts`.
 
 ## Todos
 
-I'm mostly just learning and playing with this currently, so there are no concrete plans yet, but here are what I currently have in mind:
+I'm mostly just learning and playing with this currently, so there are no concrete plans yet, but here is what I currently have in mind:
 
 * Fix whatever is the problem right now (there are a lot of problems right now lol).
 * Add more tensor ops.
