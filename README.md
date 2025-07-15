@@ -1,6 +1,6 @@
 # Catniff
 
-Catniff is an experimental tensor ops library and autograd engine made to be Torch-like (its name is a play on "catnip" and "differentiation"). This project is heavily in-dev currently, so keep in mind that APIs can be completely unstable and backwards-incompatible.
+Catniff is an experimental tensor ops library and autograd engine made to be Torch-like (its name is a play on "catnip" and "differentiation"). This project is heavily under development currently, so keep in mind that APIs can be completely unstable and backwards-incompatible.
 
 ## Setup
 
@@ -27,7 +27,7 @@ View all examples in [`./examples`](./examples).
 
 ## Tensors
 
-Tensors in Catniff can be created by passing in a number of an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
+Tensors in Catniff can be created by passing in a number or an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
 ```js
 const { Tensor } = require("catniff");
 
