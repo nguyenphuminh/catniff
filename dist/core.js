@@ -280,13 +280,13 @@ class Tensor {
         // New stride
         const newStrides = [...this.strides];
         let newDimStride;
-        if (dim === 0) {
-            // Inserting at front: use product of all original dimensions  
-            newDimStride = this.shape.reduce((a, b) => a * b, 1) || 1;
+        if (dim === this.shape.length) {
+            // Inserting at the back: reuse last stride or 1
+            newDimStride = this.strides[this.strides.length - 1] ?? 1;
         }
         else {
-            // Inserting elsewhere: use stride of previous dimension
-            newDimStride = this.strides[dim - 1];
+            // Inserting before dim: copy current stride at that dim
+            newDimStride = this.strides[dim] * this.shape[dim];
         }
         newStrides.splice(dim, 0, newDimStride);
         const out = new Tensor(this.value, { shape: newShape, strides: newStrides });
