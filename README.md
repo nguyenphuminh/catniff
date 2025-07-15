@@ -1,6 +1,6 @@
 # Catniff
 
-Catniff is an experimental tensor ops library and autograd engine inspired by [micrograd](https://github.com/karpathy/micrograd), and its name is a play on "catnip" and "differentiation". The project is heavily in-dev currently, so keep in mind that APIs can be unstable and backwards-incompatible.
+Catniff is an experimental tensor ops library and autograd engine made to be Torch-like (its name is a play on "catnip" and "differentiation"). This project is heavily in-dev currently, so keep in mind that APIs can be completely unstable and backwards-incompatible.
 
 ## Setup
 
@@ -13,57 +13,55 @@ npm install catniff
 
 Here is a little demo of a quadratic function:
 ```js
-const { Node } = require("catniff");
+const { Tensor } = require("catniff");
 
-const x = new Node(2);
+const x = new Tensor(2, { requiresGrad: true });
 const L = x.pow(2).add(x); // x^2 + x
 
 L.backward();
-console.log(x.grad); // 5
+
+console.log(x.grad.val()); // 5
 ```
 
 View all examples in [`./examples`](./examples).
 
 ## Tensors
 
-Tensors in Catniff are either numbers (scalars/0-D tensors) or multidimensional number arrays (n-D tensors).
-
-There is a built-in `TensorMath` class to help with tensor arithmetic, for example:
+Tensors in Catniff can be created by passing in a number of an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
 ```js
-const { TensorMath } = require("catniff");
+const { Tensor } = require("catniff");
 
-const A = [ 1, 2, 3 ];
-const B = 3;
-console.log(TensorMath.add(A, B));
+// Tensor init
+const A = new Tensor([ 1, 2, 3 ]);
+const B = new Tensor(3);
+
+// Tensor addition (.val() returns the raw value rather than the tensor object)
+console.log(A.add(B).val());
 ```
 
-If you want to be concise, you can use `TM` or `TMath`:
-```js
-const { TM, TMath } = require("catniff");
-
-const A = [ 1, 2, 3 ];
-const B = 3;
-console.log(TM.add(A, B));
-console.log(TMath.add(A, B));
-```
-
-All available APIs are in `./src/tensor.ts`.
+All available APIs are in `./src/core.ts`.
 
 ## Autograd
 
-To compute the gradient wrt multiple variables of our mathematical expression, we use the `Node` class to dynamically build our DAG:
+To compute the gradient wrt multiple variables of our mathematical expression, we can simply set `requiresGrad` to `true`:
 ```js
-const { Node } = require("catniff");
+const { Tensor } = require("catniff");
 
-const X = new Node([
-    [ 0.5, -1.0 ],
-    [ 2.0,  0.0 ]
-]);
+const X = new Tensor(
+    [
+        [ 0.5, -1.0 ],
+        [ 2.0,  0.0 ]
+    ],
+    { requiresGrad: true }
+);
 
-const Y = new Node([
-    [ 1.0, -2.0 ],
-    [ 0.5,  1.5 ]
-]);
+const Y = new Tensor(
+    [
+        [ 1.0, -2.0 ],
+        [ 0.5,  1.5 ]
+    ],
+    { requiresGrad: true }
+);
 
 const D = X.sub(Y);
 const E = D.exp();
@@ -72,10 +70,15 @@ const G = F.log();
 
 G.backward();
 
-console.log(X.grad, Y.grad);
+// X.grad and Y.grad are tensor objects themselves, so we call .val() here to see their raw values
+console.log(X.grad.val(), Y.grad.val());
 ```
 
-All available APIs are in `./src/autograd.ts`.
+All available APIs are in `./src/core.ts`.
+
+## Documentation
+
+Todo :/
 
 ## Todos
 

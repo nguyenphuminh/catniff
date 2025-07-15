@@ -1,7 +1,8 @@
-const { Node } = require("../index");
+const { Tensor } = require("../index");
 
-const x = new Node(2);
-const L = x.pow(2).add(x)
+const x = new Tensor(2, { requiresGrad: true });
+const L = x.pow(2).add(x);
 
 L.backward();
-console.log(x.grad, L.grad);
+
+console.log(x.grad.val(), L.grad.val());

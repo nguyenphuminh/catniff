@@ -1,23 +1,23 @@
-const { Node, TM } = require("./index");
+const { Tensor } = require("../index");
 
 class Xornet {
     constructor(options = {}) {
         // 2->2->1 xornet
-        this.w1 = new Node(options.w1 || [
+        this.w1 = new Tensor(options.w1 || [
             [Math.random() * 2 - 1, Math.random() * 2 - 1],
             [Math.random() * 2 - 1, Math.random() * 2 - 1]
-        ]);
-        this.b1 = new Node(options.b1 || [0, 0]);
-        this.w2 = new Node(options.w2 || [
+        ], { requiresGrad: true });
+        this.b1 = new Tensor(options.b1 || [0, 0], { requiresGrad: true });
+        this.w2 = new Tensor(options.w2 || [
             [Math.random() * 2 - 1],
             [Math.random() * 2 - 1]
-        ]);
-        this.b2 = new Node(options.b2 || [0]);
+        ], { requiresGrad: true });
+        this.b2 = new Tensor(options.b2 || [0], { requiresGrad: true });
         this.lr = options.lr || 0.5;
     }
 
     forward(input) {
-        return new Node(input)
+        return new Tensor(input)
                     .matmul(this.w1)
                     .add(this.b1)
                     .sigmoid()
@@ -27,16 +27,17 @@ class Xornet {
     }
 
     backprop(input, target) {
-        const T = new Node(target);
+        const T = new Tensor(target);
         const Y = this.forward(input);
         const L = Y.sub(T).pow(2).mul(0.5);
 
         L.backward();
 
-        this.w1.value = TM.sub(this.w1.value, TM.mul(this.w1.grad, this.lr));
-        this.w2.value = TM.sub(this.w2.value, TM.mul(this.w2.grad, this.lr));
-        this.b1.value = TM.sub(this.b1.value, TM.mul(this.b1.grad, this.lr));
-        this.b2.value = TM.sub(this.b2.value, TM.mul(this.b2.grad, this.lr));
+        // We disable gradient collecting first to calculate new weight, then enable it for next pass
+        this.w1 = this.w1.withGrad(false).sub(this.w1.grad.mul(this.lr)).withGrad(true);
+        this.w2 = this.w2.withGrad(false).sub(this.w2.grad.mul(this.lr)).withGrad(true);
+        this.b1 = this.b1.withGrad(false).sub(this.b1.grad.mul(this.lr)).withGrad(true);
+        this.b2 = this.b2.withGrad(false).sub(this.b2.grad.mul(this.lr)).withGrad(true);
     }
 }
 
@@ -49,7 +50,7 @@ for (let epoch = 0; epoch < 30000; epoch++) {
     xornet.backprop([1,1], [0]);
 }
 
-console.log(xornet.forward([1,1]).value); // 0-ish
-console.log(xornet.forward([1,0]).value); // 1-ish
-console.log(xornet.forward([0,1]).value); // 1-ish
-console.log(xornet.forward([0,0]).value); // 0-ish
+console.log(xornet.forward([1,1]).val()); // 0-ish
+console.log(xornet.forward([1,0]).val()); // 1-ish
+console.log(xornet.forward([0,1]).val()); // 1-ish
+console.log(xornet.forward([0,0]).val()); // 0-ish

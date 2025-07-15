@@ -1,6 +1,6 @@
 {
   "name": "catniff",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "description": "A cute autograd engine for Javascript",
   "main": "index.js",
   "scripts": {
