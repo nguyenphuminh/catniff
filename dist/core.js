@@ -53,16 +53,21 @@ class Tensor {
         }
         return strides;
     }
-    // Left-pad dimensions for two shape to be of same length
-    static padDims(shapeA, shapeB) {
-        const newA = [...shapeA], newB = [...shapeB];
-        while (newA.length < newB.length) {
-            newA.unshift(1);
+    // Left-pad shape and strides for two shape to be of same length
+    static padShape(stridesA, stridesB, shapeA, shapeB) {
+        const newStrideA = [...stridesA], newStrideB = [...stridesB];
+        const newShapeA = [...shapeA], newShapeB = [...shapeB];
+        while (newStrideA.length < newStrideB.length) {
+            const newStride = newShapeA[0] * newStrideA[0];
+            newStrideA.unshift(newStride);
+            newShapeA.unshift(1);
         }
-        while (newA.length > newB.length) {
-            newB.unshift(1);
+        while (newStrideA.length > newStrideB.length) {
+            const newStride = newShapeB[0] * newStrideB[0];
+            newStrideB.unshift(newStride);
+            newShapeB.unshift(1);
         }
-        return [newA, newB];
+        return [newStrideA, newStrideB, newShapeA, newShapeB];
     }
     // Broadcast shapes
     static broadcastShapes(shapeA, shapeB) {
@@ -118,7 +123,7 @@ class Tensor {
             return Tensor.elementWiseSelf(tA, (a) => op(a, tB.value));
         }
         // Pad + broadcast shape
-        const [paddedAShape, paddedBShape] = Tensor.padDims(tA.shape, tB.shape);
+        const [paddedAStrides, paddedBStrides, paddedAShape, paddedBShape] = Tensor.padShape(tA.strides, tB.strides, tA.shape, tB.shape);
         const outputShape = Tensor.broadcastShapes(paddedAShape, paddedBShape);
         // Get other output info
         const outputStrides = Tensor.getStrides(outputShape);
@@ -128,9 +133,9 @@ class Tensor {
             // Get coordinates from 1D index
             const coordsOutput = Tensor.indexToCoords(i, outputShape, outputStrides);
             // Convert the coordinates to 1D index of flattened A with respect to A's shape
-            const indexA = Tensor.coordsToIndex(coordsOutput, paddedAShape, Tensor.getStrides(paddedAShape));
+            const indexA = Tensor.coordsToIndex(coordsOutput, paddedAShape, paddedAStrides);
             // Convert the coordinates to 1D index of flattened B with respect to B's shape
-            const indexB = Tensor.coordsToIndex(coordsOutput, paddedBShape, Tensor.getStrides(paddedBShape));
+            const indexB = Tensor.coordsToIndex(coordsOutput, paddedBShape, paddedBStrides);
             // Calculate with op
             outputValue[i] = op(tA.value[indexA], tB.value[indexB]);
         }
@@ -143,10 +148,10 @@ class Tensor {
     static elementWiseSelf(tA, op) {
         if (typeof tA.value === "number")
             return new Tensor(op(tA.value));
-        return new Tensor(tA.value.map(el => op(el)), { shape: tA.shape, strides: tA.strides });
+        return new Tensor(tA.value.map(el => op(el)), { shape: [...tA.shape], strides: [...tA.strides] });
     }
     // Utility to do element-wise operation and build a dag node with another tensor
-    elementWiseABDAG(other, op, thisGrad, otherGrad) {
+    elementWiseABDAG(other, op, thisGrad = () => new Tensor(0), otherGrad = () => new Tensor(0)) {
         other = Tensor.forceTensor(other);
         const out = Tensor.elementWiseAB(this, other, op);
         if (this.requiresGrad) {
@@ -159,17 +164,20 @@ class Tensor {
         }
         if (out.requiresGrad) {
             out.gradFn = () => {
-                const outGrad = out.grad;
+                // Disable gradient collecting of gradients themselves
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
+                const otherNoGrad = other.withGrad(false);
                 if (this.requiresGrad)
-                    thisGrad(this, other, outGrad);
+                    Tensor.addGrad(this, thisGrad(selfNoGrad, otherNoGrad, outGrad));
                 if (other.requiresGrad)
-                    otherGrad(this, other, outGrad);
+                    Tensor.addGrad(other, otherGrad(selfNoGrad, otherNoGrad, outGrad));
             };
         }
         return out;
     }
     // Utility to do self-inflicting element-wise operation and build a dag node
-    elementWiseSelfDAG(op, thisGrad) {
+    elementWiseSelfDAG(op, thisGrad = () => new Tensor(0)) {
         const out = Tensor.elementWiseSelf(this, op);
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -177,9 +185,11 @@ class Tensor {
         }
         if (out.requiresGrad) {
             out.gradFn = () => {
-                const outGrad = out.grad;
+                // Disable gradient collecting of gradients themselves
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
                 if (this.requiresGrad)
-                    thisGrad(this, outGrad);
+                    Tensor.addGrad(this, thisGrad(selfNoGrad, outGrad));
             };
         }
         return out;
@@ -207,7 +217,6 @@ class Tensor {
             }
         }
         const reducedGrad = accumGrad.sum(axesToReduce, true);
-        // console.log(accumGrad, new Tensor([[1,1,1]]));
         const squeezedGrad = reducedGrad.squeeze(axesToSqueeze);
         if (typeof tensor.grad === "undefined") {
             tensor.grad = squeezedGrad;
@@ -238,7 +247,7 @@ class Tensor {
                 throw new Error(`Can not squeeze dim with size ${dim}`);
             return !shouldSqueeze;
         });
-        const outStrides = Tensor.getStrides(outShape);
+        const outStrides = this.strides.filter((stride, i) => !dims.includes(i));
         const outValue = outShape.length === 0 ? this.value[0] : this.value;
         const out = new Tensor(outValue, {
             shape: outShape,
@@ -249,7 +258,7 @@ class Tensor {
             out.requiresGrad = true;
             out.children.push(this);
             out.gradFn = () => {
-                let restoredGrad = out.grad;
+                let restoredGrad = out.grad.withGrad(false);
                 for (let i = dims.length - 1; i >= 0; i--) {
                     restoredGrad = restoredGrad.unsqueeze(dims[i]);
                 }
@@ -260,27 +269,35 @@ class Tensor {
     }
     // Tensor unsqueeze - adds dimension of size 1 at specified position
     unsqueeze(dim) {
-        if (typeof this.value === "number")
-            return new Tensor([this.value]);
+        if (typeof this.value === "number") {
+            const newShape = [1];
+            return new Tensor(this.value, { shape: newShape, strides: [1] });
+        }
         if (dim < 0 || dim > this.shape.length) {
             throw new Error(`Invalid dimension ${dim} for unsqueeze`);
         }
         // Insert size-1 dimension at specified position
         const newShape = [...this.shape];
         newShape.splice(dim, 0, 1);
-        // Insert appropriate stride for new dimension
+        // New stride
         const newStrides = [...this.strides];
-        // For dimension of size 1, stride can be any value since we never step through it
-        // Use the stride of the next dimension, or 1 if it's the last dimension
-        const newStride = dim < this.strides.length ? this.strides[dim] : 1;
-        newStrides.splice(dim, 0, newStride);
+        let newDimStride;
+        if (dim === 0) {
+            // Inserting at front: use product of all original dimensions  
+            newDimStride = this.shape.reduce((a, b) => a * b, 1) || 1;
+        }
+        else {
+            // Inserting elsewhere: use stride of previous dimension
+            newDimStride = this.strides[dim - 1];
+        }
+        newStrides.splice(dim, 0, newDimStride);
         const out = new Tensor(this.value, { shape: newShape, strides: newStrides });
         // Set up gradient if needed
         if (this.requiresGrad) {
             out.requiresGrad = true;
             out.children.push(this);
             out.gradFn = () => {
-                Tensor.addGrad(this, out.grad.squeeze(dim));
+                Tensor.addGrad(this, out.grad.withGrad(false).squeeze(dim));
             };
         }
         return out;
@@ -300,6 +317,12 @@ class Tensor {
         const outputSize = outputShape.reduce((a, b) => a * b, 1);
         const outputValue = new Array(outputSize).fill(0);
         const originalSize = this.shape.reduce((a, b) => a * b, 1);
+        let gradShape, gradStrides, gradValue = [];
+        if (this.requiresGrad) {
+            gradShape = [...this.shape];
+            gradStrides = [...this.strides];
+            gradValue = new Array(originalSize).fill(0);
+        }
         for (let index = 0; index < originalSize; index++) {
             const coords = Tensor.indexToCoords(index, this.shape, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
@@ -309,249 +332,200 @@ class Tensor {
             // Accumulate
             const realFlatIndex = coords.reduce((acc, val, i) => acc + val * this.strides[i], 0);
             outputValue[outFlatIndex] += this.value[realFlatIndex];
+            // Mark for gradient
+            if (this.requiresGrad) {
+                (gradValue)[realFlatIndex] = 1;
+            }
         }
         const out = new Tensor(outputValue, {
             shape: outputShape,
             strides: outputStrides
         });
+        // Set up gradient if needed
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
+                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+            };
+        }
         return keepDims ? out : out.squeeze(dims);
     }
     // Tensor element-wise addition
     add(other) {
-        return this.elementWiseABDAG(other, (a, b) => a + b, (self, other, outGrad) => {
-            Tensor.addGrad(self, outGrad);
-        }, (self, other, outGrad) => {
-            Tensor.addGrad(other, outGrad);
-        });
+        return this.elementWiseABDAG(other, (a, b) => a + b, (self, other, outGrad) => outGrad, (self, other, outGrad) => outGrad);
     }
     // Tensor element-wise subtraction
     sub(other) {
-        return this.elementWiseABDAG(other, (a, b) => a - b, (self, other, outGrad) => {
-            Tensor.addGrad(self, outGrad);
-        }, (self, other, outGrad) => {
-            Tensor.addGrad(other, outGrad.neg());
-        });
+        return this.elementWiseABDAG(other, (a, b) => a - b, (self, other, outGrad) => outGrad, (self, other, outGrad) => outGrad.neg());
     }
     // Tensor element-wise multiplication
     mul(other) {
-        return this.elementWiseABDAG(other, (a, b) => a * b, (self, other, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(other));
-        }, (self, other, outGrad) => {
-            Tensor.addGrad(other, outGrad.mul(self));
-        });
+        return this.elementWiseABDAG(other, (a, b) => a * b, (self, other, outGrad) => outGrad.mul(other), (self, other, outGrad) => outGrad.mul(self));
     }
     // Tensor element-wise power
     pow(other) {
-        return this.elementWiseABDAG(other, (a, b) => a ** b, (self, other, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(other.mul(self.pow(other.sub(1)))));
-        }, (self, other, outGrad) => {
-            Tensor.addGrad(other, outGrad.mul(self.pow(other).mul(self.log())));
-        });
+        return this.elementWiseABDAG(other, (a, b) => a ** b, (self, other, outGrad) => outGrad.mul(other.mul(self.pow(other.sub(1)))), (self, other, outGrad) => outGrad.mul(self.pow(other).mul(self.log())));
     }
     // Tensor element-wise division
     div(other) {
-        return this.elementWiseABDAG(other, (a, b) => a / b, (self, other, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(other));
-        }, (self, other, outGrad) => {
-            Tensor.addGrad(other, outGrad.mul(self.neg().div(other.pow(2))));
-        });
+        return this.elementWiseABDAG(other, (a, b) => a / b, (self, other, outGrad) => outGrad.div(other), (self, other, outGrad) => outGrad.mul(self.neg().div(other.pow(2))));
     }
     // Tensor element-wise greater or equal comparison
     ge(other) {
-        return this.elementWiseABDAG(other, (a, b) => a >= b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a >= b ? 1 : 0);
     }
     // Tensor element-wise less or equal comparison
     le(other) {
-        return this.elementWiseABDAG(other, (a, b) => a <= b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a <= b ? 1 : 0);
     }
     // Tensor element-wise greater-than comparison
     gt(other) {
-        return this.elementWiseABDAG(other, (a, b) => a > b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a > b ? 1 : 0);
     }
     // Tensor element-wise less-than comparison
     lt(other) {
-        return this.elementWiseABDAG(other, (a, b) => a < b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a < b ? 1 : 0);
     }
     // Tensor element-wise equality comparison
     eq(other) {
-        return this.elementWiseABDAG(other, (a, b) => a === b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a === b ? 1 : 0);
     }
     // Tensor element-wise logical and
     logicalAnd(other) {
-        return this.elementWiseABDAG(other, (a, b) => a === 1 && b === 1 ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a === 1 && b === 1 ? 1 : 0);
     }
     // Tensor element-wise logical or
     logicalOr(other) {
-        return this.elementWiseABDAG(other, (a, b) => a === 1 || b === 1 ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a === 1 || b === 1 ? 1 : 0);
     }
     // Tensor element-wise logical xor
     logicalXor(other) {
-        return this.elementWiseABDAG(other, (a, b) => (a === 1 || b === 1) && a !== b ? 1 : 0, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => (a === 1 || b === 1) && a !== b ? 1 : 0);
     }
     // Tensor element-wise logical not
     logicalNot() {
-        return this.elementWiseSelfDAG((a) => a === 1 ? 0 : 1, (self, outGrad) => { });
+        return this.elementWiseSelfDAG((a) => a === 1 ? 0 : 1);
     }
     // Tensor element-wise bitwise and
     bitwiseAnd(other) {
-        return this.elementWiseABDAG(other, (a, b) => a & b, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a & b);
     }
     // Tensor element-wise bitwise or
     bitwiseOr(other) {
-        return this.elementWiseABDAG(other, (a, b) => a | b, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a | b);
     }
     // Tensor element-wise bitwise xor
     bitwiseXor(other) {
-        return this.elementWiseABDAG(other, (a, b) => a ^ b, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a ^ b);
     }
     // Tensor element-wise bitwise not
     bitwiseNot() {
-        return this.elementWiseSelfDAG((a) => ~a, (self, outGrad) => { });
+        return this.elementWiseSelfDAG((a) => ~a);
     }
     // Tensor element-wise left shift
     bitwiseLeftShift(other) {
-        return this.elementWiseABDAG(other, (a, b) => a << b, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a << b);
     }
     // Tensor element-wise right shift
     bitwiseRightShift(other) {
-        return this.elementWiseABDAG(other, (a, b) => a >> b, (self, other, outGrad) => { }, (self, other, outGrad) => { });
+        return this.elementWiseABDAG(other, (a, b) => a >> b);
     }
     // Tensor element-wise negation
     neg() {
-        return this.elementWiseSelfDAG((a) => -a, (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(-1));
-        });
+        return this.elementWiseSelfDAG((a) => -a, (self, outGrad) => outGrad.mul(-1));
     }
     // Tensor element-wise absolute
     abs() {
-        return this.elementWiseSelfDAG((a) => Math.abs(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.sign()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.abs(a), (self, outGrad) => outGrad.mul(self.sign()));
     }
     // Tensor element-wise sign function
     sign() {
-        return this.elementWiseSelfDAG((a) => Math.sign(a), (self, outGrad) => { });
+        return this.elementWiseSelfDAG((a) => Math.sign(a));
     }
     // Tensor element-wise sin
     sin() {
-        return this.elementWiseSelfDAG((a) => Math.sin(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.cos()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.sin(a), (self, outGrad) => outGrad.mul(self.cos()));
     }
     // Tensor element-wise cos
     cos() {
-        return this.elementWiseSelfDAG((a) => Math.cos(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.sin().neg()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.cos(a), (self, outGrad) => outGrad.mul(self.sin().neg()));
     }
     // Tensor element-wise tan
     tan() {
-        return this.elementWiseSelfDAG((a) => Math.tan(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.tan().pow(2).add(1)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.tan(a), (self, outGrad) => outGrad.mul(self.tan().pow(2).add(1)));
     }
     // Tensor element-wise asin
     asin() {
-        return this.elementWiseSelfDAG((a) => Math.asin(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.pow(2).neg().add(1).sqrt()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.asin(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt()));
     }
     // Tensor element-wise acos
     acos() {
-        return this.elementWiseSelfDAG((a) => Math.acos(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.pow(2).neg().add(1).sqrt()).neg());
-        });
+        return this.elementWiseSelfDAG((a) => Math.acos(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt()).neg());
     }
     // Tensor element-wise atan
     atan() {
-        return this.elementWiseSelfDAG((a) => Math.atan(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.pow(2).add(1)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.atan(a), (self, outGrad) => outGrad.div(self.pow(2).add(1)));
     }
     // Tensor element-wise sinh
     sinh() {
-        return this.elementWiseSelfDAG((a) => Math.sinh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.cosh()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.sinh(a), (self, outGrad) => outGrad.mul(self.cosh()));
     }
     // Tensor element-wise cosh
     cosh() {
-        return this.elementWiseSelfDAG((a) => Math.cosh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.sinh()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.cosh(a), (self, outGrad) => outGrad.mul(self.sinh()));
     }
     // Tensor element-wise asinh
     asinh() {
-        return this.elementWiseSelfDAG((a) => Math.asinh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.pow(2).add(1).sqrt()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.asinh(a), (self, outGrad) => outGrad.div(self.pow(2).add(1).sqrt()));
     }
     // Tensor element-wise acosh
     acosh() {
-        return this.elementWiseSelfDAG((a) => Math.acosh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.add(1).sqrt().mul(self.sub(1).sqrt())));
-        });
+        return this.elementWiseSelfDAG((a) => Math.acosh(a), (self, outGrad) => outGrad.div(self.add(1).sqrt().mul(self.sub(1).sqrt())));
     }
     // Tensor element-wise atanh
     atanh() {
-        return this.elementWiseSelfDAG((a) => Math.atanh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.pow(2).neg().add(1)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.atanh(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1)));
     }
     // Tensor element-wise square root
     sqrt() {
-        return this.elementWiseSelfDAG((a) => Math.sqrt(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.sqrt().mul(2)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.sqrt(a), (self, outGrad) => outGrad.div(self.sqrt().mul(2)));
     }
     // Tensor element-wise e^x
     exp() {
-        return this.elementWiseSelfDAG((a) => Math.exp(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.exp()));
-        });
+        return this.elementWiseSelfDAG((a) => Math.exp(a), (self, outGrad) => outGrad.mul(self.exp()));
     }
     // Tensor element-wise natural log
     log() {
-        return this.elementWiseSelfDAG((a) => Math.log(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self));
-        });
+        return this.elementWiseSelfDAG((a) => Math.log(a), (self, outGrad) => outGrad.div(self));
     }
     // Tensor element-wise log2
     log2() {
-        return this.elementWiseSelfDAG((a) => Math.log2(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.mul(Math.log(2))));
-        });
+        return this.elementWiseSelfDAG((a) => Math.log2(a), (self, outGrad) => outGrad.div(self.mul(Math.log(2))));
     }
     // Tensor element-wise log10
     log10() {
-        return this.elementWiseSelfDAG((a) => Math.log10(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.mul(Math.log(10))));
-        });
+        return this.elementWiseSelfDAG((a) => Math.log10(a), (self, outGrad) => outGrad.div(self.mul(Math.log(10))));
     }
     // Tensor element-wise log(1+x)
     log1p() {
-        return this.elementWiseSelfDAG((a) => Math.log1p(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.div(self.add(1)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.log1p(a), (self, outGrad) => outGrad.div(self.add(1)));
     }
     // Tensor element-wise relu
     relu() {
-        return this.elementWiseSelfDAG((a) => Math.max(a, 0), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.ge(0)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.max(a, 0), (self, outGrad) => outGrad.mul(self.ge(0)));
     }
     // Tensor element-wise sigmoid
     sigmoid() {
         return this.elementWiseSelfDAG((a) => 1 / (1 + Math.exp(-a)), (self, outGrad) => {
             const sig = self.sigmoid();
-            Tensor.addGrad(self, outGrad.mul(sig).mul(sig.neg().add(1)));
+            return outGrad.mul(sig).mul(sig.neg().add(1));
         });
     }
     // Tensor element-wise tanh
     tanh() {
-        return this.elementWiseSelfDAG((a) => Math.tanh(a), (self, outGrad) => {
-            Tensor.addGrad(self, outGrad.mul(self.tanh().pow(2).neg().add(1)));
-        });
+        return this.elementWiseSelfDAG((a) => Math.tanh(a), (self, outGrad) => outGrad.mul(self.tanh().pow(2).neg().add(1)));
     }
     // Transpose
     transpose(dim1, dim2) {
@@ -561,7 +535,7 @@ class Tensor {
         }
         // If same dimension, return copy
         if (dim1 === dim2) {
-            return new Tensor(this.value, { shape: this.shape, strides: this.strides });
+            return new Tensor(this.value, { shape: [...this.shape], strides: [...this.strides] });
         }
         // Create new shape and strides by swapping
         const newShape = [...this.shape];
@@ -575,7 +549,7 @@ class Tensor {
         if (this.requiresGrad) {
             out.children.push(this);
             out.gradFn = () => {
-                Tensor.addGrad(this, out.grad.transpose(dim1, dim2));
+                Tensor.addGrad(this, out.grad.withGrad(false).transpose(dim1, dim2));
             };
         }
         return out;
@@ -613,11 +587,13 @@ class Tensor {
         }
         if (out.requiresGrad) {
             out.gradFn = () => {
-                const outGrad = out.grad;
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
+                const otherNoGrad = other.withGrad(false);
                 if (this.requiresGrad)
-                    Tensor.addGrad(this, outGrad.mul(other));
+                    Tensor.addGrad(this, outGrad.mul(otherNoGrad));
                 if (other.requiresGrad)
-                    Tensor.addGrad(other, outGrad.mul(this));
+                    Tensor.addGrad(other, outGrad.mul(selfNoGrad));
             };
         }
         return out;
@@ -663,15 +639,18 @@ class Tensor {
         }
         if (out.requiresGrad) {
             out.gradFn = () => {
-                const outGrad = out.grad;
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
+                const otherNoGrad = other.withGrad(false);
                 if (this.requiresGrad)
-                    Tensor.addGrad(this, outGrad.mm(other.t()));
+                    Tensor.addGrad(this, outGrad.mm(otherNoGrad.t()));
                 if (other.requiresGrad)
-                    Tensor.addGrad(other, this.t().mm(outGrad));
+                    Tensor.addGrad(other, selfNoGrad.t().mm(outGrad));
             };
         }
         return out;
     }
+    // Convert right-side 1D tensor to a vector (nx1 tensor) to do matmul
     mv(other) {
         other = Tensor.forceTensor(other);
         // Verify 2D shape
@@ -679,8 +658,8 @@ class Tensor {
             throw new Error("Input is not a 2D and 1D tensor pair");
         }
         // MM with no grad
-        const thisMat = new Tensor(this.value, { shape: this.shape, strides: this.strides });
-        const otherMat = new Tensor(other.value, { shape: [other.shape[0], 1], strides: [1, 1] });
+        const thisMat = new Tensor(this.value, { shape: [...this.shape], strides: [...this.strides] });
+        const otherMat = new Tensor(other.value, { shape: [other.shape[0], 1], strides: [other.strides[0], 1] });
         const out = thisMat.mm(otherMat).squeeze(1);
         // Handle grad with original tensors
         if (this.requiresGrad) {
@@ -693,15 +672,18 @@ class Tensor {
         }
         if (out.requiresGrad) {
             out.gradFn = () => {
-                const outGrad = out.grad;
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
+                const otherNoGrad = other.withGrad(false);
                 if (this.requiresGrad)
-                    Tensor.addGrad(this, outGrad.unsqueeze(1).mm(other.unsqueeze(0)));
+                    Tensor.addGrad(this, outGrad.unsqueeze(1).mm(otherNoGrad.unsqueeze(0)));
                 if (other.requiresGrad)
-                    Tensor.addGrad(other, this.t().mv(outGrad));
+                    Tensor.addGrad(other, selfNoGrad.t().mv(outGrad));
             };
         }
         return out;
     }
+    // General matrix multiplication with different shapes
     matmul(other) {
         other = Tensor.forceTensor(other);
         if (this.shape.length === 1 && other.shape.length === 1) {
@@ -723,7 +705,7 @@ class Tensor {
     static fullLike(tensor, num, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(num, options);
-        return new Tensor(tensor.value.map(el => num), { shape: tensor.shape, strides: tensor.strides, ...options });
+        return new Tensor(tensor.value.map(el => num), { shape: [...tensor.shape], strides: [...tensor.strides], ...options });
     }
     // Reverse-mode autodiff call
     backward() {
@@ -771,8 +753,8 @@ class Tensor {
     // Returns a copy of the tensor with gradient turned on/off
     withGrad(requiresGrad) {
         return new Tensor(this.value, {
-            shape: this.shape,
-            strides: this.strides,
+            shape: [...this.shape],
+            strides: [...this.strides],
             requiresGrad
         });
     }
