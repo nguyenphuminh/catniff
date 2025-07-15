@@ -269,10 +269,8 @@ class Tensor {
     }
     // Tensor unsqueeze - adds dimension of size 1 at specified position
     unsqueeze(dim) {
-        if (typeof this.value === "number") {
-            const newShape = [1];
-            return new Tensor(this.value, { shape: newShape, strides: [1] });
-        }
+        if (typeof this.value === "number")
+            return new Tensor([this.value]);
         if (dim < 0 || dim > this.shape.length) {
             throw new Error(`Invalid dimension ${dim} for unsqueeze`);
         }

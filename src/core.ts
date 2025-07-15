@@ -24,7 +24,7 @@ export class Tensor {
         this.strides = options.strides || Tensor.getStrides(this.shape);
         this.grad = options.grad;
         this.requiresGrad = options.requiresGrad ?? false;
-        this.gradFn = options.gradFn || (() => {});
+        this.gradFn = options.gradFn || (() => { });
         this.children = options.children || [];
     }
 
@@ -78,19 +78,19 @@ export class Tensor {
     static padShape(stridesA: number[], stridesB: number[], shapeA: number[], shapeB: number[]): number[][] {
         const newStrideA = [...stridesA], newStrideB = [...stridesB];
         const newShapeA = [...shapeA], newShapeB = [...shapeB];
-        
+
         while (newStrideA.length < newStrideB.length) {
             const newStride = newShapeA[0] * newStrideA[0];
             newStrideA.unshift(newStride);
             newShapeA.unshift(1);
         }
-        
+
         while (newStrideA.length > newStrideB.length) {
             const newStride = newShapeB[0] * newStrideB[0];
             newStrideB.unshift(newStride);
             newShapeB.unshift(1);
         }
-        
+
         return [newStrideA, newStrideB, newShapeA, newShapeB];
     }
 
@@ -338,11 +338,7 @@ export class Tensor {
 
     // Tensor unsqueeze - adds dimension of size 1 at specified position
     unsqueeze(dim: number): Tensor {
-        if (typeof this.value === "number") {
-            const newShape = [1];
-            return new Tensor(this.value, { shape: newShape, strides: [1] });
-        }
-
+        if (typeof this.value === "number") return new Tensor([this.value]);
         if (dim < 0 || dim > this.shape.length) {
             throw new Error(`Invalid dimension ${dim} for unsqueeze`);
         }
