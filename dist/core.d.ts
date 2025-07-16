@@ -9,8 +9,8 @@ export interface TensorOptions {
 }
 export declare class Tensor {
     value: number[] | number;
-    shape: number[];
-    strides: number[];
+    readonly shape: number[];
+    readonly strides: number[];
     grad?: Tensor;
     requiresGrad: boolean;
     gradFn: Function;

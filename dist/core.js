@@ -20,8 +20,13 @@ class Tensor {
     }
     // Utility to flatten an nD array to be 1D
     static flatten(tensor) {
+        // Handle scalar tensors
         if (typeof tensor === "number")
             return tensor;
+        // If value is already 1D, we just need to return the value ('s reference)
+        if (typeof tensor[0] === "number")
+            return tensor;
+        // Or else recursively traverse through the nD array to flatten
         const result = [];
         function traverse(arr) {
             if (typeof arr === "number") {
@@ -148,7 +153,11 @@ class Tensor {
     static elementWiseSelf(tA, op) {
         if (typeof tA.value === "number")
             return new Tensor(op(tA.value));
-        return new Tensor(tA.value.map(el => op(el)), { shape: [...tA.shape], strides: [...tA.strides] });
+        const newValue = new Array(tA.value.length);
+        for (let index = 0; index < tA.value.length; index++) {
+            newValue[index] = op(tA.value[index]);
+        }
+        return new Tensor(newValue, { shape: tA.shape, strides: tA.strides });
     }
     // Utility to do element-wise operation and build a dag node with another tensor
     elementWiseABDAG(other, op, thisGrad = () => new Tensor(0), otherGrad = () => new Tensor(0)) {
@@ -319,8 +328,8 @@ class Tensor {
         const originalSize = this.shape.reduce((a, b) => a * b, 1);
         let gradShape, gradStrides, gradValue = [];
         if (this.requiresGrad) {
-            gradShape = [...this.shape];
-            gradStrides = [...this.strides];
+            gradShape = this.shape;
+            gradStrides = this.strides;
             gradValue = new Array(originalSize).fill(0);
         }
         for (let index = 0; index < originalSize; index++) {
@@ -535,7 +544,7 @@ class Tensor {
         }
         // If same dimension, return copy
         if (dim1 === dim2) {
-            return new Tensor(this.value, { shape: [...this.shape], strides: [...this.strides] });
+            return new Tensor(this.value, { shape: this.shape, strides: this.strides });
         }
         // Create new shape and strides by swapping
         const newShape = [...this.shape];
@@ -660,7 +669,7 @@ class Tensor {
             throw new Error("Input is not a 2D and 1D tensor pair");
         }
         // MM with no grad
-        const thisMat = new Tensor(this.value, { shape: [...this.shape], strides: [...this.strides] });
+        const thisMat = new Tensor(this.value, { shape: this.shape, strides: this.strides });
         const otherMat = new Tensor(other.value, { shape: [other.shape[0], 1], strides: [other.strides[0], 1] });
         const out = thisMat.mm(otherMat).squeeze(1);
         // Handle grad with original tensors
@@ -708,7 +717,7 @@ class Tensor {
     static fullLike(tensor, num, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(num, options);
-        return new Tensor(tensor.value.map(el => num), { shape: [...tensor.shape], strides: [...tensor.strides], ...options });
+        return new Tensor(new Array(tensor.value.length).fill(num), { shape: tensor.shape, strides: tensor.strides, ...options });
     }
     // Reverse-mode autodiff call
     backward() {
@@ -718,7 +727,7 @@ class Tensor {
         function build(node) {
             if (!visited.has(node) && node.requiresGrad) {
                 visited.add(node);
-                node.grad = Tensor.fullLike(node, 0);
+                node.grad = Tensor.fullLike(node, 0); // Reset grad with 0
                 for (let child of node.children)
                     build(child);
                 topo.push(node);
@@ -731,7 +740,7 @@ class Tensor {
             topo[index].gradFn();
         }
     }
-    // Returns the number/nD array form of tensor
+    // Returns the raw number/nD array form of tensor
     val() {
         if (typeof this.value === "number")
             return this.value;
@@ -753,11 +762,11 @@ class Tensor {
         }
         return buildNested(this.value, this.shape, this.strides);
     }
-    // Returns a copy of the tensor with gradient turned on/off
+    // Returns a copy of the tensor with gradient turned on/off and detaches from autograd
     withGrad(requiresGrad) {
         return new Tensor(this.value, {
-            shape: [...this.shape],
-            strides: [...this.strides],
+            shape: this.shape,
+            strides: this.strides,
             requiresGrad
         });
     }
