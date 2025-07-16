@@ -24,7 +24,7 @@ export class Tensor {
         this.strides = options.strides || Tensor.getStrides(this.shape);
         this.grad = options.grad;
         this.requiresGrad = options.requiresGrad ?? false;
-        this.gradFn = options.gradFn || (() => { });
+        this.gradFn = options.gradFn || (() => {});
         this.children = options.children || [];
     }
 
@@ -303,6 +303,7 @@ export class Tensor {
             }
         }
 
+        // Remove size-1 dims only
         const outShape = this.shape.filter((dim, i) => {
             const shouldSqueeze = dims.includes(i);
 
@@ -310,6 +311,7 @@ export class Tensor {
 
             return !shouldSqueeze;
         });
+        // Remove strides of size-1 dims
         const outStrides = this.strides.filter((stride, i) => !dims.includes(i));
         const outValue = outShape.length === 0 ? this.value[0] : this.value;
 
@@ -350,9 +352,9 @@ export class Tensor {
         // New stride
         const newStrides = [...this.strides];
         let newDimStride;
-        if (dim === this.shape.length) {
-            // Inserting at the back: reuse last stride or 1
-            newDimStride = this.strides[this.strides.length - 1] ?? 1;
+        if (dim >= this.shape.length) {
+            // Inserting at the back: use 1
+            newDimStride = 1;
         } else {
             // Inserting before dim: use current stride * current shape
             newDimStride = this.strides[dim] * this.shape[dim];
@@ -855,6 +857,7 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
+                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor).withGrad(false);
                 const selfNoGrad = this.withGrad(false);
                 const otherNoGrad = other.withGrad(false);
@@ -916,6 +919,7 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
+                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor).withGrad(false);
                 const selfNoGrad = this.withGrad(false);
                 const otherNoGrad = other.withGrad(false);
@@ -955,6 +959,7 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
+                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor).withGrad(false);
                 const selfNoGrad = this.withGrad(false);
                 const otherNoGrad = other.withGrad(false);
