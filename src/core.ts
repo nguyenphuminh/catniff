@@ -1184,6 +1184,20 @@ export class Tensor {
         return new Tensor(new Array(tensor.value.length).fill(num), { shape: tensor.shape, strides: tensor.strides, ...options });
     }
 
+    // Utility to create a new tensor with shape of another tensor, filled with 1
+    static onesLike(tensor: Tensor, options: TensorOptions = {}) {
+        if (typeof tensor.value === "number") return new Tensor(1, options);
+
+        return new Tensor(new Array(tensor.value.length).fill(1), { shape: tensor.shape, strides: tensor.strides, ...options });
+    }
+
+    // Utility to create a new tensor with shape of another tensor, filled with 0
+    static zerosLike(tensor: Tensor, options: TensorOptions = {}) {
+        if (typeof tensor.value === "number") return new Tensor(0, options);
+
+        return new Tensor(new Array(tensor.value.length).fill(0), { shape: tensor.shape, strides: tensor.strides, ...options });
+    }
+
     // Reverse-mode autodiff call
     backward() {
         // Build topological order
@@ -1193,7 +1207,7 @@ export class Tensor {
         function build(node: Tensor) {
             if (!visited.has(node) && node.requiresGrad) {
                 visited.add(node);
-                node.grad = Tensor.fullLike(node, 0); // Reset grad with 0
+                node.grad = Tensor.zerosLike(node); // Reset grad with 0
                 for (let child of node.children) build(child);
                 topo.push(node);
             }
@@ -1202,7 +1216,7 @@ export class Tensor {
         build(this);
 
         // Feed backward to calculate gradient
-        this.grad = Tensor.fullLike(this, 1);
+        this.grad = Tensor.onesLike(this);
 
         for (let index = topo.length - 1; index > -1; index--) {
             topo[index].gradFn();

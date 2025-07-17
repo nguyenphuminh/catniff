@@ -91,6 +91,8 @@ export declare class Tensor {
     mv(other: TensorValue | Tensor): Tensor;
     matmul(other: TensorValue | Tensor): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
+    static onesLike(tensor: Tensor, options?: TensorOptions): Tensor;
+    static zerosLike(tensor: Tensor, options?: TensorOptions): Tensor;
     backward(): void;
     val(): any;
     withGrad(requiresGrad: boolean): Tensor;
