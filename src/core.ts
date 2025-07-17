@@ -1,8 +1,8 @@
 export type TensorValue = number | TensorValue[];
 
 export interface TensorOptions {
-    shape?: number[];
-    strides?: number[];
+    shape?: readonly number[];
+    strides?: readonly number[];
     grad?: Tensor;
     requiresGrad?: boolean;
     gradFn?: Function;
@@ -11,8 +11,8 @@ export interface TensorOptions {
 
 export class Tensor {
     public value: number[] | number;
-    public readonly shape: number[];
-    public readonly strides: number[];
+    public readonly shape: readonly number[];
+    public readonly strides: readonly number[];
     public grad?: Tensor;
     public requiresGrad: boolean;
     public gradFn: Function;
@@ -52,7 +52,7 @@ export class Tensor {
     }
 
     // Utility to get shape from tensor *value*
-    static getShape(tensor: TensorValue): number[] {
+    static getShape(tensor: TensorValue): readonly number[] {
         const shape: number[] = [];
 
         let subA = tensor;
@@ -66,7 +66,7 @@ export class Tensor {
     }
 
     // Utility to get strides from shape
-    static getStrides(shape: number[]): number[] {
+    static getStrides(shape: readonly number[]): readonly number[] {
         const strides: number[] = new Array(shape.length);
 
         strides[strides.length - 1] = 1;
@@ -79,7 +79,17 @@ export class Tensor {
     }
 
     // Left-pad shape and strides for two shape to be of same length
-    static padShape(stridesA: number[], stridesB: number[], shapeA: number[], shapeB: number[]): number[][] {
+    static padShape(
+        stridesA: readonly number[],
+        stridesB: readonly number[],
+        shapeA: readonly number[],
+        shapeB: readonly number[]
+    ): [
+        readonly number[],
+        readonly number[],
+        readonly number[],
+        readonly number[]
+    ] {
         const newStrideA = [...stridesA], newStrideB = [...stridesB];
         const newShapeA = [...shapeA], newShapeB = [...shapeB];
 
@@ -99,7 +109,7 @@ export class Tensor {
     }
 
     // Broadcast shapes
-    static broadcastShapes(shapeA: number[], shapeB: number[]): number[] {
+    static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[] {
         const newShape = new Array(shapeA.length);
 
         for (let index = 0; index < shapeA.length; index++) {
@@ -117,8 +127,8 @@ export class Tensor {
         return newShape;
     }
 
-    // Convert flat index to array of coordinates
-    static indexToCoords(index: number, shape: number[], strides: number[]): number[] {
+    // Utility to convert flat index to array of coordinates
+    static indexToCoords(index: number, shape: readonly number[], strides: readonly number[]): number[] {
         const coords = new Array(shape.length);
         let remaining = index;
 
@@ -133,19 +143,40 @@ export class Tensor {
         return coords;
     }
 
-    // Convert array of coordinates to *unbroadcasted* flat index 
-    static coordsToIndex(coords: number[], shape: number[], strides: number[]): number {
+    // Utility to convert array of coordinates to *unbroadcasted* flat index 
+    static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number {
         let index = 0;
 
         for (let i = 0; i < coords.length; i++) {
-            const coord = coords[i];
             // Handle broadcasting
-            const actualCoord = shape[i] === 1 ? 0 : coord;
+            const actualCoord = shape[i] === 1 ? 0 : coords[i];
             index += actualCoord * strides[i];
         }
 
         return index;
     }
+
+    // Utility to convert array of coordinates to flat index 
+    static coordsToIndex(coords: number[], strides: readonly number[]): number {
+        let index = 0;
+
+        for (let i = 0; i < coords.length; i++) {
+            index += coords[i] * strides[i];
+        }
+
+        return index;
+    }
+
+    // Utility to convert shape into 1D value array size
+    static shapeToSize(shape: readonly number[]): number {
+        let prod = 1;
+
+        for (let i = 0; i < shape.length; i++) {
+            prod *= shape[i];
+        }
+
+        return prod;
+    };
 
     // Utility for binary (two operators involved) element-wise ops
     static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor {
@@ -166,16 +197,16 @@ export class Tensor {
         const outputShape = Tensor.broadcastShapes(paddedAShape, paddedBShape);
         // Get other output info
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = outputShape.reduce((a, b) => a * b, 1);
+        const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue: number[] = new Array(outputSize);
 
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
             const coordsOutput = Tensor.indexToCoords(i, outputShape, outputStrides);
             // Convert the coordinates to 1D index of flattened A with respect to A's shape
-            const indexA = Tensor.coordsToIndex(coordsOutput, paddedAShape, paddedAStrides);
+            const indexA = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
             // Convert the coordinates to 1D index of flattened B with respect to B's shape
-            const indexB = Tensor.coordsToIndex(coordsOutput, paddedBShape, paddedBStrides);
+            const indexB = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
 
             // Calculate with op
             outputValue[i] = op((tA.value as number[])[indexA], (tB.value as number[])[indexB]);
@@ -392,15 +423,17 @@ export class Tensor {
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
 
+        // Dims that are reduced now have size-1
         const outputShape = this.shape.map((dim, i) => dims.includes(i) ? 1 : dim);
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = outputShape.reduce((a, b) => a * b, 1);
+        const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize).fill(0);
 
-        const originalSize = this.shape.reduce((a, b) => a * b, 1);
+        const originalSize = Tensor.shapeToSize(this.shape);
 
-        let gradShape: number[], gradStrides: number[], gradValue: number[] = [];
-
+        // Gradient data
+        let gradShape: readonly number[], gradStrides: readonly number[], gradValue: number[] = [];
+        // Allocate gradient data only when needed
         if (this.requiresGrad) {
             gradShape = this.shape;
             gradStrides = this.strides;
@@ -412,11 +445,11 @@ export class Tensor {
             // Force 0 on reduced axes to collapse into size-1 dims
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
-            const outFlatIndex = outCoords.reduce((acc, val, i) => acc + val * outputStrides[i], 0);
-            // Accumulate
-            const realFlatIndex = coords.reduce((acc, val, i) => acc + val * this.strides[i], 0);
+            const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+            // Accumulate, outFlatIndex should match multiple realFlatIndexs
+            const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
             outputValue[outFlatIndex] += this.value[realFlatIndex];
-            // Mark for gradient
+            // Mark for gradient if neede
             if (this.requiresGrad) { (gradValue)[realFlatIndex] = 1; }
         }
 
@@ -845,6 +878,7 @@ export class Tensor {
             throw new Error("Inputs are not 1D tensors");
         }
 
+        // Simple vector dot product
         const vectLen = this.shape[0];
         const vectA = this.value as number[];
         const vectB = other.value as number[];
@@ -890,6 +924,7 @@ export class Tensor {
             throw new Error("Inputs are not matrices");
         }
 
+        // Simple matrix multiplication
         const matA = this.value as number[];
         const matB = other.value as number[];
         const matAStrides = this.strides;
@@ -903,12 +938,13 @@ export class Tensor {
 
         const matCShape = [matARows, matBCols];
         const matCStrides = Tensor.getStrides(matCShape);
-        const matCSize = matCShape.reduce((a, b) => a * b, 1);
+        const matCSize = Tensor.shapeToSize(matCShape);
         const matC = new Array(matCSize).fill(0);
 
         for (let i = 0; i < matARows; i++) {
             for (let j = 0; j < matBCols; j++) {
                 for (let k = 0; k < matACols; k++) {
+                    // Tensor values are 1D arrays so we have to get real index using strides
                     matC[i * matCStrides[0] + j * matCStrides[1]] +=
                         matA[i * matAStrides[0] + k * matAStrides[1]] *
                         matB[k * matBStrides[0] + j * matBStrides[1]];
@@ -1037,7 +1073,13 @@ export class Tensor {
     val() {
         if (typeof this.value === "number") return this.value;
 
-        function buildNested(data: number[], shape: number[], strides: number[], baseIndex = 0, dim = 0): any {
+        function buildNested(
+            data: number[],
+            shape: readonly number[],
+            strides: readonly number[],
+            baseIndex = 0,
+            dim = 0
+        ): any {                
             if (dim === shape.length - 1) {
                 // Last dimension: extract elements using actual stride
                 const result = [];

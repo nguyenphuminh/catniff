@@ -1,7 +1,7 @@
 export type TensorValue = number | TensorValue[];
 export interface TensorOptions {
-    shape?: number[];
-    strides?: number[];
+    shape?: readonly number[];
+    strides?: readonly number[];
     grad?: Tensor;
     requiresGrad?: boolean;
     gradFn?: Function;
@@ -9,20 +9,27 @@ export interface TensorOptions {
 }
 export declare class Tensor {
     value: number[] | number;
-    readonly shape: number[];
-    readonly strides: number[];
+    readonly shape: readonly number[];
+    readonly strides: readonly number[];
     grad?: Tensor;
     requiresGrad: boolean;
     gradFn: Function;
     children: Tensor[];
     constructor(value: TensorValue, options?: TensorOptions);
     static flatten(tensor: TensorValue): number[] | number;
-    static getShape(tensor: TensorValue): number[];
-    static getStrides(shape: number[]): number[];
-    static padShape(stridesA: number[], stridesB: number[], shapeA: number[], shapeB: number[]): number[][];
-    static broadcastShapes(shapeA: number[], shapeB: number[]): number[];
-    static indexToCoords(index: number, shape: number[], strides: number[]): number[];
-    static coordsToIndex(coords: number[], shape: number[], strides: number[]): number;
+    static getShape(tensor: TensorValue): readonly number[];
+    static getStrides(shape: readonly number[]): readonly number[];
+    static padShape(stridesA: readonly number[], stridesB: readonly number[], shapeA: readonly number[], shapeB: readonly number[]): [
+        readonly number[],
+        readonly number[],
+        readonly number[],
+        readonly number[]
+    ];
+    static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[];
+    static indexToCoords(index: number, shape: readonly number[], strides: readonly number[]): number[];
+    static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number;
+    static coordsToIndex(coords: number[], strides: readonly number[]): number;
+    static shapeToSize(shape: readonly number[]): number;
     static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor;
     static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor;
     elementWiseABDAG(other: TensorValue | Tensor, op: (a: number, b: number) => number, thisGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor, otherGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor): Tensor;

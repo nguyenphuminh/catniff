@@ -93,7 +93,7 @@ class Tensor {
         }
         return newShape;
     }
-    // Convert flat index to array of coordinates
+    // Utility to convert flat index to array of coordinates
     static indexToCoords(index, shape, strides) {
         const coords = new Array(shape.length);
         let remaining = index;
@@ -105,17 +105,33 @@ class Tensor {
         }
         return coords;
     }
-    // Convert array of coordinates to *unbroadcasted* flat index 
-    static coordsToIndex(coords, shape, strides) {
+    // Utility to convert array of coordinates to *unbroadcasted* flat index 
+    static coordsToUnbroadcastedIndex(coords, shape, strides) {
         let index = 0;
         for (let i = 0; i < coords.length; i++) {
-            const coord = coords[i];
             // Handle broadcasting
-            const actualCoord = shape[i] === 1 ? 0 : coord;
+            const actualCoord = shape[i] === 1 ? 0 : coords[i];
             index += actualCoord * strides[i];
         }
         return index;
     }
+    // Utility to convert array of coordinates to flat index 
+    static coordsToIndex(coords, strides) {
+        let index = 0;
+        for (let i = 0; i < coords.length; i++) {
+            index += coords[i] * strides[i];
+        }
+        return index;
+    }
+    // Utility to convert shape into 1D value array size
+    static shapeToSize(shape) {
+        let prod = 1;
+        for (let i = 0; i < shape.length; i++) {
+            prod *= shape[i];
+        }
+        return prod;
+    }
+    ;
     // Utility for binary (two operators involved) element-wise ops
     static elementWiseAB(tA, tB, op) {
         if (typeof tA.value === "number" && typeof tB.value === "number") {
@@ -132,15 +148,15 @@ class Tensor {
         const outputShape = Tensor.broadcastShapes(paddedAShape, paddedBShape);
         // Get other output info
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = outputShape.reduce((a, b) => a * b, 1);
+        const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize);
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
             const coordsOutput = Tensor.indexToCoords(i, outputShape, outputStrides);
             // Convert the coordinates to 1D index of flattened A with respect to A's shape
-            const indexA = Tensor.coordsToIndex(coordsOutput, paddedAShape, paddedAStrides);
+            const indexA = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
             // Convert the coordinates to 1D index of flattened B with respect to B's shape
-            const indexB = Tensor.coordsToIndex(coordsOutput, paddedBShape, paddedBStrides);
+            const indexB = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
             // Calculate with op
             outputValue[i] = op(tA.value[indexA], tB.value[indexB]);
         }
@@ -321,12 +337,15 @@ class Tensor {
         if (typeof dims === "undefined") {
             dims = Array.from({ length: this.shape.length }, (_, index) => index);
         }
+        // Dims that are reduced now have size-1
         const outputShape = this.shape.map((dim, i) => dims.includes(i) ? 1 : dim);
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = outputShape.reduce((a, b) => a * b, 1);
+        const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize).fill(0);
-        const originalSize = this.shape.reduce((a, b) => a * b, 1);
+        const originalSize = Tensor.shapeToSize(this.shape);
+        // Gradient data
         let gradShape, gradStrides, gradValue = [];
+        // Allocate gradient data only when needed
         if (this.requiresGrad) {
             gradShape = this.shape;
             gradStrides = this.strides;
@@ -337,11 +356,11 @@ class Tensor {
             // Force 0 on reduced axes to collapse into size-1 dims
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
-            const outFlatIndex = outCoords.reduce((acc, val, i) => acc + val * outputStrides[i], 0);
-            // Accumulate
-            const realFlatIndex = coords.reduce((acc, val, i) => acc + val * this.strides[i], 0);
+            const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+            // Accumulate, outFlatIndex should match multiple realFlatIndexs
+            const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
             outputValue[outFlatIndex] += this.value[realFlatIndex];
-            // Mark for gradient
+            // Mark for gradient if neede
             if (this.requiresGrad) {
                 (gradValue)[realFlatIndex] = 1;
             }
@@ -578,6 +597,7 @@ class Tensor {
         if (this.shape.length !== 1 || other.shape.length !== 1) {
             throw new Error("Inputs are not 1D tensors");
         }
+        // Simple vector dot product
         const vectLen = this.shape[0];
         const vectA = this.value;
         const vectB = other.value;
@@ -615,6 +635,7 @@ class Tensor {
         if (this.shape.length !== 2 || other.shape.length !== 2) {
             throw new Error("Inputs are not matrices");
         }
+        // Simple matrix multiplication
         const matA = this.value;
         const matB = other.value;
         const matAStrides = this.strides;
@@ -627,11 +648,12 @@ class Tensor {
             throw new Error("Invalid matrices shape for multiplication");
         const matCShape = [matARows, matBCols];
         const matCStrides = Tensor.getStrides(matCShape);
-        const matCSize = matCShape.reduce((a, b) => a * b, 1);
+        const matCSize = Tensor.shapeToSize(matCShape);
         const matC = new Array(matCSize).fill(0);
         for (let i = 0; i < matARows; i++) {
             for (let j = 0; j < matBCols; j++) {
                 for (let k = 0; k < matACols; k++) {
+                    // Tensor values are 1D arrays so we have to get real index using strides
                     matC[i * matCStrides[0] + j * matCStrides[1]] +=
                         matA[i * matAStrides[0] + k * matAStrides[1]] *
                             matB[k * matBStrides[0] + j * matBStrides[1]];
