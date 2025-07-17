@@ -357,10 +357,10 @@ class Tensor {
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
-            // Accumulate, outFlatIndex should match multiple realFlatIndexs
+            // Accumulate, outFlatIndex should match multiple realFlatIndexes
             const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
             outputValue[outFlatIndex] += this.value[realFlatIndex];
-            // Mark for gradient if neede
+            // Mark for gradient if needed
             if (this.requiresGrad) {
                 (gradValue)[realFlatIndex] = 1;
             }
