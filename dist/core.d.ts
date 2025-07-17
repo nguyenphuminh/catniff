@@ -39,6 +39,8 @@ export declare class Tensor {
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;
     sum(dims?: number[] | number, keepDims?: boolean): Tensor;
+    prod(dims?: number[] | number, keepDims?: boolean): Tensor;
+    mean(dims?: number[] | number, keepDims?: boolean): Tensor;
     add(other: TensorValue | Tensor): Tensor;
     sub(other: TensorValue | Tensor): Tensor;
     mul(other: TensorValue | Tensor): Tensor;
