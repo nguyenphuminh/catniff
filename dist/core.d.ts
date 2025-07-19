@@ -94,6 +94,6 @@ export declare class Tensor {
     static onesLike(tensor: Tensor, options?: TensorOptions): Tensor;
     static zerosLike(tensor: Tensor, options?: TensorOptions): Tensor;
     backward(): void;
-    val(): any;
+    val(): TensorValue;
     withGrad(requiresGrad: boolean): Tensor;
 }

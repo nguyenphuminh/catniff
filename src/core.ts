@@ -237,7 +237,7 @@ export class Tensor {
         op: (a: number, b: number) => number,
         thisGrad: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0),
         otherGrad: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0)
-    ) {
+    ): Tensor {
         other = Tensor.forceTensor(other);
 
         const out = Tensor.elementWiseAB(this, other, op);
@@ -271,7 +271,7 @@ export class Tensor {
     elementWiseSelfDAG(
         op: (a: number) => number,
         thisGrad: (self: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0)
-    ) {
+    ): Tensor {
         const out = Tensor.elementWiseSelf(this, op);
 
         if (this.requiresGrad) {
@@ -1178,21 +1178,21 @@ export class Tensor {
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with a number
-    static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}) {
+    static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor {
         if (typeof tensor.value === "number") return new Tensor(num, options);
 
         return new Tensor(new Array(tensor.value.length).fill(num), { shape: tensor.shape, strides: tensor.strides, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with 1
-    static onesLike(tensor: Tensor, options: TensorOptions = {}) {
+    static onesLike(tensor: Tensor, options: TensorOptions = {}): Tensor {
         if (typeof tensor.value === "number") return new Tensor(1, options);
 
         return new Tensor(new Array(tensor.value.length).fill(1), { shape: tensor.shape, strides: tensor.strides, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with 0
-    static zerosLike(tensor: Tensor, options: TensorOptions = {}) {
+    static zerosLike(tensor: Tensor, options: TensorOptions = {}): Tensor {
         if (typeof tensor.value === "number") return new Tensor(0, options);
 
         return new Tensor(new Array(tensor.value.length).fill(0), { shape: tensor.shape, strides: tensor.strides, ...options });
@@ -1224,7 +1224,7 @@ export class Tensor {
     }
 
     // Returns the raw number/nD array form of tensor
-    val() {
+    val(): TensorValue {
         if (typeof this.value === "number") return this.value;
 
         function buildNested(
@@ -1233,7 +1233,7 @@ export class Tensor {
             strides: readonly number[],
             baseIndex = 0,
             dim = 0
-        ): any {                
+        ): TensorValue {                
             if (dim === shape.length - 1) {
                 // Last dimension: extract elements using actual stride
                 const result = [];
@@ -1259,7 +1259,7 @@ export class Tensor {
     }
 
     // Returns a copy of the tensor with gradient turned on/off and detaches from autograd
-    withGrad(requiresGrad: boolean) {
+    withGrad(requiresGrad: boolean): Tensor {
         return new Tensor(this.value, {
             shape: this.shape,
             strides: this.strides,

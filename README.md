@@ -39,8 +39,6 @@ const B = new Tensor(3);
 console.log(A.add(B).val());
 ```
 
-All available APIs are in `./src/core.ts`.
-
 ## Autograd
 
 To compute the gradient wrt multiple variables of our mathematical expression, we can simply set `requiresGrad` to `true`:
@@ -74,11 +72,11 @@ G.backward();
 console.log(X.grad.val(), Y.grad.val());
 ```
 
-All available APIs are in `./src/core.ts`.
-
 ## Documentation
 
-Todo :/
+Full documentation is available in [`./docs/documentation.md`](./docs/documentation.md).
+
+All available APIs are in [`./src/core.ts`](./src/core.ts) if you want to dig deeper.
 
 ## Todos
 
