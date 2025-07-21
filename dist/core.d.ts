@@ -26,7 +26,7 @@ export declare class Tensor {
         readonly number[]
     ];
     static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[];
-    static indexToCoords(index: number, shape: readonly number[], strides: readonly number[]): number[];
+    static indexToCoords(index: number, strides: readonly number[]): number[];
     static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number;
     static coordsToIndex(coords: number[], strides: readonly number[]): number;
     static shapeToSize(shape: readonly number[]): number;

@@ -128,14 +128,11 @@ export class Tensor {
     }
 
     // Utility to convert flat index to array of coordinates
-    static indexToCoords(index: number, shape: readonly number[], strides: readonly number[]): number[] {
-        const coords = new Array(shape.length);
+    static indexToCoords(index: number, strides: readonly number[]): number[] {
+        const coords = new Array(strides.length);
         let remaining = index;
 
-        // Sort dimensions by stride (largest first) for correct decomposition
-        const sortedDims = shape.map((_, i) => i).sort((a, b) => strides[b] - strides[a]);
-
-        for (const dim of sortedDims) {
+        for (let dim = 0; dim < strides.length; dim++) {
             coords[dim] = Math.floor(remaining / strides[dim]);
             remaining %= strides[dim];
         }
@@ -202,7 +199,7 @@ export class Tensor {
 
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
-            const coordsOutput = Tensor.indexToCoords(i, outputShape, outputStrides);
+            const coordsOutput = Tensor.indexToCoords(i, outputStrides);
             // Convert the coordinates to 1D index of flattened A with respect to A's shape
             const indexA = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
             // Convert the coordinates to 1D index of flattened B with respect to B's shape
@@ -346,17 +343,21 @@ export class Tensor {
         }
 
         // Remove size-1 dims only
-        const outShape = this.shape.filter((dim, i) => {
-            const shouldSqueeze = dims.includes(i);
+        const outShape: number[] = [], outStrides: number[] = [];
 
-            if (shouldSqueeze && dim !== 1) throw new Error(`Can not squeeze dim with size ${dim}`);
+        for (let index = 0; index < this.shape.length; index++) {
+            const dim = this.shape[index];
+            const stride = this.strides[index];
 
-            return !shouldSqueeze;
-        });
-        // Remove strides of size-1 dims
-        const outStrides = this.strides.filter((stride, i) => !dims.includes(i));
+            if (dims.includes(index)) { 
+                if (dim !== 1) throw new Error(`Can not squeeze dim with size ${dim}`);
+            } else {
+                outShape.push(dim);
+                outStrides.push(stride);
+            }
+        }
+
         const outValue = outShape.length === 0 ? this.value[0] : this.value;
-
         const out = new Tensor(outValue, {
             shape: outShape,
             strides: outStrides
@@ -442,7 +443,7 @@ export class Tensor {
 
         // Calculate new value after sum
         for (let index = 0; index < originalSize; index++) {
-            const coords = Tensor.indexToCoords(index, this.shape, this.strides);
+            const coords = Tensor.indexToCoords(index, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
@@ -497,7 +498,7 @@ export class Tensor {
 
         // Calculate new value after multiplying
         for (let index = 0; index < originalSize; index++) {
-            const coords = Tensor.indexToCoords(index, this.shape, this.strides);
+            const coords = Tensor.indexToCoords(index, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
@@ -516,7 +517,7 @@ export class Tensor {
         if (this.requiresGrad) {
             // Grad is the product of other elements of the same axis, which is product of all els divided by the current value
             for (let index = 0; index < originalSize; index++) {
-                const coords = Tensor.indexToCoords(index, this.shape, this.strides);
+                const coords = Tensor.indexToCoords(index, this.strides);
                 // Force 0 on reduced axes to collapse into size-1 dims
                 const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
                 // Convert output coordinates to flat index
@@ -564,7 +565,7 @@ export class Tensor {
 
         // Calculate sums and how many elements contribute to specific positions
         for (let index = 0; index < originalSize; index++) {
-            const coords = Tensor.indexToCoords(index, this.shape, this.strides);
+            const coords = Tensor.indexToCoords(index, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
             const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
             // Convert output coordinates to flat index
@@ -589,7 +590,7 @@ export class Tensor {
         if (this.requiresGrad) {
             // Calculate grad by assiging 1 divide by the number of contributors to the position
             for (let index = 0; index < originalSize; index++) {
-                const coords = Tensor.indexToCoords(index, this.shape, this.strides);
+                const coords = Tensor.indexToCoords(index, this.strides);
                 // Force 0 on reduced axes to collapse into size-1 dims
                 const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
                 // Convert output coordinates to flat index
