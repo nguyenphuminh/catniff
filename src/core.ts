@@ -24,7 +24,7 @@ export class Tensor {
         this.strides = options.strides || Tensor.getStrides(this.shape);
         this.grad = options.grad;
         this.requiresGrad = options.requiresGrad ?? false;
-        this.gradFn = options.gradFn || (() => {});
+        this.gradFn = options.gradFn || (() => { });
         this.children = options.children || [];
     }
 
@@ -85,11 +85,11 @@ export class Tensor {
         shapeA: readonly number[],
         shapeB: readonly number[]
     ): [
-        readonly number[],
-        readonly number[],
-        readonly number[],
-        readonly number[]
-    ] {
+            readonly number[],
+            readonly number[],
+            readonly number[],
+            readonly number[]
+        ] {
         const newStrideA = [...stridesA], newStrideB = [...stridesB];
         const newShapeA = [...shapeA], newShapeB = [...shapeB];
 
@@ -349,7 +349,7 @@ export class Tensor {
             const dim = this.shape[index];
             const stride = this.strides[index];
 
-            if (dims.includes(index)) { 
+            if (dims.includes(index)) {
                 if (dim !== 1) throw new Error(`Can not squeeze dim with size ${dim}`);
             } else {
                 outShape.push(dim);
@@ -862,7 +862,7 @@ export class Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.sin(a),
             (self, outGrad) => outGrad.mul(self.cos())
-        )
+        );
     }
 
     // Tensor element-wise cos
@@ -1105,7 +1105,7 @@ export class Tensor {
         );
     }
 
-    // Tensor element-wise ceil
+    // Tensor element-wise truncation
     trunc(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.trunc(a)
@@ -1114,7 +1114,7 @@ export class Tensor {
 
     fix = this.trunc;
 
-    // Tensor element-wise ceil
+    // Tensor element-wise fraction portion
     frac(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => a - Math.floor(a)
@@ -1402,7 +1402,7 @@ export class Tensor {
             strides: readonly number[],
             baseIndex = 0,
             dim = 0
-        ): TensorValue {                
+        ): TensorValue {
             if (dim === shape.length - 1) {
                 // Last dimension: extract elements using actual stride
                 const result = [];

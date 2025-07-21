@@ -106,14 +106,25 @@ All autograd-supported tensor arithmetic methods:
 
 * `add(other: TensorValue | Tensor): Tensor`: Returns `this` added with `other` element-wise. If `other` is a `TensorValue`, it will be converted to a `Tensor` with `Tensor.forceTensor(other)`, and this rule will apply for other element-wise ops as well. Two tensors of different shapes and sizes will get broadcasted if they are compatible, or else the function will throw an error.
 * `sub(other: TensorValue | Tensor): Tensor`: Returns `this` subtracted by `other` element-wise.
+* `subtract(other: TensorValue | Tensor): Tensor`: Alias for `sub`.
 * `mul(other: TensorValue | Tensor): Tensor`: Returns `this` multiplied with `other` element-wise.
+* `multiply(other: TensorValue | Tensor): Tensor`: Alias for `mul`.
 * `pow(other: TensorValue | Tensor): Tensor`: Returns `this` raised to the power of `other` element-wise.
 * `div(other: TensorValue | Tensor): Tensor`: Returns `this` divided by `other` element-wise.
+* `divide(other: TensorValue | Tensor): Tensor`: Alias for `div`.
+* `remainder(other: TensorValue | Tensor): Tensor`: Returns remainder of `this` divided by `other` element-wise.
 * `ge(other: TensorValue | Tensor): Tensor`: Returns `this` greater than or equal to `other` element-wise (1 if true, 0 if false).
+* `greaterEqual(other: TensorValue | Tensor): Tensor`: Alias for `ge`.
 * `le(other: TensorValue | Tensor): Tensor`: Returns `this` less than or equal to `other` element-wise (1 if true, 0 if false).
+* `lessEqual(other: TensorValue | Tensor): Tensor`: Alias for `le`.
 * `gt(other: TensorValue | Tensor): Tensor`: Returns `this` greater than `other` element-wise (1 if true, 0 if false).
+* `greater(other: TensorValue | Tensor): Tensor`: Alias for `gt`.
 * `lt(other: TensorValue | Tensor): Tensor`: Returns `this` less than `other` element-wise (1 if true, 0 if false).
+* `less(other: TensorValue | Tensor): Tensor`: Alias for `lt`.
 * `eq(other: TensorValue | Tensor): Tensor`: Returns `this` equal to `other` element-wise (1 if true, 0 if false).
+* `equal(other: TensorValue | Tensor): Tensor`: Alias for `eq`.
+* `ne(other: TensorValue | Tensor): Tensor`: Returns `this` not equal to `other` element-wise (1 if true, 0 if false).
+* `notEqual(other: TensorValue | Tensor): Tensor`: Alias for `ne`.
 * `logicalAnd(other: TensorValue | Tensor): Tensor`: Returns `this` logical and `other` element-wise (1 if both are 1, 0 otherwise).
 * `logicalOr(other: TensorValue | Tensor): Tensor`: Returns `this` logical or `other` element-wise (1 if either are 1, 0 otherwise).
 * `logicalXor(other: TensorValue | Tensor): Tensor`: Returns `this` logical xor `other` element-wise (1 if both are not the same bit, 0 otherwise).
@@ -125,21 +136,38 @@ All autograd-supported tensor arithmetic methods:
 * `bitwiseLeftShift(other: TensorValue | Tensor): Tensor`: Returns `this` bitwise left shift `other` element-wise.
 * `bitwiseRightShift(other: TensorValue | Tensor): Tensor`: Returns `this` bitwise right shift `other` element-wise.
 * `neg(): Tensor`: Returns negative of `this` element-wise.
+* `negative(): Tensor`: Alias for `neg`.
+* `reciprocal(): Tensor`: Returns reciprocal of `this` element-wise.
+* `square(): Tensor`: Returns `this` squared element-wise.
 * `abs(): Tensor`: Returns absolute of `this` element-wise.
+* `absolute(): Tensor`: Alias for `abs`.
 * `sign(): Tensor`: Returns sign of `this` element-wise.
 * `sin(): Tensor`: Returns sin of `this` element-wise.
 * `cos(): Tensor`: Returns cos of `this` element-wise.
 * `tan(): Tensor`: Returns tan of `this` element-wise.
 * `asin(): Tensor`: Returns asin of `this` element-wise.
+* `arcsin(): Tensor`: Alias for `asin`.
 * `acos(): Tensor`: Returns acos of `this` element-wise.
+* `arccos(): Tensor`: Alias for `acos`.
 * `atan(): Tensor`: Returns atan of `this` element-wise.
+* `arctan(): Tensor`: Alias for `atan`.
+* `atan2(other: TensorValue | Tensor): Tensor`: Returns arctan2 of `this` and `other` element-wise.
+* `arctan2(other: TensorValue | Tensor): Tensor`: Alias for `atan2`.
 * `sinh(): Tensor`: Returns sinh of `this` element-wise.
 * `cosh(): Tensor`: Returns cosh of `this` element-wise.
 * `asinh(): Tensor`: Returns asinh of `this` element-wise.
+* `arcsinh(): Tensor`: Alias for `asinh`.
 * `acosh(): Tensor`: Returns acosh of `this` element-wise.
+* `arccosh(): Tensor`: Alias for `acosh`.
 * `atanh(): Tensor`: Returns atanh of `this` element-wise.
+* `arctanh(): Tensor`: Alias for `atanh`.
+* `deg2rad(): Tensor`: Convert `this` degree to radian element-wise.
+* `rad2deg(): Tensor`: Convert `this` radian to degree element-wise.
 * `sqrt(): Tensor`: Returns square root of `this` element-wise.
+* `rsqrt(): Tensor`: Returns reciprocal of square root of `this` element-wise.
 * `exp(): Tensor`: Returns e raised to the power of `this` element-wise.
+* `exp2(): Tensor`: Returns 2 raised to the power of `this` element-wise.
+* `expm1(): Tensor`: Returns e raised to the power of `this` minus 1 element-wise.
 * `log(): Tensor`: Returns natural log of `this` element-wise.
 * `log2(): Tensor`: Returns log base 2 of `this` element-wise.
 * `log10(): Tensor`: Returns log base 10 of `this` element-wise.
@@ -147,6 +175,14 @@ All autograd-supported tensor arithmetic methods:
 * `relu(): Tensor`: Returns relu of `this` element-wise.
 * `sigmoid(): Tensor`: Returns sigmoid of `this` element-wise.
 * `tanh(): Tensor`: Returns tanh of `this` element-wise.
+* `round(): Tensor`: Returns `this` rounded element-wise.
+* `floor(): Tensor`: Returns `this` floored element-wise.
+* `ceil(): Tensor`: Returns `this` ceiled element-wise.
+* `trunc(): Tensor`: Returns `this` truncated element-wise.
+* `fix(): Tensor`: Alias for `trunc`.
+* `frac(): Tensor`: Returns fraction part of `this` element-wise.
+* `clip(min: number, max: number): Tensor`: Returns value limited between `min` and `max`.
+* `clamp(min: number, max: number): Tensor`: Alias for `clip`.
 * `transpose(dim1: number, dim2: number): Tensor`: Returns transposition of a tensor from two provided dimensions.
 * `t(): Tensor`: Returns transposition of a 2D tensor (matrix). If `this` is not 2D, it will throw an error.
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
@@ -181,7 +217,7 @@ Here are utilities that you probably won't have to use but they might come in ha
         * `shapeB: readonly number[]`: Shape of the second tensor.
     * returns: A tuple of `(newStridesA, newStridesB, newShapeA, newShapeB)` with type `[readonly number[], readonly number[], readonly number[], readonly number[]]`.
 * `static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[]`: Returns the new shape broadcasted from `shapeA` and `shapeB`. Basically if one shape's dimension is of size n, and other shape's corresponding dimension if of size n or 1, then the new shape's corresponding dimension is n, otherwise throw an error. For example `[1,2,3]` and `[4,1,3]` would be `[4,2,3]` after broadcasting.
-* `static indexToCoords(index: number, strides: readonly number[]): number[]`: Convert an index of an 1D array to coordinates (indices) of an nD array, based on the nD array's `shape` and `strides`.
+* `static indexToCoords(index: number, strides: readonly number[]): number[]`: Convert an index of an 1D array to coordinates (indices) of an nD array, based on the nD array's `strides`.
 * `static coordsToIndex(coords: number[], strides: readonly number[]): number`: Convert coordinates (indices) of an nD array to an index of an 1D array, based on the nD array's `strides`.
 * `static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number`: Convert coordinates (indices) of an unbroadcasted nD array to an index of an 1D array, based on the nD array's `shape` and `strides`. Basically the same as above but coordinates of dimensions with size 1 are forced to be 0.
 * `static shapeToSize(shape: readonly number[]): number`: Convert shape into 1D array size.
