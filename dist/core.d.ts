@@ -112,6 +112,12 @@ export declare class Tensor {
     relu(): Tensor;
     sigmoid(): Tensor;
     tanh(): Tensor;
+    softplus(): Tensor;
+    softsign(): Tensor;
+    silu(): Tensor;
+    mish(): Tensor;
+    maximum(other: TensorValue | Tensor): Tensor;
+    minimum(other: TensorValue | Tensor): Tensor;
     round(): Tensor;
     floor(): Tensor;
     ceil(): Tensor;
@@ -120,6 +126,9 @@ export declare class Tensor {
     frac(): Tensor;
     clip(min: number, max: number): Tensor;
     clamp: (min: number, max: number) => Tensor;
+    erf(): Tensor;
+    erfc(): Tensor;
+    erfinv(): Tensor;
     transpose(dim1: number, dim2: number): Tensor;
     swapaxes: (dim1: number, dim2: number) => Tensor;
     swapdims: (dim1: number, dim2: number) => Tensor;

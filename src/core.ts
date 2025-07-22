@@ -1,3 +1,5 @@
+import { erf, erfc, erfinv } from "./utils";
+
 export type TensorValue = number | TensorValue[];
 
 export interface TensorOptions {
@@ -662,7 +664,7 @@ export class Tensor {
             other,
             (a, b) => a / b,
             (self, other, outGrad) => outGrad.div(other),
-            (self, other, outGrad) => outGrad.mul(self.neg().div(other.pow(2)))
+            (self, other, outGrad) => outGrad.mul(self.neg().div(other.square()))
         );
     }
 
@@ -828,7 +830,7 @@ export class Tensor {
     reciprocal(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => 1 / a,
-            (self, outGrad) => outGrad.mul(self.neg().pow(-2))
+            (self, outGrad) => outGrad.mul(self.pow(-2).neg())
         );
     }
 
@@ -877,7 +879,7 @@ export class Tensor {
     tan(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.tan(a),
-            (self, outGrad) => outGrad.mul(self.tan().pow(2).add(1))
+            (self, outGrad) => outGrad.mul(self.tan().square().add(1))
         );
     }
 
@@ -885,7 +887,7 @@ export class Tensor {
     asin(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.asin(a),
-            (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt())
+            (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt())
         );
     }
 
@@ -895,7 +897,7 @@ export class Tensor {
     acos(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.acos(a),
-            (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt()).neg()
+            (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt()).neg()
         );
     }
 
@@ -905,7 +907,7 @@ export class Tensor {
     atan(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.atan(a),
-            (self, outGrad) => outGrad.div(self.pow(2).add(1))
+            (self, outGrad) => outGrad.div(self.square().add(1))
         );
     }
 
@@ -943,7 +945,7 @@ export class Tensor {
     asinh(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.asinh(a),
-            (self, outGrad) => outGrad.div(self.pow(2).add(1).sqrt())
+            (self, outGrad) => outGrad.div(self.square().add(1).sqrt())
         );
     }
 
@@ -963,7 +965,7 @@ export class Tensor {
     atanh(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.atanh(a),
-            (self, outGrad) => outGrad.div(self.pow(2).neg().add(1))
+            (self, outGrad) => outGrad.div(self.square().neg().add(1))
         );
     }
 
@@ -1061,7 +1063,7 @@ export class Tensor {
     relu(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.max(a, 0),
-            (self, outGrad) => outGrad.mul(self.ge(0))
+            (self, outGrad) => outGrad.mul(self.gt(0))
         );
     }
 
@@ -1080,7 +1082,71 @@ export class Tensor {
     tanh(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.tanh(a),
-            (self, outGrad) => outGrad.mul(self.tanh().pow(2).neg().add(1))
+            (self, outGrad) => outGrad.mul(self.tanh().square().neg().add(1))
+        );
+    }
+
+    // Tensor element-wise softplus
+    softplus(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => Math.log1p(Math.exp(a)),
+            (self, outGrad) => outGrad.mul(self.sigmoid())
+        );
+    }
+
+    // Tensor element-wise softsign
+    softsign(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => a / (1 + Math.abs(a)),
+            (self, outGrad) => outGrad.div(self.abs().add(1).square())
+        );
+    }
+
+    // Tensor element-wise silu (swish)
+    silu(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => a / (1 + Math.exp(-a)),
+            (self, outGrad) => {
+                const sig = self.sigmoid();
+                return outGrad.mul(sig.add(self.mul(sig).mul(sig.neg().add(1))));
+            }
+        );
+    }
+
+    // Tensor element-wise mish
+    mish(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => a * Math.tanh(Math.log1p(Math.exp(a))),
+            (self, outGrad) => {
+                const tanhSoftPlus = self.exp().add(1).log().tanh();
+
+                // tanh(softplus(x)) + x * (1 - tanh²(softplus(x))) * sigmoid(x)
+                const derivative = tanhSoftPlus.add(
+                    self.mul(tanhSoftPlus.square().neg().add(1)).mul(self.sigmoid())
+                );
+
+                return outGrad.mul(derivative);
+            }
+        );
+    }
+
+    // Tensor element-wise maximum
+    maximum(other: TensorValue | Tensor): Tensor {
+        return this.elementWiseABDAG(
+            other,
+            (a, b) => Math.max(a, b),
+            (self, other, outGrad) => outGrad.mul(self.gt(other).add(self.eq(other).mul(0.5))),
+            (self, other, outGrad) => outGrad.mul(other.gt(self).add(other.eq(self).mul(0.5)))
+        );
+    }
+
+    // Tensor element-wise minimum
+    minimum(other: TensorValue | Tensor): Tensor {
+        return this.elementWiseABDAG(
+            other,
+            (a, b) => Math.min(a, b),
+            (self, other, outGrad) => outGrad.mul(self.lt(other).add(self.eq(other).mul(0.5))),
+            (self, other, outGrad) => outGrad.mul(other.lt(self).add(other.eq(self).mul(0.5)))
         );
     }
 
@@ -1130,6 +1196,30 @@ export class Tensor {
     }
 
     clamp = this.clip;
+
+    // Tensor element-wise error function
+    erf(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => erf(a),
+            (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI)))
+        );
+    }
+
+    // Tensor element-wise complementary error function
+    erfc(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => erfc(a),
+            (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI)).neg())
+        );
+    }
+
+    // Tensor element-wise inverse error function
+    erfinv(): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => erfinv(a),
+            (self, outGrad) => outGrad.mul(self.erfinv().square().exp().mul(Math.sqrt(Math.PI) / 2))
+        );
+    }
 
     // Transpose
     transpose(dim1: number, dim2: number): Tensor {
