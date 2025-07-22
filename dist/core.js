@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tensor = void 0;
+const utils_1 = require("./utils");
 class Tensor {
     value;
     shape;
@@ -534,7 +535,7 @@ class Tensor {
     }
     // Tensor element-wise division
     div(other) {
-        return this.elementWiseABDAG(other, (a, b) => a / b, (self, other, outGrad) => outGrad.div(other), (self, other, outGrad) => outGrad.mul(self.neg().div(other.pow(2))));
+        return this.elementWiseABDAG(other, (a, b) => a / b, (self, other, outGrad) => outGrad.div(other), (self, other, outGrad) => outGrad.mul(self.neg().div(other.square())));
     }
     divide = this.div;
     // Tensor element-wise modulo
@@ -618,7 +619,7 @@ class Tensor {
     negative = this.neg;
     // Tensor element-wise reciprocal
     reciprocal() {
-        return this.elementWiseSelfDAG((a) => 1 / a, (self, outGrad) => outGrad.mul(self.neg().pow(-2)));
+        return this.elementWiseSelfDAG((a) => 1 / a, (self, outGrad) => outGrad.mul(self.pow(-2).neg()));
     }
     // Tensor element-wise square
     square() {
@@ -643,21 +644,21 @@ class Tensor {
     }
     // Tensor element-wise tan
     tan() {
-        return this.elementWiseSelfDAG((a) => Math.tan(a), (self, outGrad) => outGrad.mul(self.tan().pow(2).add(1)));
+        return this.elementWiseSelfDAG((a) => Math.tan(a), (self, outGrad) => outGrad.mul(self.tan().square().add(1)));
     }
     // Tensor element-wise asin
     asin() {
-        return this.elementWiseSelfDAG((a) => Math.asin(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt()));
+        return this.elementWiseSelfDAG((a) => Math.asin(a), (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt()));
     }
     arcsin = this.asin;
     // Tensor element-wise acos
     acos() {
-        return this.elementWiseSelfDAG((a) => Math.acos(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1).sqrt()).neg());
+        return this.elementWiseSelfDAG((a) => Math.acos(a), (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt()).neg());
     }
     arccos = this.acos;
     // Tensor element-wise atan
     atan() {
-        return this.elementWiseSelfDAG((a) => Math.atan(a), (self, outGrad) => outGrad.div(self.pow(2).add(1)));
+        return this.elementWiseSelfDAG((a) => Math.atan(a), (self, outGrad) => outGrad.div(self.square().add(1)));
     }
     arctan = this.atan;
     // Tensor element-wise atan2
@@ -675,7 +676,7 @@ class Tensor {
     }
     // Tensor element-wise asinh
     asinh() {
-        return this.elementWiseSelfDAG((a) => Math.asinh(a), (self, outGrad) => outGrad.div(self.pow(2).add(1).sqrt()));
+        return this.elementWiseSelfDAG((a) => Math.asinh(a), (self, outGrad) => outGrad.div(self.square().add(1).sqrt()));
     }
     arcsinh = this.asinh;
     // Tensor element-wise acosh
@@ -685,7 +686,7 @@ class Tensor {
     arccosh = this.acosh;
     // Tensor element-wise atanh
     atanh() {
-        return this.elementWiseSelfDAG((a) => Math.atanh(a), (self, outGrad) => outGrad.div(self.pow(2).neg().add(1)));
+        return this.elementWiseSelfDAG((a) => Math.atanh(a), (self, outGrad) => outGrad.div(self.square().neg().add(1)));
     }
     arctanh = this.atanh;
     // Tensor element-wise degree to radian
@@ -734,7 +735,7 @@ class Tensor {
     }
     // Tensor element-wise relu
     relu() {
-        return this.elementWiseSelfDAG((a) => Math.max(a, 0), (self, outGrad) => outGrad.mul(self.ge(0)));
+        return this.elementWiseSelfDAG((a) => Math.max(a, 0), (self, outGrad) => outGrad.mul(self.gt(0)));
     }
     // Tensor element-wise sigmoid
     sigmoid() {
@@ -745,7 +746,39 @@ class Tensor {
     }
     // Tensor element-wise tanh
     tanh() {
-        return this.elementWiseSelfDAG((a) => Math.tanh(a), (self, outGrad) => outGrad.mul(self.tanh().pow(2).neg().add(1)));
+        return this.elementWiseSelfDAG((a) => Math.tanh(a), (self, outGrad) => outGrad.mul(self.tanh().square().neg().add(1)));
+    }
+    // Tensor element-wise softplus
+    softplus() {
+        return this.elementWiseSelfDAG((a) => Math.log1p(Math.exp(a)), (self, outGrad) => outGrad.mul(self.sigmoid()));
+    }
+    // Tensor element-wise softsign
+    softsign() {
+        return this.elementWiseSelfDAG((a) => a / (1 + Math.abs(a)), (self, outGrad) => outGrad.div(self.abs().add(1).square()));
+    }
+    // Tensor element-wise silu (swish)
+    silu() {
+        return this.elementWiseSelfDAG((a) => a / (1 + Math.exp(-a)), (self, outGrad) => {
+            const sig = self.sigmoid();
+            return outGrad.mul(sig.add(self.mul(sig).mul(sig.neg().add(1))));
+        });
+    }
+    // Tensor element-wise mish
+    mish() {
+        return this.elementWiseSelfDAG((a) => a * Math.tanh(Math.log1p(Math.exp(a))), (self, outGrad) => {
+            const tanhSoftPlus = self.exp().add(1).log().tanh();
+            // tanh(softplus(x)) + x * (1 - tanh²(softplus(x))) * sigmoid(x)
+            const derivative = tanhSoftPlus.add(self.mul(tanhSoftPlus.square().neg().add(1)).mul(self.sigmoid()));
+            return outGrad.mul(derivative);
+        });
+    }
+    // Tensor element-wise maximum
+    maximum(other) {
+        return this.elementWiseABDAG(other, (a, b) => Math.max(a, b), (self, other, outGrad) => outGrad.mul(self.gt(other).add(self.eq(other).mul(0.5))), (self, other, outGrad) => outGrad.mul(other.gt(self).add(other.eq(self).mul(0.5))));
+    }
+    // Tensor element-wise minimum
+    minimum(other) {
+        return this.elementWiseABDAG(other, (a, b) => Math.min(a, b), (self, other, outGrad) => outGrad.mul(self.lt(other).add(self.eq(other).mul(0.5))), (self, other, outGrad) => outGrad.mul(other.lt(self).add(other.eq(self).mul(0.5))));
     }
     // Tensor element-wise round
     round() {
@@ -773,6 +806,18 @@ class Tensor {
         return this.elementWiseSelfDAG((a) => Math.max(min, Math.min(max, a)), (self, outGrad) => outGrad.mul(self.ge(min).mul(self.le(max))));
     }
     clamp = this.clip;
+    // Tensor element-wise error function
+    erf() {
+        return this.elementWiseSelfDAG((a) => (0, utils_1.erf)(a), (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI))));
+    }
+    // Tensor element-wise complementary error function
+    erfc() {
+        return this.elementWiseSelfDAG((a) => (0, utils_1.erfc)(a), (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI)).neg()));
+    }
+    // Tensor element-wise inverse error function
+    erfinv() {
+        return this.elementWiseSelfDAG((a) => (0, utils_1.erfinv)(a), (self, outGrad) => outGrad.mul(self.erfinv().square().exp().mul(Math.sqrt(Math.PI) / 2)));
+    }
     // Transpose
     transpose(dim1, dim2) {
         // If dimension out of bound, throw error

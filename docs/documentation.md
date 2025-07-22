@@ -175,6 +175,12 @@ All autograd-supported tensor arithmetic methods:
 * `relu(): Tensor`: Returns relu of `this` element-wise.
 * `sigmoid(): Tensor`: Returns sigmoid of `this` element-wise.
 * `tanh(): Tensor`: Returns tanh of `this` element-wise.
+* `softplus(): Tensor`: Returns softplus of `this` element-wise.
+* `softsign(): Tensor`: Returns softsign of `this` element-wise.
+* `silu(): Tensor`: Returns silu (swish) of `this` element-wise.
+* `mish(): Tensor`: Returns mish of `this` element-wise.
+* `maximum(other: TensorValue | Tensor): Tensor`: Returns maximum between `this` and `other` element-wise.
+* `minimum(other: TensorValue | Tensor): Tensor`: Returns minimum between `this` and `other` element-wise.
 * `round(): Tensor`: Returns `this` rounded element-wise.
 * `floor(): Tensor`: Returns `this` floored element-wise.
 * `ceil(): Tensor`: Returns `this` ceiled element-wise.
@@ -183,6 +189,9 @@ All autograd-supported tensor arithmetic methods:
 * `frac(): Tensor`: Returns fraction part of `this` element-wise.
 * `clip(min: number, max: number): Tensor`: Returns value limited between `min` and `max`.
 * `clamp(min: number, max: number): Tensor`: Alias for `clip`.
+* `erf(): Tensor`: Returns error function with `this` as input element-wise.
+* `erfc(): Tensor`: Returns complementary error function with `this` as input element-wise.
+* `erfinv(): Tensor`: Returns inverse error function with `this` as input element-wise.
 * `transpose(dim1: number, dim2: number): Tensor`: Returns transposition of a tensor from two provided dimensions.
 * `t(): Tensor`: Returns transposition of a 2D tensor (matrix). If `this` is not 2D, it will throw an error.
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
