@@ -87,6 +87,9 @@ I'm mostly just learning and playing with this currently, so there are no concre
 * Proper documentation.
 * GPU acceleration.
 * Some general neural net APIs.
+* Refactor code.
+* Proper tests.
+* Option to load more backends.
 
 ## Copyrights and License
 

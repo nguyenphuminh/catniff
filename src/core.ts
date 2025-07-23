@@ -330,7 +330,7 @@ export class Tensor {
 
     // Tensor squeeze
     squeeze(dims?: number[] | number): Tensor {
-        if (typeof this.value === "number") return new Tensor(this.value);
+        if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") {
             const shape = this.shape;
@@ -385,9 +385,10 @@ export class Tensor {
 
     // Tensor unsqueeze - adds dimension of size 1 at specified position
     unsqueeze(dim: number): Tensor {
-        if (typeof this.value === "number") return new Tensor([this.value]);
-        if (dim < 0 || dim > this.shape.length) {
-            throw new Error(`Invalid dimension ${dim} for unsqueeze`);
+        let thisValue = this.value;
+
+        if (typeof thisValue === "number") {
+            thisValue = [thisValue];
         }
 
         // Insert size-1 dimension at specified position
@@ -406,7 +407,7 @@ export class Tensor {
         }
         newStrides.splice(dim, 0, newDimStride);
 
-        const out = new Tensor(this.value, { shape: newShape, strides: newStrides });
+        const out = new Tensor(thisValue, { shape: newShape, strides: newStrides });
 
         // Set up gradient if needed
         if (this.requiresGrad) {
@@ -422,7 +423,7 @@ export class Tensor {
 
     // Tensor sum reduction
     sum(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        if (typeof this.value === "number") return new Tensor(this.value);
+        if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
 
@@ -431,7 +432,6 @@ export class Tensor {
         const outputStrides = Tensor.getStrides(outputShape);
         const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize).fill(0);
-
         const originalSize = Tensor.shapeToSize(this.shape);
 
         // Gradient data
@@ -452,6 +452,7 @@ export class Tensor {
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Accumulate, outFlatIndex should match multiple realFlatIndexes
             const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+            // Add into sum
             outputValue[outFlatIndex] += this.value[realFlatIndex];
             // Mark for gradient if needed
             if (this.requiresGrad) { gradValue[realFlatIndex] = 1; }
@@ -477,7 +478,7 @@ export class Tensor {
 
     // Tensor product reduction
     prod(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        if (typeof this.value === "number") return new Tensor(this.value);
+        if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
 
@@ -486,17 +487,7 @@ export class Tensor {
         const outputStrides = Tensor.getStrides(outputShape);
         const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize).fill(1);
-
         const originalSize = Tensor.shapeToSize(this.shape);
-
-        // Gradient data
-        let gradShape: readonly number[], gradStrides: readonly number[], gradValue: number[] = [];
-        // Allocate gradient data only when needed
-        if (this.requiresGrad) {
-            gradShape = this.shape;
-            gradStrides = this.strides;
-            gradValue = new Array(originalSize).fill(0);
-        }
 
         // Calculate new value after multiplying
         for (let index = 0; index < originalSize; index++) {
@@ -507,6 +498,7 @@ export class Tensor {
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Accumulate, outFlatIndex should match multiple realFlatIndexes
             const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+            // Multiply into product
             outputValue[outFlatIndex] *= this.value[realFlatIndex];
         }
 
@@ -517,7 +509,8 @@ export class Tensor {
 
         // Set up gradient if needed
         if (this.requiresGrad) {
-            // Grad is the product of other elements of the same axis, which is product of all els divided by the current value
+            const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
+
             for (let index = 0; index < originalSize; index++) {
                 const coords = Tensor.indexToCoords(index, this.strides);
                 // Force 0 on reduced axes to collapse into size-1 dims
@@ -526,7 +519,7 @@ export class Tensor {
                 const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                 // Accumulate, outFlatIndex should match multiple realFlatIndexes
                 const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
-                // Calculate gradient at position
+                // Grad is the product of other elements of the same axis, which is product of all els divided by the current value
                 gradValue[realFlatIndex] = outputValue[outFlatIndex] / this.value[realFlatIndex];
             }
 
@@ -543,7 +536,7 @@ export class Tensor {
 
     // Tensor mean reduction
     mean(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        if (typeof this.value === "number") return new Tensor(this.value);
+        if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
 
@@ -553,17 +546,7 @@ export class Tensor {
         const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new Array(outputSize).fill(0);
         const outputFeeders = new Array(outputSize).fill(0);
-
         const originalSize = Tensor.shapeToSize(this.shape);
-
-        // Gradient data
-        let gradShape: readonly number[], gradStrides: readonly number[], gradValue: number[] = [];
-        // Allocate gradient data only when needed
-        if (this.requiresGrad) {
-            gradShape = this.shape;
-            gradStrides = this.strides;
-            gradValue = new Array(originalSize).fill(0);
-        }
 
         // Calculate sums and how many elements contribute to specific positions
         for (let index = 0; index < originalSize; index++) {
@@ -574,6 +557,7 @@ export class Tensor {
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Accumulate, outFlatIndex should match multiple realFlatIndexes
             const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+            // Calculate sum and contributors to the sum
             outputValue[outFlatIndex] += this.value[realFlatIndex];
             outputFeeders[outFlatIndex]++;
         }
@@ -590,7 +574,9 @@ export class Tensor {
 
         // Set up gradient if needed
         if (this.requiresGrad) {
-            // Calculate grad by assiging 1 divide by the number of contributors to the position
+            const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
+
+            // Calculate grad by assigning 1 divided by the number of contributors to the position
             for (let index = 0; index < originalSize; index++) {
                 const coords = Tensor.indexToCoords(index, this.strides);
                 // Force 0 on reduced axes to collapse into size-1 dims
@@ -601,6 +587,126 @@ export class Tensor {
                 const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
                 // Mean = 1/n * (el1 + el2 + ... + eln) so grad = 1/n
                 gradValue[realFlatIndex] = 1 / outputFeeders[outFlatIndex];
+            }
+
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
+                Tensor.addGrad(this, (out.grad as Tensor).withGrad(false).mul(localGrad));
+            };
+        }
+
+        return keepDims ? out : out.squeeze(dims);
+    }
+
+    // Tensor maximum reduction
+    max(dims?: number[] | number, keepDims: boolean = false): Tensor {
+        if (typeof this.value === "number") return this;
+        if (typeof dims === "number") { dims = [dims]; }
+        if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
+
+        // Dims that are reduced now have size-1
+        const outputShape = this.shape.map((dim, i) => dims.includes(i) ? 1 : dim);
+        const outputStrides = Tensor.getStrides(outputShape);
+        const outputSize = Tensor.shapeToSize(outputShape);
+        const outputValue = new Array(outputSize).fill(-Infinity);
+        const originalSize = Tensor.shapeToSize(this.shape);
+
+        // Calculate maximum values of axes
+        for (let index = 0; index < originalSize; index++) {
+            const coords = Tensor.indexToCoords(index, this.strides);
+            // Force 0 on reduced axes to collapse into size-1 dims
+            const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
+            // Convert output coordinates to flat index
+            const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+            // Accumulate, outFlatIndex should match multiple realFlatIndexes
+            const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+            // Get max over time
+            if (this.value[realFlatIndex] > outputValue[outFlatIndex]) {
+                outputValue[outFlatIndex] = this.value[realFlatIndex];
+            }
+        }
+
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides
+        });
+
+        // Set up gradient if needed
+        if (this.requiresGrad) {
+            const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
+
+            for (let index = 0; index < originalSize; index++) {
+                const coords = Tensor.indexToCoords(index, this.strides);
+                // Force 0 on reduced axes to collapse into size-1 dims
+                const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
+                // Convert output coordinates to flat index
+                const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+                // Accumulate, outFlatIndex should match multiple realFlatIndexes
+                const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+                // Calculate grad by checking if a positon holds a value equal to the max value
+                gradValue[realFlatIndex] = outputValue[outFlatIndex] === this.value[realFlatIndex] ? 1 : 0;
+            }
+
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
+                Tensor.addGrad(this, (out.grad as Tensor).withGrad(false).mul(localGrad));
+            };
+        }
+
+        return keepDims ? out : out.squeeze(dims);
+    }
+
+    // Tensor minimum reduction
+    min(dims?: number[] | number, keepDims: boolean = false): Tensor {
+        if (typeof this.value === "number") return this;
+        if (typeof dims === "number") { dims = [dims]; }
+        if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
+
+        // Dims that are reduced now have size-1
+        const outputShape = this.shape.map((dim, i) => dims.includes(i) ? 1 : dim);
+        const outputStrides = Tensor.getStrides(outputShape);
+        const outputSize = Tensor.shapeToSize(outputShape);
+        const outputValue = new Array(outputSize).fill(Infinity);
+        const originalSize = Tensor.shapeToSize(this.shape);
+
+        // Calculate minimum values of axes
+        for (let index = 0; index < originalSize; index++) {
+            const coords = Tensor.indexToCoords(index, this.strides);
+            // Force 0 on reduced axes to collapse into size-1 dims
+            const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
+            // Convert output coordinates to flat index
+            const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+            // Accumulate, outFlatIndex should match multiple realFlatIndexes
+            const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+            // Get min over time
+            if (this.value[realFlatIndex] < outputValue[outFlatIndex]) {
+                outputValue[outFlatIndex] = this.value[realFlatIndex];
+            }
+        }
+
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides
+        });
+
+        // Set up gradient if needed
+        if (this.requiresGrad) {
+            const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
+
+            for (let index = 0; index < originalSize; index++) {
+                const coords = Tensor.indexToCoords(index, this.strides);
+                // Force 0 on reduced axes to collapse into size-1 dims
+                const outCoords = coords.map((val, i) => dims.includes(i) ? 0 : val);
+                // Convert output coordinates to flat index
+                const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
+                // Accumulate, outFlatIndex should match multiple realFlatIndexes
+                const realFlatIndex = Tensor.coordsToIndex(coords, this.strides);
+                // Calculate grad by checking if a positon holds a value equal to the min value
+                gradValue[realFlatIndex] = outputValue[outFlatIndex] === this.value[realFlatIndex] ? 1 : 0;
             }
 
             out.requiresGrad = true;

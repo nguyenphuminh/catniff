@@ -41,6 +41,8 @@ export declare class Tensor {
     sum(dims?: number[] | number, keepDims?: boolean): Tensor;
     prod(dims?: number[] | number, keepDims?: boolean): Tensor;
     mean(dims?: number[] | number, keepDims?: boolean): Tensor;
+    max(dims?: number[] | number, keepDims?: boolean): Tensor;
+    min(dims?: number[] | number, keepDims?: boolean): Tensor;
     add(other: TensorValue | Tensor): Tensor;
     sub(other: TensorValue | Tensor): Tensor;
     subtract: (other: TensorValue | Tensor) => Tensor;
