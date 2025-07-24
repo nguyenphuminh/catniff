@@ -208,12 +208,24 @@ All autograd-supported tensor arithmetic methods:
 
 Here are commonly used utilities:
 
-* `backward()`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with whatever `this` you are calling with as the top node. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation.
+* `backward()`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
 * `withGrad(requiresGrad: boolean): Tensor`: Returns a copy of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
+* `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
+* `static ones(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 1, configured with `options`.
 * `static onesLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with 1, configured with `options`.
+* `static zeros(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 0, configured with `options`.
 * `static zerosLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with 0, configured with `options`.
+* `static rand(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with uniform distribution from 0 to 1, configured with `options`.
+* `static randLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random number with uniform distribution from 0 to 1, configured with `options`.
+* `static randn(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
+* `static randnLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
+* `static randint(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random integer between low and high, configured with `options`.
+* `static randintLike(tensor: Tensor, low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random integer between low and high, configured with `options`.
+* `static normal(shape: number[], mean: number, stdDev: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of custom `mean` and `stdDev`, configured with `options`.
+* `static uniform(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`,  filled with a random number with uniform distribution from `low` to `high`, configured with `options`.
+
 
 Here are utilities that you probably won't have to use but they might come in handy:
 
@@ -279,16 +291,10 @@ const { Tensor } = require("catniff"), rand = () => Math.random() * 2 - 1;
 class Xornet {
     constructor(options = {}) {
         // 2->2->1 xornet
-        this.w1 = new Tensor(options.w1 || [
-            [rand(), rand()],
-            [rand(), rand()]
-        ], { requiresGrad: true });
-        this.b1 = new Tensor(options.b1 || [0, 0], { requiresGrad: true });
-        this.w2 = new Tensor(options.w2 || [
-            [rand()],
-            [rand()]
-        ], { requiresGrad: true });
-        this.b2 = new Tensor(options.b2 || [0], { requiresGrad: true });
+        this.w1 = Tensor.rand([2, 2], { requiresGrad: true });
+        this.b1 = Tensor.zeros([2], { requiresGrad: true });
+        this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
+        this.b2 = Tensor.zeros([1], { requiresGrad: true });
         this.lr = options.lr || 0.5;
     }
 

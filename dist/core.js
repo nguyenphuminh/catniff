@@ -1101,11 +1101,27 @@ class Tensor {
         // Too lazy for batched matmul
         throw new Error(`Shapes [${this.shape}] and [${other.shape}] are not supported`);
     }
+    // Utility to create a new tensor filled with a number
+    static full(shape, num, options = {}) {
+        if (shape.length === 0)
+            return new Tensor(num, options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize).fill(num);
+        return new Tensor(outputValue, { shape, ...options });
+    }
     // Utility to create a new tensor with shape of another tensor, filled with a number
     static fullLike(tensor, num, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(num, options);
         return new Tensor(new Array(tensor.value.length).fill(num), { shape: tensor.shape, strides: tensor.strides, ...options });
+    }
+    // Utility to create a new tensor filled with 1
+    static ones(shape, options = {}) {
+        if (typeof shape === "undefined" || shape.length === 0)
+            return new Tensor(1, options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize).fill(1);
+        return new Tensor(outputValue, { shape, ...options });
     }
     // Utility to create a new tensor with shape of another tensor, filled with 1
     static onesLike(tensor, options = {}) {
@@ -1113,11 +1129,110 @@ class Tensor {
             return new Tensor(1, options);
         return new Tensor(new Array(tensor.value.length).fill(1), { shape: tensor.shape, strides: tensor.strides, ...options });
     }
+    // Utility to create a new tensor filled with 0
+    static zeros(shape, options = {}) {
+        if (typeof shape === "undefined" || shape.length === 0)
+            return new Tensor(0, options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize).fill(0);
+        return new Tensor(outputValue, { shape, ...options });
+    }
     // Utility to create a new tensor with shape of another tensor, filled with 0
     static zerosLike(tensor, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(0, options);
         return new Tensor(new Array(tensor.value.length).fill(0), { shape: tensor.shape, strides: tensor.strides, ...options });
+    }
+    // Utility to create a new tensor filled with a random number with uniform distribution from 0 to 1
+    static rand(shape, options = {}) {
+        if (typeof shape === "undefined" || shape.length === 0)
+            return new Tensor((0, utils_1.randUniform)(), options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randUniform)();
+        }
+        return new Tensor(outputValue, { shape, ...options });
+    }
+    // Utility to create a new tensor with shape of another tensor, filled with a random number with uniform distribution from 0 to 1
+    static randLike(tensor, options = {}) {
+        if (typeof tensor.value === "number")
+            return new Tensor((0, utils_1.randUniform)(), options);
+        const outputValue = new Array(tensor.value.length);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randUniform)();
+        }
+        return new Tensor(outputValue, {
+            shape: tensor.shape, strides: tensor.strides, ...options
+        });
+    }
+    // Utility to create a new tensor filled with a random number with normal distribution of mean=0 and stddev=1
+    static randn(shape, options = {}) {
+        if (typeof shape === "undefined" || shape.length === 0)
+            return new Tensor((0, utils_1.randNormal)(), options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randNormal)();
+        }
+        return new Tensor(outputValue, { shape, ...options });
+    }
+    // Utility to create a new tensor with shape of another tensor, filled with a random number with normal distribution of mean=0 and stddev=1
+    static randnLike(tensor, options = {}) {
+        if (typeof tensor.value === "number")
+            return new Tensor((0, utils_1.randNormal)(), options);
+        const outputValue = new Array(tensor.value.length);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randNormal)();
+        }
+        return new Tensor(outputValue, {
+            shape: tensor.shape, strides: tensor.strides, ...options
+        });
+    }
+    // Utility to create a new tensor filled with a random integer between low and high
+    static randint(shape, low, high, options = {}) {
+        if (shape.length === 0)
+            return new Tensor((0, utils_1.randInt)(low, high), options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randInt)(low, high);
+        }
+        return new Tensor(outputValue, { shape, ...options });
+    }
+    // Utility to create a new tensor with shape of another tensor, filled with a random integer between low and high
+    static randintLike(tensor, low, high, options = {}) {
+        if (typeof tensor.value === "number")
+            return new Tensor((0, utils_1.randInt)(low, high), options);
+        const outputValue = new Array(tensor.value.length);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randInt)(low, high);
+        }
+        return new Tensor(outputValue, {
+            shape: tensor.shape, strides: tensor.strides, ...options
+        });
+    }
+    // Utility to create a new tensor filled with a random number with normal distribution of custom mean and stddev
+    static normal(shape, mean, stdDev, options = {}) {
+        if (shape.length === 0)
+            return new Tensor((0, utils_1.randNormal)(mean, stdDev), options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randNormal)(mean, stdDev);
+        }
+        return new Tensor(outputValue, { shape, ...options });
+    }
+    // Utility to create a new tensor filled with a random number with uniform distribution from low to high
+    static uniform(shape, low, high, options = {}) {
+        if (shape.length === 0)
+            return new Tensor((0, utils_1.randUniform)(low, high), options);
+        const outputSize = Tensor.shapeToSize(shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = (0, utils_1.randUniform)(low, high);
+        }
+        return new Tensor(outputValue, { shape, ...options });
     }
     // Reverse-mode autodiff call
     backward() {

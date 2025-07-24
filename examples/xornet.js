@@ -3,16 +3,10 @@ const { Tensor } = require("../index"), rand = () => Math.random() * 2 - 1;
 class Xornet {
     constructor(options = {}) {
         // 2->2->1 xornet
-        this.w1 = new Tensor(options.w1 || [
-            [rand(), rand()],
-            [rand(), rand()]
-        ], { requiresGrad: true });
-        this.b1 = new Tensor(options.b1 || [0, 0], { requiresGrad: true });
-        this.w2 = new Tensor(options.w2 || [
-            [rand()],
-            [rand()]
-        ], { requiresGrad: true });
-        this.b2 = new Tensor(options.b2 || [0], { requiresGrad: true });
+        this.w1 = Tensor.rand([2, 2], { requiresGrad: true });
+        this.b1 = Tensor.zeros([2], { requiresGrad: true });
+        this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
+        this.b2 = Tensor.zeros([1], { requiresGrad: true });
         this.lr = options.lr || 0.5;
     }
 

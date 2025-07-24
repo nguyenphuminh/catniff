@@ -33,3 +33,18 @@ export function erfinv(x: number): number {
 
     return sign * Math.sqrt(-part1 + Math.sqrt(part1 * part1 - part2));
 }
+
+export function randUniform(low: number = 0, high: number = 1): number {
+    return Math.random() * (high - low) + low;
+}
+
+export function randNormal(mean = 0, stdDev = 1): number {
+    const u = 1 - Math.random();
+    const v = 1 - Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    return z * stdDev + mean;
+}
+
+export function randInt(low: number, high: number): number {
+    return Math.floor(Math.random() * (high - low) + low);
+}
