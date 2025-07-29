@@ -1,6 +1,6 @@
 # Catniff
 
-Catniff is an experimental tensor ops library and autograd engine made to be Torch-like (its name is a play on "catnip" and "differentiation"). This project is heavily under development currently, so keep in mind that APIs can be completely unstable and backwards-incompatible.
+Catniff is a small deep learning framework for Javacript, built to be Torch-like, but more direct on tensors and autograd usage like Tinygrad. This project is under development currently, so keep in mind that APIs can be unstable and backwards-incompatible. On a side-note, the name is a play on "catnip" and "differentiation".
 
 ## Setup
 
@@ -80,14 +80,12 @@ All available APIs are in [`./src/core.ts`](./src/core.ts) if you want to dig de
 
 ## Todos
 
-I'm mostly just learning and playing with this currently, so there are no concrete plans yet, but here is what I currently have in mind:
-
-* Fix whatever is the problem right now (there are a lot of problems right now lol).
-* Add more tensor ops.
-* Proper documentation.
+* Bug fixes.
+* More tensor ops.
+* More detailed documentation.
 * GPU acceleration.
 * Some general neural net APIs.
-* Refactor code.
+* Code refactoring.
 * Proper tests.
 * Option to load more backends.
 

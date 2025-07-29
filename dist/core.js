@@ -1049,6 +1049,64 @@ class Tensor {
         }
         return out;
     }
+    // Batched 3D tensor matmul
+    bmm(other) {
+        other = Tensor.forceTensor(other);
+        // Verify 3D shape
+        if (this.shape.length !== 3 || other.shape.length !== 3 || this.shape[0] !== other.shape[0]) {
+            throw new Error("Inputs are not 3D tensors with the same first dim size");
+        }
+        // Simple matrix multiplication
+        const batchA = this.value;
+        const batchB = other.value;
+        const batchAStrides = this.strides;
+        const batchBStrides = other.strides;
+        const batchSize = this.shape[0];
+        const batchARows = this.shape[1];
+        const batchACols = this.shape[2];
+        const batchBRows = other.shape[1];
+        const batchBCols = other.shape[2];
+        if (batchACols !== batchBRows)
+            throw new Error("Invalid matrices shape for multiplication");
+        const batchCShape = [batchSize, batchARows, batchBCols];
+        const batchCStrides = Tensor.getStrides(batchCShape);
+        const batchCSize = Tensor.shapeToSize(batchCShape);
+        const batchC = new Array(batchCSize).fill(0);
+        for (let q = 0; q < batchSize; q++) {
+            for (let i = 0; i < batchARows; i++) {
+                for (let j = 0; j < batchBCols; j++) {
+                    for (let k = 0; k < batchACols; k++) {
+                        // Tensor values are 1D arrays so we have to get real index using strides
+                        batchC[q * batchCStrides[0] + i * batchCStrides[1] + j * batchCStrides[2]] +=
+                            batchA[q * batchAStrides[0] + i * batchAStrides[1] + k * batchAStrides[2]] *
+                                batchB[q * batchBStrides[0] + k * batchBStrides[1] + j * batchBStrides[2]];
+                    }
+                }
+            }
+        }
+        const out = new Tensor(batchC, { shape: batchCShape, strides: batchCStrides });
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+        }
+        if (other.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(other);
+        }
+        if (out.requiresGrad) {
+            out.gradFn = () => {
+                // Disable gradient collecting of gradients themselves
+                const outGrad = out.grad.withGrad(false);
+                const selfNoGrad = this.withGrad(false);
+                const otherNoGrad = other.withGrad(false);
+                if (this.requiresGrad)
+                    Tensor.addGrad(this, outGrad.bmm(otherNoGrad.transpose(1, 2)));
+                if (other.requiresGrad)
+                    Tensor.addGrad(other, selfNoGrad.transpose(1, 2).bmm(outGrad));
+            };
+        }
+        return out;
+    }
     // Convert right-side 1D tensor to a vector (nx1 tensor) to do matmul
     mv(other) {
         other = Tensor.forceTensor(other);

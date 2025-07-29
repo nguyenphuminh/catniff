@@ -137,6 +137,7 @@ export declare class Tensor {
     t(): Tensor;
     dot(other: TensorValue | Tensor): Tensor;
     mm(other: TensorValue | Tensor): Tensor;
+    bmm(other: TensorValue | Tensor): Tensor;
     mv(other: TensorValue | Tensor): Tensor;
     matmul(other: TensorValue | Tensor): Tensor;
     static full(shape: number[], num: number, options?: TensorOptions): Tensor;

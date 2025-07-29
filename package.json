@@ -1,7 +1,7 @@
 {
   "name": "catniff",
-  "version": "0.2.13",
-  "description": "A cute autograd engine for Javascript",
+  "version": "0.2.14",
+  "description": "A small Torch-like deep learning framework for Javascript with tensor and autograd support",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +11,6 @@
     "url": "git+https://github.com/nguyenphuminh/catniff.git"
   },
   "keywords": [
-    "cats",
     "catniff",
     "autograd",
     "autodiff",
@@ -27,6 +26,7 @@
     "machine-learning",
     "deep-learning",
     "micrograd",
+    "tinygrad",
     "torch",
     "pytorch"
   ],
