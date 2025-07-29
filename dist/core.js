@@ -1144,19 +1144,94 @@ class Tensor {
     // General matrix multiplication with different shapes
     matmul(other) {
         other = Tensor.forceTensor(other);
-        if (this.shape.length === 1 && other.shape.length === 1) {
+        const isThis1D = this.shape.length === 1;
+        const isOther1D = other.shape.length === 1;
+        if (isThis1D && isOther1D) {
             return this.dot(other);
         }
-        else if (this.shape.length === 1 && other.shape.length === 2) {
+        else if (isThis1D && other.shape.length === 2) {
             return this.unsqueeze(0).mm(other).squeeze(0);
         }
-        else if (this.shape.length === 2 && other.shape.length === 1) {
+        else if (this.shape.length === 2 && isOther1D) {
             return this.mv(other);
         }
         else if (this.shape.length === 2 && other.shape.length === 2) {
             return this.mm(other);
         }
-        // Too lazy for batched matmul
+        else if ((isThis1D && other.shape.length > 2) ||
+            (isOther1D && this.shape.length > 2) ||
+            (other.shape.length > 2 && this.shape.length > 2)) {
+            // Append/prepend dims if needed
+            const self = isThis1D ? this.unsqueeze(0) : this;
+            other = isOther1D ? other.unsqueeze(1) : other;
+            // Padding
+            const [selfStrides, otherStrides, selfShape, otherShape] = Tensor.padShape(self.strides, other.strides, self.shape, other.shape);
+            const lastDim = selfShape.length - 1;
+            // Prepare data for broadcasting
+            const batchA = self.value;
+            const batchB = other.value;
+            const batchARows = selfShape[lastDim - 1];
+            const batchACols = selfShape[lastDim];
+            const batchBRows = otherShape[lastDim - 1];
+            const batchBCols = otherShape[lastDim];
+            // Verify if can do matmul
+            if (batchACols !== batchBRows)
+                throw new Error("Invalid matrices shape for multiplication");
+            // Prepare shape, strides, size info, but more importantly the offset-related data to loop through the outer, non-matrix dims
+            // Self and other's offset data
+            const selfOffsetShape = selfShape.slice(0, -2);
+            const otherOffsetShape = otherShape.slice(0, -2);
+            const selfOffsetStrides = selfStrides.slice(0, -2);
+            const otherOffsetStrides = otherStrides.slice(0, -2);
+            // The output's offset data
+            const offsetShape = Tensor.broadcastShapes(selfOffsetShape, otherOffsetShape);
+            const offsetSize = Tensor.shapeToSize(offsetShape);
+            const offsetStrides = Tensor.getStrides(offsetShape);
+            // Output shape, strides, size, value
+            const outputShape = [...offsetShape, batchARows, batchBCols];
+            const outputStrides = Tensor.getStrides(outputShape);
+            const outputSize = Tensor.shapeToSize(outputShape);
+            const outputValue = new Array(outputSize).fill(0);
+            // Loop through outer dims and do matmul on two outer-most dims
+            for (let index = 0; index < offsetSize; index++) {
+                const coords = Tensor.indexToCoords(index, offsetStrides);
+                const offset = Tensor.coordsToIndex(coords, outputStrides.slice(0, -2));
+                const selfOffset = Tensor.coordsToUnbroadcastedIndex(coords, selfOffsetShape, selfOffsetStrides);
+                const otherOffset = Tensor.coordsToUnbroadcastedIndex(coords, otherOffsetShape, otherOffsetStrides);
+                for (let i = 0; i < batchARows; i++) {
+                    for (let j = 0; j < batchBCols; j++) {
+                        for (let k = 0; k < batchACols; k++) {
+                            const outputIdx = offset + i * outputStrides[lastDim - 1] + j * outputStrides[lastDim];
+                            const selfIdx = selfOffset + i * selfStrides[lastDim - 1] + k * selfStrides[lastDim];
+                            const otherIdx = otherOffset + k * otherStrides[lastDim - 1] + j * otherStrides[lastDim];
+                            outputValue[outputIdx] += batchA[selfIdx] * batchB[otherIdx];
+                        }
+                    }
+                }
+            }
+            const out = new Tensor(outputValue, { shape: outputShape, strides: outputStrides });
+            if (this.requiresGrad) {
+                out.requiresGrad = true;
+                out.children.push(this);
+            }
+            if (other.requiresGrad) {
+                out.requiresGrad = true;
+                out.children.push(other);
+            }
+            if (out.requiresGrad) {
+                out.gradFn = () => {
+                    other = other;
+                    const outGrad = out.grad.withGrad(false);
+                    const selfNoGrad = self.withGrad(false);
+                    const otherNoGrad = other.withGrad(false);
+                    if (this.requiresGrad)
+                        Tensor.addGrad(this, outGrad.matmul(otherNoGrad.transpose(lastDim - 1, lastDim)));
+                    if (other.requiresGrad)
+                        Tensor.addGrad(other, selfNoGrad.transpose(lastDim - 1, lastDim).matmul(outGrad));
+                };
+            }
+            return out;
+        }
         throw new Error(`Shapes [${this.shape}] and [${other.shape}] are not supported`);
     }
     // Utility to create a new tensor filled with a number
