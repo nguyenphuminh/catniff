@@ -61,17 +61,18 @@ Below is the specification for Catniff APIs. Note that undocumented APIs in the 
 
 ## TensorValue
 
-* Type `TensorValue` is either `number` or `TensorValue[]`, which means it represents either numbers or n-D number arrays.
+Type `TensorValue` is either `number` or `TensorValue[]`, which means it represents either numbers or n-D number arrays.
 
 ## TensorOptions
 
-* `TensorOptions` is an interface that contains options/configurations of a tensor passed into the `Tensor` class constructor (more on that later). It includes:
-    * `shape?: readonly number[]`
-    * `strides?: readonly number[]`
-    * `grad?: Tensor`
-    * `requiresGrad?: boolean`
-    * `gradFn?: Function`
-    * `children?: Tensor[]`
+`TensorOptions` is an interface that contains options/configurations of a tensor passed into the `Tensor` class constructor (more on that later). It includes:
+
+* `shape?: readonly number[]`
+* `strides?: readonly number[]`
+* `grad?: Tensor`
+* `requiresGrad?: boolean`
+* `gradFn?: Function`
+* `children?: Tensor[]`
 
 ## Tensor
 
@@ -231,8 +232,7 @@ Here are commonly used utilities:
 * `static normal(shape: number[], mean: number, stdDev: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of custom `mean` and `stdDev`, configured with `options`.
 * `static uniform(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`,  filled with a random number with uniform distribution from `low` to `high`, configured with `options`.
 
-
-Here are utilities that you probably won't have to use but they might come in handy:
+Here are utilities (that might be deleted in the future) that you probably won't have to use but they might come in handy:
 
 * `static flatten(tensor: TensorValue): number[] | number`: Used to flatten an n-D array to 1D. If argument is a number, it would return the number.
 * `static getShape(tensor: TensorValue): readonly number[]`: Used to get shape (size of each dimension) of an n-D array as a number array.
@@ -268,12 +268,13 @@ Here are utilities that you probably won't have to use but they might come in ha
 
 ## SGDOptions
 
-* `SGDOptions` is an interface that contains options/configurations of an SGD optimizer passed into the `Optim.SGD` class constructor (more on that later). It includes:
-    * `lr?: number`
-    * `momentum?: number`
-    * `dampening?: number`
-    * `weightDecay?: number`
-    * `nesterov?: boolean`
+`SGDOptions` is an interface that contains options/configurations of an SGD optimizer passed into the `Optim.SGD` class constructor (more on that later). It includes:
+
+* `lr?: number`
+* `momentum?: number`
+* `dampening?: number`
+* `weightDecay?: number`
+* `nesterov?: boolean`
 
 ## Optim.SGD
 
@@ -296,6 +297,37 @@ constructor(params: Tensor[], options?: SGDOptions)
 ### Methods
 
 * `step()`: Perform one SGD iteration and update values of parameters in-place.
+
+## AdamOptions
+
+`AdamOptions` is an interface that contains options/configurations of an Adam optimizer passed into the `Optim.Adam` class constructor (more on that later). It includes:
+
+* `lr?: number`
+* `betas?: [number, number]`
+* `eps?: number`
+* `weightDecay?: number`
+
+## Optim.Adam
+
+### Constructor
+
+```ts
+constructor(params: Tensor[], options?: AdamOptions)
+```
+
+### Properties
+
+* `public params: Tensor[]`: Holds the params to be optimized, initialized with the `params` argument mentioned above.
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
+* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
+* `public betas: [number, number]`: Holds the momentum, uses `options.betas` if available, `[0.9, 0.999]` otherwise.
+* `public eps: number`: Holds the dampening, uses `options.eps` if available, `1e-8` otherwise.
+* `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
+
+### Methods
+
+* `step()`: Perform one Adam iteration and update values of parameters in-place.
 
 
 # Examples

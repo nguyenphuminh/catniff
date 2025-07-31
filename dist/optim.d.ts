@@ -17,7 +17,26 @@ declare class SGD {
     constructor(params: Tensor[], options?: SGDOptions);
     step(): void;
 }
+export interface AdamOptions {
+    lr?: number;
+    betas?: [number, number];
+    eps?: number;
+    weightDecay?: number;
+}
+declare class Adam {
+    params: Tensor[];
+    momentumBuffers: Map<Tensor, Tensor>;
+    velocityBuffers: Map<Tensor, Tensor>;
+    stepCount: number;
+    lr: number;
+    betas: [number, number];
+    eps: number;
+    weightDecay: number;
+    constructor(params: Tensor[], options?: AdamOptions);
+    step(): void;
+}
 export declare class Optim {
     static SGD: typeof SGD;
+    static Adam: typeof Adam;
 }
 export {};
