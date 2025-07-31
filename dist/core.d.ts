@@ -158,4 +158,7 @@ export declare class Tensor {
     backward(): void;
     val(): TensorValue;
     withGrad(requiresGrad: boolean): Tensor;
+    detach(): Tensor;
+    clone(): Tensor;
+    replace(other: Tensor, allowShapeMismatch?: boolean): Tensor;
 }

@@ -1456,13 +1456,42 @@ class Tensor {
         }
         return buildNested(this.value, this.shape, this.strides);
     }
-    // Returns a copy of the tensor with gradient turned on/off and detaches from autograd
+    // Returns a view of the tensor with gradient turned on/off and detaches from autograd
     withGrad(requiresGrad) {
         return new Tensor(this.value, {
             shape: this.shape,
             strides: this.strides,
             requiresGrad
         });
+    }
+    // Returns a view of the tensor with gradient turned off and detaches from autograd
+    detach() {
+        return new Tensor(this.value, {
+            shape: this.shape,
+            strides: this.strides,
+            requiresGrad: false
+        });
+    }
+    // Returns a copy of the tensor (with new data allocation) and detaches from autograd
+    clone() {
+        return new Tensor(typeof this.value === "number" ? this.value : [...this.value], {
+            shape: this.shape,
+            strides: this.strides,
+            requiresGrad: this.requiresGrad
+        });
+    }
+    // Returns this tensor with value replaced with the value of another tensor
+    replace(other, allowShapeMismatch = false) {
+        // Verify shape
+        if (!allowShapeMismatch) {
+            for (let index = 0; index < this.shape.length; index++) {
+                if (this.shape[index] !== other.shape[index]) {
+                    throw new Error("Shape mismatch when trying to do tensor value replacement");
+                }
+            }
+        }
+        this.value = other.value;
+        return this;
     }
 }
 exports.Tensor = Tensor;

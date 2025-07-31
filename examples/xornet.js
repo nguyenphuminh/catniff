@@ -1,4 +1,4 @@
-const { Tensor } = require("../index"), rand = () => Math.random() * 2 - 1;
+const { Tensor, Optim } = require("../index");
 
 class Xornet {
     constructor(options = {}) {
@@ -8,6 +8,8 @@ class Xornet {
         this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
         this.b2 = Tensor.zeros([1], { requiresGrad: true });
         this.lr = options.lr || 0.5;
+        // We use simple SGD optimizer for this
+        this.optim = new Optim.SGD([ this.w1, this.b1, this.w2, this.b2 ], { lr: this.lr });
     }
 
     forward(input) {
@@ -27,11 +29,7 @@ class Xornet {
 
         L.backward();
 
-        // We disable gradient collecting first to calculate new weight, then enable it for next pass
-        this.w1 = this.w1.withGrad(false).sub(this.w1.grad.mul(this.lr)).withGrad(true);
-        this.w2 = this.w2.withGrad(false).sub(this.w2.grad.mul(this.lr)).withGrad(true);
-        this.b1 = this.b1.withGrad(false).sub(this.b1.grad.mul(this.lr)).withGrad(true);
-        this.b2 = this.b2.withGrad(false).sub(this.b2.grad.mul(this.lr)).withGrad(true);
+        this.optim.step();
     }
 }
 

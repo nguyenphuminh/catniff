@@ -1,3 +1,4 @@
 module.exports = {
-    ...require("./dist/core")
+    ...require("./dist/core"),
+    ...require("./dist/optim")
 };

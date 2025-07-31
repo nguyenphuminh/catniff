@@ -212,7 +212,10 @@ Here are commonly used utilities:
 
 * `backward()`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
-* `withGrad(requiresGrad: boolean): Tensor`: Returns a copy of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
+* `withGrad(requiresGrad: boolean): Tensor`: Returns a view of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
+* `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
+* `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and detaches from DAG.
+* `replace(other: Tensor, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
 * `static ones(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 1, configured with `options`.
@@ -263,6 +266,37 @@ Here are utilities that you probably won't have to use but they might come in ha
 * `static forceTensor(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input.
 * `static addGrad(tensor: Tensor, accumGrad: Tensor)`: Add to the `grad` prop of a tensor. It can handle broadcasted shapes and make `accumGrad` fit `tensor`'s shape.
 
+## SGDOptions
+
+* `SGDOptions` is an interface that contains options/configurations of an SGD optimizer passed into the `Optim.SGD` class constructor (more on that later). It includes:
+    * `lr?: number`
+    * `momentum?: number`
+    * `dampening?: number`
+    * `weightDecay?: number`
+    * `nesterov?: boolean`
+
+## Optim.SGD
+
+### Constructor
+
+```ts
+constructor(params: Tensor[], options?: SGDOptions)
+```
+
+### Properties
+
+* `public params: Tensor[]`: Holds the params to be optimized, initialized with the `params` argument mentioned above.
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum buffer of each param, updated per optimization iteration if `this.momentum` is not `0`.
+* `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
+* `public momentum: number`: Holds the momentum, uses `options.momentum` if available, `0` otherwise.
+* `public dampening: number`: Holds the dampening, uses `options.dampening` if available, `0` otherwise.
+* `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
+* `public nesterov: boolean`: Chooses whether to use nesterov (NAG) optimization or not, uses `options.nesterov` if available, `false` otherwise.
+
+### Methods
+
+* `step()`: Perform one SGD iteration and update values of parameters in-place.
+
 
 # Examples
 
@@ -288,7 +322,7 @@ console.log(x.grad.val(), L.grad.val());
 Here is an MLP implemented to do the XOR operation:
 
 ```js
-const { Tensor } = require("catniff"), rand = () => Math.random() * 2 - 1;
+const { Tensor, Optim } = require("../index");
 
 class Xornet {
     constructor(options = {}) {
@@ -298,6 +332,8 @@ class Xornet {
         this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
         this.b2 = Tensor.zeros([1], { requiresGrad: true });
         this.lr = options.lr || 0.5;
+        // We use simple SGD optimizer for this
+        this.optim = new Optim.SGD([ this.w1, this.b1, this.w2, this.b2 ], { lr: this.lr });
     }
 
     forward(input) {
@@ -317,11 +353,7 @@ class Xornet {
 
         L.backward();
 
-        // We disable gradient collecting first to calculate new weight, then enable it for next pass
-        this.w1 = this.w1.withGrad(false).sub(this.w1.grad.mul(this.lr)).withGrad(true);
-        this.w2 = this.w2.withGrad(false).sub(this.w2.grad.mul(this.lr)).withGrad(true);
-        this.b1 = this.b1.withGrad(false).sub(this.b1.grad.mul(this.lr)).withGrad(true);
-        this.b2 = this.b2.withGrad(false).sub(this.b2.grad.mul(this.lr)).withGrad(true);
+        this.optim.step();
     }
 }
 

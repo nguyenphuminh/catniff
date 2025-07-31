@@ -76,18 +76,18 @@ console.log(X.grad.val(), Y.grad.val());
 
 Full documentation is available in [`./docs/documentation.md`](./docs/documentation.md).
 
-All available APIs are in [`./src/core.ts`](./src/core.ts) if you want to dig deeper.
+All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
 ## Todos
 
 * Bug fixes.
 * More tensor ops.
-* More detailed documentation.
 * GPU acceleration.
+* Option to load more backends.
 * Some general neural net APIs.
+* More detailed documentation.
 * Code refactoring.
 * Proper tests.
-* Option to load more backends.
 
 ## Copyrights and License
 
