@@ -2,7 +2,5 @@
 
 **Classification**
 
-Choose one:
-
 - [ ] This PR add changes to the codebase.
 - [ ] This PR add changes to the documentations.
