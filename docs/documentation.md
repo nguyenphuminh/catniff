@@ -1,60 +1,3 @@
-# Getting started
-
-## Setup
-
-Install through npm:
-```
-npm install catniff
-```
-
-## Tensors
-
-Tensors in Catniff can be created by passing in a number or an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
-```js
-const { Tensor } = require("catniff");
-
-// Tensor init
-const A = new Tensor([ 1, 2, 3 ]);
-const B = new Tensor(3);
-
-// Tensor addition (.val() returns the raw value rather than the tensor object)
-console.log(A.add(B).val());
-```
-
-## Autograd
-
-To compute the gradient wrt multiple variables of our mathematical expression, we can simply set `requiresGrad` to `true`:
-```js
-const { Tensor } = require("catniff");
-
-const X = new Tensor(
-    [
-        [ 0.5, -1.0 ],
-        [ 2.0,  0.0 ]
-    ],
-    { requiresGrad: true }
-);
-
-const Y = new Tensor(
-    [
-        [ 1.0, -2.0 ],
-        [ 0.5,  1.5 ]
-    ],
-    { requiresGrad: true }
-);
-
-const D = X.sub(Y);
-const E = D.exp();
-const F = E.add(1);
-const G = F.log();
-
-G.backward();
-
-// X.grad and Y.grad are tensor objects themselves, so we call .val() here to see their raw values
-console.log(X.grad.val(), Y.grad.val());
-```
-
-
 # All APIs
 
 Below is the specification for Catniff APIs. Note that undocumented APIs in the codebase are either unsafe or not ready for use other than internal.
@@ -91,6 +34,7 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public requiresGrad: boolean`: Choose whether to do gradient-related operations behind the scenes, uses `options.requiresGrad` if provided, `false` otherwise.
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
 * `public children: Tensor[]`: Holds its child tensors, will be used when computing gradient, uses `options.children` if provided, `[]` otherwise.
+* `static backends: Map<string, Backend>`: Holds backends, scroll way down below to see what to do with this.
 
 Note: A good rule of thumb when using Catniff is to not mutate values passed into functions/methods. For example, this might introduce some unexpected behaviors:
 ```ts
@@ -217,6 +161,7 @@ Here are commonly used utilities:
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and detaches from DAG.
 * `replace(other: Tensor, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
+* `to(device: string): Tensor`: Returns a new tensor with the same value as this tensor, but on a different device.
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
 * `static ones(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 1, configured with `options`.
@@ -330,76 +275,22 @@ constructor(params: Tensor[], options?: AdamOptions)
 * `step()`: Perform one Adam iteration and update values of parameters in-place.
 
 
-# Examples
+# Custom backend
 
-## Simple quadratic function
+## Loading a custom backend
 
-```js
-const { Tensor } = require("catniff");
-
-// Create a new scalar 2
-const x = new Tensor(2, { requiresGrad: true });
-// Calculate x^2 + x and build a DAG
-const L = x.pow(2).add(x);
-
-// Accumulate gradients of all nodes
-L.backward();
-
-// Log out raw values of x's gradient and L's gradient
-console.log(x.grad.val(), L.grad.val());
-```
-
-## Xornet
-
-Here is an MLP implemented to do the XOR operation:
+You can load a custom backend using:
 
 ```js
-const { Tensor, Optim } = require("../index");
-
-class Xornet {
-    constructor(options = {}) {
-        // 2->2->1 xornet
-        this.w1 = Tensor.rand([2, 2], { requiresGrad: true });
-        this.b1 = Tensor.zeros([2], { requiresGrad: true });
-        this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
-        this.b2 = Tensor.zeros([1], { requiresGrad: true });
-        this.lr = options.lr || 0.5;
-        // We use simple SGD optimizer for this
-        this.optim = new Optim.SGD([ this.w1, this.b1, this.w2, this.b2 ], { lr: this.lr });
-    }
-
-    forward(input) {
-        return new Tensor(input)
-                    .matmul(this.w1)
-                    .add(this.b1)
-                    .sigmoid()
-                    .matmul(this.w2)
-                    .add(this.b2)
-                    .sigmoid();
-    }
-
-    backprop(input, target) {
-        const T = new Tensor(target);
-        const Y = this.forward(input);
-        const L = Y.sub(T).pow(2).mul(0.5);
-
-        L.backward();
-
-        this.optim.step();
-    }
-}
-
-const xornet = new Xornet();
-
-for (let epoch = 0; epoch < 30000; epoch++) {
-    xornet.backprop([1,0], [1]);
-    xornet.backprop([0,1], [1]);
-    xornet.backprop([0,0], [0]);
-    xornet.backprop([1,1], [0]);
-}
-
-console.log(xornet.forward([1,1]).val()); // 0-ish
-console.log(xornet.forward([1,0]).val()); // 1-ish
-console.log(xornet.forward([0,1]).val()); // 1-ish
-console.log(xornet.forward([0,0]).val()); // 0-ish
+Tensor.backends.set("device_name", backend);
 ```
+
+Then Catniff will use the backend's ops on tensors that have their `device` prop set to be `device_name`.
+
+## Building a custom backend
+
+There are two things to keep in mind when building your own custom backend - tensors and tensor ops.
+
+For tensor values (`someTensor.value` for example), you should create a custom `Proxy` of a normal array, with its getter and setter targeting where the data was originally stored (using N-API to wrap C++ APIs for example) for compatibility with real JS number arrays. But of course this is only for compatibility, your tensor ops should use the original data for computation, so you should probably store a memory address/pointer of the original data in this proxy for your ops to know which tensor data to work with.
+
+For tensor ops, check [`./src/backend.ts`](./src/backend.ts) for what ops you should implement. Catniff will fallback to its CPU counterpart if an op is not available.
