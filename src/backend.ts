@@ -71,7 +71,7 @@ export interface Backend {
     ceil?(self: Tensor): Tensor;
     trunc?(self: Tensor): Tensor;
     frac?(self: Tensor): Tensor;
-    clip?(self: Tensor): Tensor;
+    clip?(self: Tensor, min: number, max: number): Tensor;
     erf?(self: Tensor): Tensor;
     erfc?(self: Tensor): Tensor;
     erfinv?(self: Tensor): Tensor;

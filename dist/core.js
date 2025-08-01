@@ -1308,7 +1308,7 @@ class Tensor {
         // Use backend of tensor's device if available, or else fallback to cpu
         const backend = Tensor.backends.get(this.device);
         if (backend && backend.clip) {
-            return backend.clip(this);
+            return backend.clip(this, min, max);
         }
         return this.elementWiseSelfDAG((a) => Math.max(min, Math.min(max, a)), (self, outGrad) => outGrad.mul(self.ge(min).mul(self.le(max))));
     }

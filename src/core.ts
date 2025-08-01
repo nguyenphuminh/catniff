@@ -1,7 +1,7 @@
 import { Backend } from "./backend";
 import { erf, erfc, erfinv, randInt, randNormal, randUniform } from "./utils";
 
-export type TensorValue = number | ArrayLike<TensorValue>;
+export type TensorValue = number | TensorValue[];
 
 export interface TensorOptions {
     shape?: readonly number[];
@@ -1848,7 +1848,7 @@ export class Tensor {
         const backend = Tensor.backends.get(this.device);
 
         if (backend && backend.clip) {
-            return backend.clip(this);
+            return backend.clip(this, min, max);
         }
 
         return this.elementWiseSelfDAG(

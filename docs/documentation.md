@@ -285,7 +285,7 @@ You can load a custom backend using:
 Tensor.backends.set("device_name", backend);
 ```
 
-Then Catniff will try to use the backend's ops rather than the default implementation.
+Then Catniff will use the backend's ops on tensors that have their `device` prop set to be `device_name`.
 
 ## Building a custom backend
 

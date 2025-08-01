@@ -1,5 +1,5 @@
 import { Backend } from "./backend";
-export type TensorValue = number | ArrayLike<TensorValue>;
+export type TensorValue = number | TensorValue[];
 export interface TensorOptions {
     shape?: readonly number[];
     strides?: readonly number[];

@@ -44,7 +44,7 @@ for (let epoch = 0; epoch < 30000; epoch++) {
     xornet.backprop([1,1], [0]);
 }
 
-console.log(`Finished training in ${performance.now() - start}`);
+console.log(`Finished training in ${performance.now() - start} ms`);
 
 console.log(xornet.forward([1,1]).val()); // 0-ish
 console.log(xornet.forward([1,0]).val()); // 1-ish
