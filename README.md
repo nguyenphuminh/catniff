@@ -72,6 +72,28 @@ G.backward();
 console.log(X.grad.val(), Y.grad.val());
 ```
 
+## Optimizer
+
+Catniff comes bundled with optimizers as well:
+```js
+const { Tensor, Optim } = require("catniff");
+
+// Define some parameter
+const w = new Tensor([1.0], { requiresGrad: true });
+// Define a fake loss function: L = (w - 3)^2
+const loss = w.sub(3).pow(2);
+// Calculate gradient
+loss.backward();
+// Use Adam optimizer
+const optim = new Optim.Adam([w]);
+// Optimization step
+optim.step();
+
+console.log("Updated weight:", w.data);  // Should move toward 3.0
+```
+
+And it can still do much more, check out the docs mentioned below for more information.
+
 ## Documentation
 
 Full documentation is available in [`./docs/documentation.md`](./docs/documentation.md).
@@ -83,7 +105,6 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 * Bug fixes.
 * More tensor ops.
 * GPU acceleration.
-* Option to load more backends.
 * Some general neural net APIs.
 * More detailed documentation.
 * Code refactoring.

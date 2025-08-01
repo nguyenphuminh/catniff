@@ -1,4 +1,5 @@
-export type TensorValue = number | TensorValue[];
+import { Backend } from "./backend";
+export type TensorValue = number | ArrayLike<TensorValue>;
 export interface TensorOptions {
     shape?: readonly number[];
     strides?: readonly number[];
@@ -6,6 +7,7 @@ export interface TensorOptions {
     requiresGrad?: boolean;
     gradFn?: Function;
     children?: Tensor[];
+    device?: string;
 }
 export declare class Tensor {
     value: number[] | number;
@@ -15,6 +17,7 @@ export declare class Tensor {
     requiresGrad: boolean;
     gradFn: Function;
     children: Tensor[];
+    device: string;
     constructor(value: TensorValue, options?: TensorOptions);
     static flatten(tensor: TensorValue): number[] | number;
     static getShape(tensor: TensorValue): readonly number[];
@@ -161,4 +164,6 @@ export declare class Tensor {
     detach(): Tensor;
     clone(): Tensor;
     replace(other: Tensor, allowShapeMismatch?: boolean): Tensor;
+    static backends: Map<string, Backend>;
+    to(device: string): Tensor;
 }
