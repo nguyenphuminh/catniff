@@ -430,13 +430,6 @@ export class Tensor {
 
     // Tensor sum reduction
     sum(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sum) {
-            return backend.sum(this, dims, keepDims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -490,13 +483,6 @@ export class Tensor {
 
     // Tensor product reduction
     prod(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.prod) {
-            return backend.prod(this, dims, keepDims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -551,13 +537,6 @@ export class Tensor {
 
     // Tensor mean reduction
     mean(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.mean) {
-            return backend.mean(this, dims, keepDims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -620,13 +599,6 @@ export class Tensor {
 
     // Tensor maximum reduction
     max(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.max) {
-            return backend.max(this, dims, keepDims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -683,13 +655,6 @@ export class Tensor {
 
     // Tensor minimum reduction
     min(dims?: number[] | number, keepDims: boolean = false): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.min) {
-            return backend.min(this, dims, keepDims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -746,13 +711,6 @@ export class Tensor {
 
     // Tensor product reduction
     softmax(dims?: number[] | number): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.softmax) {
-            return backend.softmax(this, dims);
-        }
-
         if (typeof this.value === "number") return this;
         if (typeof dims === "number") { dims = [dims]; }
         if (typeof dims === "undefined") { dims = Array.from({ length: this.shape.length }, (_, index) => index); }
@@ -823,13 +781,6 @@ export class Tensor {
 
     // Tensor element-wise addition
     add(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.add) {
-            return backend.add(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a + b,
@@ -840,13 +791,6 @@ export class Tensor {
 
     // Tensor element-wise subtraction
     sub(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sub) {
-            return backend.sub(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a - b,
@@ -859,13 +803,6 @@ export class Tensor {
 
     // Tensor element-wise multiplication
     mul(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.mul) {
-            return backend.mul(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a * b,
@@ -878,13 +815,6 @@ export class Tensor {
 
     // Tensor element-wise power
     pow(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.pow) {
-            return backend.pow(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a ** b,
@@ -895,13 +825,6 @@ export class Tensor {
 
     // Tensor element-wise division
     div(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.div) {
-            return backend.div(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a / b,
@@ -914,13 +837,6 @@ export class Tensor {
 
     // Tensor element-wise modulo
     remainder(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.remainder) {
-            return backend.remainder(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a % b
@@ -929,13 +845,6 @@ export class Tensor {
 
     // Tensor element-wise greater or equal comparison
     ge(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.ge) {
-            return backend.ge(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a >= b ? 1 : 0
@@ -946,13 +855,6 @@ export class Tensor {
 
     // Tensor element-wise less or equal comparison
     le(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.le) {
-            return backend.le(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a <= b ? 1 : 0
@@ -963,13 +865,6 @@ export class Tensor {
 
     // Tensor element-wise greater-than comparison
     gt(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.gt) {
-            return backend.gt(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a > b ? 1 : 0
@@ -980,13 +875,6 @@ export class Tensor {
 
     // Tensor element-wise less-than comparison
     lt(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.lt) {
-            return backend.lt(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a < b ? 1 : 0
@@ -997,13 +885,6 @@ export class Tensor {
 
     // Tensor element-wise equality comparison
     eq(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.eq) {
-            return backend.eq(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a === b ? 1 : 0
@@ -1014,13 +895,6 @@ export class Tensor {
 
     // Tensor element-wise not equality comparison
     ne(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.ne) {
-            return backend.ne(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a !== b ? 1 : 0
@@ -1031,13 +905,6 @@ export class Tensor {
 
     // Tensor element-wise logical and
     logicalAnd(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.logicalAnd) {
-            return backend.logicalAnd(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a === 1 && b === 1 ? 1 : 0
@@ -1046,13 +913,6 @@ export class Tensor {
 
     // Tensor element-wise logical or
     logicalOr(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.logicalOr) {
-            return backend.logicalOr(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a === 1 || b === 1 ? 1 : 0
@@ -1061,13 +921,6 @@ export class Tensor {
 
     // Tensor element-wise logical xor
     logicalXor(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.logicalXor) {
-            return backend.logicalXor(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => (a === 1 || b === 1) && a !== b ? 1 : 0
@@ -1076,13 +929,6 @@ export class Tensor {
 
     // Tensor element-wise logical not
     logicalNot(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.logicalNot) {
-            return backend.logicalNot(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a === 1 ? 0 : 1
         );
@@ -1090,13 +936,6 @@ export class Tensor {
 
     // Tensor element-wise bitwise and
     bitwiseAnd(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseAnd) {
-            return backend.bitwiseAnd(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a & b
@@ -1105,13 +944,6 @@ export class Tensor {
 
     // Tensor element-wise bitwise or
     bitwiseOr(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseOr) {
-            return backend.bitwiseOr(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a | b
@@ -1120,13 +952,6 @@ export class Tensor {
 
     // Tensor element-wise bitwise xor
     bitwiseXor(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseXor) {
-            return backend.bitwiseXor(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a ^ b
@@ -1135,13 +960,6 @@ export class Tensor {
 
     // Tensor element-wise bitwise not
     bitwiseNot(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseNot) {
-            return backend.bitwiseNot(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => ~a
         );
@@ -1149,13 +967,6 @@ export class Tensor {
 
     // Tensor element-wise left shift
     bitwiseLeftShift(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseLeftShift) {
-            return backend.bitwiseLeftShift(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a << b
@@ -1164,13 +975,6 @@ export class Tensor {
 
     // Tensor element-wise right shift
     bitwiseRightShift(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bitwiseRightShift) {
-            return backend.bitwiseRightShift(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => a >> b
@@ -1179,13 +983,6 @@ export class Tensor {
 
     // Tensor element-wise negation
     neg(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.neg) {
-            return backend.neg(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => -a,
             (self, outGrad) => outGrad.mul(-1)
@@ -1196,13 +993,6 @@ export class Tensor {
 
     // Tensor element-wise reciprocal
     reciprocal(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.reciprocal) {
-            return backend.reciprocal(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => 1 / a,
             (self, outGrad) => outGrad.mul(self.pow(-2).neg())
@@ -1211,13 +1001,6 @@ export class Tensor {
 
     // Tensor element-wise square
     square(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.square) {
-            return backend.square(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a * a,
             (self, outGrad) => outGrad.mul(self.mul(2))
@@ -1226,13 +1009,6 @@ export class Tensor {
 
     // Tensor element-wise absolute
     abs(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.abs) {
-            return backend.abs(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.abs(a),
             (self, outGrad) => outGrad.mul(self.sign())
@@ -1243,13 +1019,6 @@ export class Tensor {
 
     // Tensor element-wise sign function
     sign(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sign) {
-            return backend.sign(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.sign(a)
         );
@@ -1257,13 +1026,6 @@ export class Tensor {
 
     // Tensor element-wise sin
     sin(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sin) {
-            return backend.sin(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.sin(a),
             (self, outGrad) => outGrad.mul(self.cos())
@@ -1272,13 +1034,6 @@ export class Tensor {
 
     // Tensor element-wise cos
     cos(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.cos) {
-            return backend.cos(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.cos(a),
             (self, outGrad) => outGrad.mul(self.sin().neg())
@@ -1287,13 +1042,6 @@ export class Tensor {
 
     // Tensor element-wise tan
     tan(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.tan) {
-            return backend.tan(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.tan(a),
             (self, outGrad) => outGrad.mul(self.tan().square().add(1))
@@ -1302,13 +1050,6 @@ export class Tensor {
 
     // Tensor element-wise asin
     asin(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.asin) {
-            return backend.asin(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.asin(a),
             (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt())
@@ -1319,13 +1060,6 @@ export class Tensor {
 
     // Tensor element-wise acos
     acos(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.acos) {
-            return backend.acos(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.acos(a),
             (self, outGrad) => outGrad.div(self.square().neg().add(1).sqrt()).neg()
@@ -1336,13 +1070,6 @@ export class Tensor {
 
     // Tensor element-wise atan
     atan(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.atan) {
-            return backend.atan(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.atan(a),
             (self, outGrad) => outGrad.div(self.square().add(1))
@@ -1353,13 +1080,6 @@ export class Tensor {
 
     // Tensor element-wise atan2
     atan2(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.atan2) {
-            return backend.atan2(this);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => Math.atan2(a, b),
@@ -1372,13 +1092,6 @@ export class Tensor {
 
     // Tensor element-wise sinh
     sinh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sinh) {
-            return backend.sinh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.sinh(a),
             (self, outGrad) => outGrad.mul(self.cosh())
@@ -1387,13 +1100,6 @@ export class Tensor {
 
     // Tensor element-wise cosh
     cosh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.cosh) {
-            return backend.cosh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.cosh(a),
             (self, outGrad) => outGrad.mul(self.sinh())
@@ -1402,13 +1108,6 @@ export class Tensor {
 
     // Tensor element-wise asinh
     asinh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.asinh) {
-            return backend.asinh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.asinh(a),
             (self, outGrad) => outGrad.div(self.square().add(1).sqrt())
@@ -1419,13 +1118,6 @@ export class Tensor {
 
     // Tensor element-wise acosh
     acosh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.acosh) {
-            return backend.acosh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.acosh(a),
             (self, outGrad) => outGrad.div(self.add(1).sqrt().mul(self.sub(1).sqrt()))
@@ -1436,13 +1128,6 @@ export class Tensor {
 
     // Tensor element-wise atanh
     atanh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.atanh) {
-            return backend.atanh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.atanh(a),
             (self, outGrad) => outGrad.div(self.square().neg().add(1))
@@ -1453,13 +1138,6 @@ export class Tensor {
 
     // Tensor element-wise degree to radian
     deg2rad(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.deg2rad) {
-            return backend.deg2rad(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a * (Math.PI / 180),
             (self, outGrad) => outGrad.mul(Math.PI / 180)
@@ -1468,13 +1146,6 @@ export class Tensor {
 
     // Tensor element-wise radian to degree
     rad2deg(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.rad2deg) {
-            return backend.rad2deg(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a / (Math.PI / 180),
             (self, outGrad) => outGrad.div(Math.PI / 180)
@@ -1483,13 +1154,6 @@ export class Tensor {
 
     // Tensor element-wise square root
     sqrt(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sqrt) {
-            return backend.sqrt(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.sqrt(a),
             (self, outGrad) => outGrad.div(self.sqrt().mul(2))
@@ -1498,13 +1162,6 @@ export class Tensor {
 
     // Tensor element-wise reciprocal of square root
     rsqrt(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.rsqrt) {
-            return backend.rsqrt(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => 1 / Math.sqrt(a),
             (self, outGrad) => outGrad.mul(self.pow(-1.5).mul(-0.5))
@@ -1513,13 +1170,6 @@ export class Tensor {
 
     // Tensor element-wise e^x
     exp(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.exp) {
-            return backend.exp(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.exp(a),
             (self, outGrad) => outGrad.mul(self.exp())
@@ -1528,13 +1178,6 @@ export class Tensor {
 
     // Tensor element-wise 2^x
     exp2(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.exp2) {
-            return backend.exp2(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => 2 ** a,
             (self, outGrad) => outGrad.mul(self.exp2().mul(Math.log(2)))
@@ -1543,13 +1186,6 @@ export class Tensor {
 
     // Tensor element-wise e^x - 1
     expm1(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.expm1) {
-            return backend.expm1(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.expm1(a),
             (self, outGrad) => outGrad.mul(self.exp())
@@ -1558,13 +1194,6 @@ export class Tensor {
 
     // Tensor element-wise natural log
     log(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.log) {
-            return backend.log(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.log(a),
             (self, outGrad) => outGrad.div(self)
@@ -1573,13 +1202,6 @@ export class Tensor {
 
     // Tensor element-wise log2
     log2(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.log2) {
-            return backend.log2(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.log2(a),
             (self, outGrad) => outGrad.div(self.mul(Math.log(2)))
@@ -1588,13 +1210,6 @@ export class Tensor {
 
     // Tensor element-wise log10
     log10(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.log10) {
-            return backend.log10(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.log10(a),
             (self, outGrad) => outGrad.div(self.mul(Math.log(10)))
@@ -1603,13 +1218,6 @@ export class Tensor {
 
     // Tensor element-wise log(1+x)
     log1p(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.log1p) {
-            return backend.log1p(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.log1p(a),
             (self, outGrad) => outGrad.div(self.add(1))
@@ -1618,13 +1226,6 @@ export class Tensor {
 
     // Tensor element-wise relu
     relu(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.relu) {
-            return backend.relu(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.max(a, 0),
             (self, outGrad) => outGrad.mul(self.gt(0))
@@ -1633,13 +1234,6 @@ export class Tensor {
 
     // Tensor element-wise sigmoid
     sigmoid(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.sigmoid) {
-            return backend.sigmoid(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => 1 / (1 + Math.exp(-a)),
             (self, outGrad) => {
@@ -1651,13 +1245,6 @@ export class Tensor {
 
     // Tensor element-wise tanh
     tanh(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.tanh) {
-            return backend.tanh(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.tanh(a),
             (self, outGrad) => outGrad.mul(self.tanh().square().neg().add(1))
@@ -1666,13 +1253,6 @@ export class Tensor {
 
     // Tensor element-wise softplus
     softplus(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.softplus) {
-            return backend.softplus(this);
-        }
-        
         return this.elementWiseSelfDAG(
             (a) => Math.log1p(Math.exp(a)),
             (self, outGrad) => outGrad.mul(self.sigmoid())
@@ -1681,13 +1261,6 @@ export class Tensor {
 
     // Tensor element-wise softsign
     softsign(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.softsign) {
-            return backend.softsign(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a / (1 + Math.abs(a)),
             (self, outGrad) => outGrad.div(self.abs().add(1).square())
@@ -1696,13 +1269,6 @@ export class Tensor {
 
     // Tensor element-wise silu (swish)
     silu(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.silu) {
-            return backend.silu(this);
-        }
-        
         return this.elementWiseSelfDAG(
             (a) => a / (1 + Math.exp(-a)),
             (self, outGrad) => {
@@ -1714,13 +1280,6 @@ export class Tensor {
 
     // Tensor element-wise mish
     mish(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.mish) {
-            return backend.mish(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a * Math.tanh(Math.log1p(Math.exp(a))),
             (self, outGrad) => {
@@ -1738,13 +1297,6 @@ export class Tensor {
 
     // Tensor element-wise maximum
     maximum(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.maximum) {
-            return backend.maximum(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => Math.max(a, b),
@@ -1755,13 +1307,6 @@ export class Tensor {
 
     // Tensor element-wise minimum
     minimum(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.minimum) {
-            return backend.minimum(this, other);
-        }
-
         return this.elementWiseABDAG(
             other,
             (a, b) => Math.min(a, b),
@@ -1772,13 +1317,6 @@ export class Tensor {
 
     // Tensor element-wise round
     round(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.round) {
-            return backend.round(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.round(a)
         );
@@ -1786,13 +1324,6 @@ export class Tensor {
 
     // Tensor element-wise floor
     floor(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.floor) {
-            return backend.floor(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.floor(a)
         );
@@ -1800,13 +1331,6 @@ export class Tensor {
 
     // Tensor element-wise ceil
     ceil(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.ceil) {
-            return backend.ceil(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.ceil(a)
         );
@@ -1814,13 +1338,6 @@ export class Tensor {
 
     // Tensor element-wise truncation
     trunc(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.trunc) {
-            return backend.trunc(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.trunc(a)
         );
@@ -1830,13 +1347,6 @@ export class Tensor {
 
     // Tensor element-wise fraction portion
     frac(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.frac) {
-            return backend.frac(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => a - Math.floor(a)
         );
@@ -1844,13 +1354,6 @@ export class Tensor {
 
     // Tensor element-wise clip and clamp
     clip(min: number, max: number): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.clip) {
-            return backend.clip(this, min, max);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => Math.max(min, Math.min(max, a)),
             (self, outGrad) => outGrad.mul(self.ge(min).mul(self.le(max)))
@@ -1861,13 +1364,6 @@ export class Tensor {
 
     // Tensor element-wise error function
     erf(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.erf) {
-            return backend.erf(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => erf(a),
             (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI)))
@@ -1876,13 +1372,6 @@ export class Tensor {
 
     // Tensor element-wise complementary error function
     erfc(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.erfc) {
-            return backend.erfc(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => erfc(a),
             (self, outGrad) => outGrad.mul(self.square().neg().exp().mul(2 / Math.sqrt(Math.PI)).neg())
@@ -1891,13 +1380,6 @@ export class Tensor {
 
     // Tensor element-wise inverse error function
     erfinv(): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.erfinv) {
-            return backend.erfinv(this);
-        }
-
         return this.elementWiseSelfDAG(
             (a) => erfinv(a),
             (self, outGrad) => outGrad.mul(self.erfinv().square().exp().mul(Math.sqrt(Math.PI) / 2))
@@ -1953,13 +1435,6 @@ export class Tensor {
 
     // 1D tensor dot product
     dot(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.dot) {
-            return backend.dot(this, other);
-        }
-
         other = Tensor.forceTensor(other);
 
         // Verify 1D shape
@@ -2006,13 +1481,6 @@ export class Tensor {
 
     // Matrix multiplication
     mm(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.mm) {
-            return backend.mm(this, other);
-        }
-
         other = Tensor.forceTensor(other);
 
         // Verify 2D shape
@@ -2077,13 +1545,6 @@ export class Tensor {
 
     // Batched 3D tensor matmul
     bmm(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.bmm) {
-            return backend.bmm(this, other);
-        }
-
         other = Tensor.forceTensor(other);
 
         // Verify 3D shape
@@ -2151,13 +1612,6 @@ export class Tensor {
 
     // Convert right-side 1D tensor to a vector (nx1 tensor) to do matmul
     mv(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.mv) {
-            return backend.mv(this, other);
-        }
-
         other = Tensor.forceTensor(other);
 
         // Verify 2D shape
@@ -2170,13 +1624,6 @@ export class Tensor {
 
     // General matrix multiplication with different shapes
     matmul(other: TensorValue | Tensor): Tensor {
-        // Use backend of tensor's device if available, or else fallback to cpu
-        const backend = Tensor.backends.get(this.device);
-
-        if (backend && backend.matmul) {
-            return backend.matmul(this, other);
-        }
-
         other = Tensor.forceTensor(other);
 
         const isThis1D = this.shape.length === 1;
@@ -2567,10 +2014,10 @@ export class Tensor {
     to(device: string): Tensor {
         const backend = Tensor.backends.get(device);
 
-        if (backend && backend.to) {
-            return backend.to(this);
+        if (backend && backend.transfer) {
+            return backend.transfer(this);
         }
 
-        throw new Error(`No device found to transfer tensor to or "to" is not implemented for device.`);
+        throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);
     }
 }

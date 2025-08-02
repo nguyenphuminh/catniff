@@ -285,7 +285,7 @@ You can load a custom backend using:
 Tensor.backends.set("device_name", backend);
 ```
 
-Then Catniff will use the backend's ops on tensors that have their `device` prop set to be `device_name`.
+Then Catniff will use the backend's ops on tensors that have moved to `device_name`.
 
 ## Building a custom backend
 
@@ -293,4 +293,56 @@ There are two things to keep in mind when building your own custom backend - ten
 
 For tensor values (`someTensor.value` for example), you should create a custom `Proxy` of a normal array, with its getter and setter targeting where the data was originally stored (using N-API to wrap C++ APIs for example) for compatibility with real JS number arrays. But of course this is only for compatibility, your tensor ops should use the original data for computation, so you should probably store a memory address/pointer of the original data in this proxy for your ops to know which tensor data to work with.
 
-For tensor ops, check [`./src/backend.ts`](./src/backend.ts) for what ops you should implement. Catniff will fallback to its CPU counterpart if an op is not available.
+For tensor ops, you can reimplement whatever ops you want, but you should implement all methods that directly transform the data, `add` or `matmul` for example, not ops that just create new shapes and strides like `squeeze` or `transpose`.
+
+Other than that, the `transfer` method of the backend should handle whether a tensor is moving to this device, for example:
+```js
+const backend = {
+    transfer(tensor) {
+        // Transfer data to this device, reassign methods, etc and return a new tensor with device: "your_device_name"
+
+        // Reassign "to" to move from this device to another device
+        tensor.to = function(device) {
+            // Do something here
+
+            // Call the transfer method of another backend
+            const backend = Tensor.backends.get(device);
+
+            if (backend && backend.transfer) {
+                return backend.transfer(this);
+            }
+
+            throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);
+        }
+    }
+}
+```
+
+Note that you have to manually reassign ops in `transfer`, for example:
+```js
+function add(tensorA, tensorB) {
+    // Your add implementation
+}
+
+const backend = {
+    transfer(tensor) {
+        // Do whatever here
+
+        // Reassign ops with your ops implementation
+        tensor.add = function(other) {
+            return add(this, other);
+        }
+        
+        tensor.to = function(device) {
+            // If you are moving to CPU, you have to manually reset methods
+            if (device === "cpu") {
+                tensor.add = Tensor.prototype.add;
+            }
+
+            // The rest of your code goes here
+        }
+    }
+}
+```
+
+This way, any unimplemented ops can use the original CPU implementation, and there would not be any conflicts thanks to the `Proxy` mentioned above (although unimplemented ops would be slow then).

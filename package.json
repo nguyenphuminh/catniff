@@ -1,6 +1,6 @@
 {
   "name": "catniff",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A small Torch-like deep learning framework for Javascript with tensor and autograd support",
   "main": "index.js",
   "scripts": {
