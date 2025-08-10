@@ -46,6 +46,8 @@ export declare class Tensor {
     mean(dims?: number[] | number, keepDims?: boolean): Tensor;
     max(dims?: number[] | number, keepDims?: boolean): Tensor;
     min(dims?: number[] | number, keepDims?: boolean): Tensor;
+    var(dims?: number[] | number, keepDims?: boolean): Tensor;
+    std(dims?: number[] | number, keepDims?: boolean): Tensor;
     softmax(dims?: number[] | number): Tensor;
     add(other: TensorValue | Tensor): Tensor;
     sub(other: TensorValue | Tensor): Tensor;
