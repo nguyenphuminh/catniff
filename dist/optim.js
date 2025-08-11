@@ -20,9 +20,8 @@ class SGD {
     }
     step() {
         for (const param of this.params) {
-            if (!param.grad) {
-                throw new Error("Can not apply SGD on empty grad");
-            }
+            if (!param.grad || !param.requiresGrad)
+                continue;
             let grad = param.grad.detach(), detachedParam = param.detach();
             // Apply weight decay (L2 regularization)
             if (this.weightDecay !== 0) {
@@ -80,9 +79,8 @@ class Adam {
         const biasCorrection1 = 1 - Math.pow(beta1, this.stepCount);
         const biasCorrection2 = 1 - Math.pow(beta2, this.stepCount);
         for (const param of this.params) {
-            if (!param.grad) {
-                throw new Error("Can not apply Adam on empty grad");
-            }
+            if (!param.grad || !param.requiresGrad)
+                continue;
             let grad = param.grad.detach(), detachedParam = param.detach();
             // Apply weight decay (L2 regularization)
             if (this.weightDecay !== 0) {

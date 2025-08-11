@@ -276,6 +276,34 @@ constructor(params: Tensor[], options?: AdamOptions)
 
 * `step()`: Perform one Adam iteration and update values of parameters in-place.
 
+## nn.Linear
+
+### Constructor
+
+```ts
+constructor(
+    inFeatures: number,
+    outFeatures: number,
+    bias: boolean = true,
+    customInit?: (shape: number[]) => Tensor
+)
+```
+
+### Properties
+
+* `public weight: Tensor`: Weight of linear layer.
+* `public bias?: Tensor`: Bias of linear layer.
+
+### Methods
+
+* `forward(input: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
+
+## nn.state
+
+### Methods
+
+* `getParamemters(model: any, visited: WeakSet<object> = new WeakSet()): Tensor`: Collect all parameters (tensors) used in a model.
+
 
 # Custom backend
 

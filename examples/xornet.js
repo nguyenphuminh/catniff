@@ -1,31 +1,23 @@
-const { Tensor, Optim } = require("../index");
+const { Tensor, Optim, nn } = require("../index");
 
 class Xornet {
     constructor(options = {}) {
         // 2->2->1 xornet
-        this.w1 = Tensor.rand([2, 2], { requiresGrad: true });
-        this.b1 = Tensor.zeros([2], { requiresGrad: true });
-        this.w2 = Tensor.rand([2, 1], { requiresGrad: true });
-        this.b2 = Tensor.zeros([1], { requiresGrad: true });
+        this.l1 = new nn.Linear(2, 2);
+        this.l2 = new nn.Linear(2, 1);
+        // We use a simple SGD optimizer for this
         this.lr = options.lr || 0.5;
-        // We use simple SGD optimizer for this
-        this.optim = new Optim.SGD([ this.w1, this.b1, this.w2, this.b2 ], { lr: this.lr });
+        this.optim = new Optim.SGD(nn.state.getParameters(this), { lr: this.lr });
     }
 
     forward(input) {
-        return new Tensor(input)
-                    .matmul(this.w1)
-                    .add(this.b1)
-                    .sigmoid()
-                    .matmul(this.w2)
-                    .add(this.b2)
-                    .sigmoid();
+        return this.l2.forward(this.l1.forward(new Tensor(input)).sigmoid()).sigmoid();
     }
 
     backprop(input, target) {
         const T = new Tensor(target);
         const Y = this.forward(input);
-        const L = Y.sub(T).pow(2).mul(0.5);
+        const L = Y.sub(T).pow(2);
 
         L.backward();
 

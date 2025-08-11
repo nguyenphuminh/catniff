@@ -28,9 +28,7 @@ class SGD {
 
     step() {
         for (const param of this.params) {
-            if (!param.grad) {
-                throw new Error("Can not apply SGD on empty grad");
-            }
+            if (!param.grad || !param.requiresGrad) continue;
 
             let grad = param.grad.detach(), detachedParam = param.detach();
 
@@ -105,9 +103,7 @@ class Adam {
         const biasCorrection2 = 1 - Math.pow(beta2, this.stepCount);
 
         for (const param of this.params) {
-            if (!param.grad) {
-                throw new Error("Can not apply Adam on empty grad");
-            }
+            if (!param.grad || !param.requiresGrad) continue;
 
             let grad = param.grad.detach(), detachedParam = param.detach();
 

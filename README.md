@@ -9,22 +9,6 @@ Install through npm:
 npm install catniff
 ```
 
-## Example
-
-Here is a little demo of a quadratic function:
-```js
-const { Tensor } = require("catniff");
-
-const x = new Tensor(2, { requiresGrad: true });
-const L = x.pow(2).add(x); // x^2 + x
-
-L.backward();
-
-console.log(x.grad.val()); // 5
-```
-
-View all examples in [`./examples`](./examples).
-
 ## Tensors
 
 Tensors in Catniff can be created by passing in a number or an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
@@ -92,7 +76,7 @@ optim.step();
 console.log("Updated weight:", w.data);  // Should move toward 3.0
 ```
 
-And it can still do much more, check out the docs mentioned below for more information.
+And it can still do much more, check out the docs and examples below for more information.
 
 ## Documentation
 
@@ -100,12 +84,19 @@ Full documentation is available in [`./docs/documentation.md`](./docs/documentat
 
 All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
+## Examples
+
+* [Simple neural net for XOR calculation](./examples/xornet.js).
+* [Tensors](./examples/tensors.js).
+* [Optimizer](./examples/optim.js).
+* [Simple quadratic equation](./examples/quadratic.js).
+
 ## Todos
 
 * Bug fixes.
 * More tensor ops.
 * GPU acceleration.
-* Some general neural net APIs.
+* More general neural net APIs.
 * More detailed documentation.
 * Code refactoring.
 * Proper tests.
