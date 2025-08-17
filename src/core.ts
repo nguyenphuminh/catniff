@@ -32,6 +32,15 @@ export class Tensor {
         this.gradFn = options.gradFn || (() => { });
         this.children = options.children || [];
         this.device = options.device || "cpu";
+
+        // Move tensor to device
+        if (this.device !== "cpu") {
+            const backend = Tensor.backends.get(this.device);
+
+            if (backend && backend.transfer) {
+                backend.transfer(this);
+            }
+        }
     }
 
     // Utility to flatten an nD array to be 1D
@@ -2102,6 +2111,7 @@ export class Tensor {
         return new Tensor(typeof this.value === "number" ? this.value : [...this.value], {
             shape: this.shape,
             strides: this.strides,
+            device: this.device,
             requiresGrad: this.requiresGrad
         })
     }
@@ -2130,7 +2140,8 @@ export class Tensor {
         const backend = Tensor.backends.get(device);
 
         if (backend && backend.transfer) {
-            return backend.transfer(this);
+            backend.transfer(this);
+            return this;
         }
 
         throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);

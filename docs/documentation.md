@@ -285,7 +285,7 @@ constructor(
     inFeatures: number,
     outFeatures: number,
     bias: boolean = true,
-    customInit?: (shape: number[]) => Tensor
+    device?: string
 )
 ```
 
@@ -297,6 +297,30 @@ constructor(
 ### Methods
 
 * `forward(input: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
+
+## nn.RNNCell
+
+### Constructor
+
+```ts
+constructor(
+    inputSize: number,
+    hiddenSize: number,
+    bias: boolean = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public weightIH: Tensor;`: Input weight.
+* `public weightHH: Tensor;`: Hidden weight.
+* `public biasIH?: Tensor;`: Input bias.
+* `public biasHH?: Tensor;`: Hidden bias.
+
+### Methods
+
+* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
 
 ## nn.state
 
@@ -329,7 +353,10 @@ Other than that, the `transfer` method of the backend should handle whether a te
 ```js
 const backend = {
     transfer(tensor) {
-        // Transfer data to this device, reassign methods, etc and return a new tensor with device: "your_device_name"
+        // Transfer data to this device and reassign with a proxy, reassign methods, reassign device, etc
+        tensor.value = yourProxyToRealData;
+        tensor.device = "your_device_name";
+        // ...
 
         // Reassign "to" to move from this device to another device
         tensor.to = function(device) {
@@ -339,7 +366,8 @@ const backend = {
             const backend = Tensor.backends.get(device);
 
             if (backend && backend.transfer) {
-                return backend.transfer(this);
+                backend.transfer(this);
+                return this;
             }
 
             throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);

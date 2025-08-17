@@ -5,17 +5,11 @@ const core_1 = require("./core");
 class Linear {
     weight;
     bias;
-    constructor(inFeatures, outFeatures, bias = true, customInit) {
-        let initFunc = (shape) => {
-            const bound = 1 / Math.sqrt(inFeatures);
-            return core_1.Tensor.uniform(shape, -bound, bound, { requiresGrad: true });
-        };
-        if (customInit) {
-            initFunc = customInit;
-        }
-        this.weight = initFunc([outFeatures, inFeatures]);
+    constructor(inFeatures, outFeatures, bias = true, device) {
+        const bound = 1 / Math.sqrt(inFeatures);
+        this.weight = core_1.Tensor.uniform([outFeatures, inFeatures], -bound, bound, { requiresGrad: true, device });
         if (bias) {
-            this.bias = initFunc([outFeatures]);
+            this.bias = core_1.Tensor.uniform([outFeatures], -bound, bound, { requiresGrad: true, device });
         }
     }
     forward(input) {
@@ -25,6 +19,31 @@ class Linear {
             output = output.add(this.bias);
         }
         return output;
+    }
+}
+class RNNCell {
+    weightIH;
+    weightHH;
+    biasIH;
+    biasHH;
+    constructor(inputSize, hiddenSize, bias = true, device) {
+        const bound = 1 / Math.sqrt(hiddenSize);
+        this.weightIH = core_1.Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
+        this.weightHH = core_1.Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
+        if (bias) {
+            this.biasIH = core_1.Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
+            this.biasHH = core_1.Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
+        }
+    }
+    forward(input, hidden) {
+        input = core_1.Tensor.forceTensor(input);
+        hidden = core_1.Tensor.forceTensor(hidden);
+        let output = input.matmul(this.weightIH.t())
+            .add(hidden.matmul(this.weightHH.t()));
+        if (this.biasIH && this.biasHH) {
+            output = output.add(this.biasIH).add(this.biasHH);
+        }
+        return output.tanh();
     }
 }
 const state = {
@@ -50,5 +69,6 @@ const state = {
 };
 exports.nn = {
     Linear,
+    RNNCell,
     state
 };
