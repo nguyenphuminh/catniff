@@ -76,6 +76,32 @@ optim.step();
 console.log("Updated weight:", w.data);  // Should move toward 3.0
 ```
 
+## Neural networks
+
+There are built-in neural network constructs in Catniff as well:
+```js
+const { Tensor, nn } = require("catniff");
+
+// Linear layer with input size of 20 and output size of 10
+const linear = nn.Linear(20, 10);
+// RNN cell with input size of 32 and hidden size of 64
+const rnnCell = nn.RNNCell(32, 64);
+// Same thing but using GRU
+const gruCell = nn.GRUCell(32, 64);
+// Same thing but using LSTM
+const lstmCell = nn.LSTMCell(32, 64);
+
+// Forward passes
+const a = Tensor.randn([20]);
+const b = Tensor.randn([32]);
+const c = Tensor.randn([64]);
+
+linear.forward(a);
+rnnCell.forward(b, c);
+gruCell.forward(b, c);
+lstmCell.forward(b, c, c);
+```
+
 And it can still do much more, check out the docs and examples below for more information.
 
 ## Documentation

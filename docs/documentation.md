@@ -313,20 +313,90 @@ constructor(
 
 ### Properties
 
-* `public weightIH: Tensor;`: Input weight.
-* `public weightHH: Tensor;`: Hidden weight.
-* `public biasIH?: Tensor;`: Input bias.
-* `public biasHH?: Tensor;`: Hidden bias.
+* `public weightIH: Tensor`: Input weight.
+* `public weightHH: Tensor`: Hidden weight.
+* `public biasIH?: Tensor`: Input bias.
+* `public biasHH?: Tensor`: Hidden bias.
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
+* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the recurrent cell, returning the new hidden state.
+
+## nn.GRUCell
+
+### Constructor
+
+```ts
+constructor(
+    inputSize: number,
+    hiddenSize: number,
+    bias: boolean = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public weightIR: Tensor`: Weight of input in reset gate.
+* `public weightIZ: Tensor`: Weight of input in update gate.
+* `public weightIN: Tensor`: Weight of input in candidate gate.
+* `public weightHR: Tensor`: Weight of hidden state in reset gate.
+* `public weightHZ: Tensor`: Weight of hidden state in update gate.
+* `public weightHN: Tensor`: Weight of hidden state in candidate gate.
+* `public biasIR?: Tensor`: Bias of input in reset gate.
+* `public biasIZ?: Tensor`: Bias of input in update gate.
+* `public biasIN?: Tensor`: Bias of input in candidate gate.
+* `public biasHR?: Tensor`: Bias of hidden state in reset gate.
+* `public biasHZ?: Tensor`: Bias of hidden state in update gate.
+* `public biasHN?: Tensor`: Bias of hidden state in candidate gate.
+
+### Methods
+
+* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the GRU cell, returning the new hidden state.
+
+## nn.LSTMCell
+
+### Constructor
+
+```ts
+constructor(
+    inputSize: number,
+    hiddenSize: number,
+    bias: boolean = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public weightII: Tensor`: Weight of input in input gate.
+* `public weightIF: Tensor`: Weight of input in forget gate.
+* `public weightIG: Tensor`: Weight of input in candidate cell gate.
+* `public weightIO: Tensor`: Weight of input in output gate.
+* `public weightHI: Tensor`: Weight of hidden state in input gate.
+* `public weightHF: Tensor`: Weight of hidden state in forget gate.
+* `public weightHG: Tensor`: Weight of hidden state in candidate cell gate.
+* `public weightHO: Tensor`: Weight of hidden state in output gate.
+* `public biasII?: Tensor`: Bias of input in input gate.
+* `public biasIF?: Tensor`: Bias of input in forget gate.
+* `public biasIG?: Tensor`: Bias of input in candidate cell gate.
+* `public biasIO?: Tensor`: Bias of input in output gate.
+* `public biasHI?: Tensor`: Bias of hidden state in input gate.
+* `public biasHF?: Tensor`: Bias of hidden state in forget gate.
+* `public biasHG?: Tensor`: Bias of hidden state in candidate cell gate.
+* `public biasHO?: Tensor`: Bias of hidden state in output gate.
+
+### Methods
+
+* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
 
 ## nn.state
 
 ### Methods
 
 * `getParamemters(model: any, visited: WeakSet<object> = new WeakSet()): Tensor`: Collect all parameters (tensors) used in a model.
+* `getStateDict(model: any, prefix: string = "", visited: WeakSet<object> = new WeakSet()): StateDict`: Get Torch-style dictionary (object) of model's state (StateDict is just a flat object).
+* `loadStateDict(model: any, stateDict: StateDict, prefix: string = "", visited: WeakSet<object> = new WeakSet()): void`: Load a model's params into another model through a given `stateDict`.
 
 
 # Custom backend

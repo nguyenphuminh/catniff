@@ -2111,7 +2111,6 @@ export class Tensor {
         return new Tensor(typeof this.value === "number" ? this.value : [...this.value], {
             shape: this.shape,
             strides: this.strides,
-            device: this.device,
             requiresGrad: this.requiresGrad
         })
     }

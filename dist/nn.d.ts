@@ -13,11 +13,53 @@ declare class RNNCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
 }
+declare class GRUCell {
+    weightIR: Tensor;
+    weightIZ: Tensor;
+    weightIN: Tensor;
+    weightHR: Tensor;
+    weightHZ: Tensor;
+    weightHN: Tensor;
+    biasIR?: Tensor;
+    biasIZ?: Tensor;
+    biasIN?: Tensor;
+    biasHR?: Tensor;
+    biasHZ?: Tensor;
+    biasHN?: Tensor;
+    constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
+    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
+}
+export declare class LSTMCell {
+    weightII: Tensor;
+    weightIF: Tensor;
+    weightIG: Tensor;
+    weightIO: Tensor;
+    weightHI: Tensor;
+    weightHF: Tensor;
+    weightHG: Tensor;
+    weightHO: Tensor;
+    biasII?: Tensor;
+    biasIF?: Tensor;
+    biasIG?: Tensor;
+    biasIO?: Tensor;
+    biasHI?: Tensor;
+    biasHF?: Tensor;
+    biasHG?: Tensor;
+    biasHO?: Tensor;
+    constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
+    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor];
+}
+interface StateDict {
+    [key: string]: any;
+}
 export declare const nn: {
     Linear: typeof Linear;
     RNNCell: typeof RNNCell;
+    GRUCell: typeof GRUCell;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];
+        getStateDict(model: any, prefix?: string, visited?: WeakSet<object>): StateDict;
+        loadStateDict(model: any, stateDict: StateDict, prefix?: string, visited?: WeakSet<object>): void;
     };
 };
 export {};
