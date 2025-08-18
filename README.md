@@ -112,6 +112,7 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
 ## Examples
 
+* [Shakespeare-style text generator](https://github.com/nguyenphuminh/shakespeare-lm).
 * [Simple neural net for XOR calculation](./examples/xornet.js).
 * [Tensors](./examples/tensors.js).
 * [Optimizer](./examples/optim.js).
@@ -132,3 +133,4 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 Copyrights © 2025 Nguyen Phu Minh.
 
 This project is licensed under the GPL 3.0 License.
+
