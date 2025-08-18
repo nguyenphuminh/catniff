@@ -133,4 +133,3 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 Copyrights © 2025 Nguyen Phu Minh.
 
 This project is licensed under the GPL 3.0 License.
-

@@ -264,7 +264,7 @@ const state = {
             const fullKey = prefix ? `${prefix}.${key}` : key;
 
             if (value instanceof Tensor && stateDict[fullKey]) {
-                value.replace(new Tensor(stateDict[fullKey]));
+                value.replace(new Tensor(stateDict[fullKey], { device: value.device }));
             } else if (typeof value === "object" && value !== null) {
                 this.loadStateDict(value, stateDict, fullKey, visited);
             }

@@ -193,7 +193,7 @@ const state = {
             const value = model[key];
             const fullKey = prefix ? `${prefix}.${key}` : key;
             if (value instanceof core_1.Tensor && stateDict[fullKey]) {
-                value.replace(new core_1.Tensor(stateDict[fullKey]));
+                value.replace(new core_1.Tensor(stateDict[fullKey], { device: value.device }));
             }
             else if (typeof value === "object" && value !== null) {
                 this.loadStateDict(value, stateDict, fullKey, visited);
