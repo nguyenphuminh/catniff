@@ -18,6 +18,7 @@ export declare class Tensor {
     gradFn: Function;
     children: Tensor[];
     device: string;
+    static training: boolean;
     constructor(value: TensorValue, options?: TensorOptions);
     static flatten(tensor: TensorValue): number[] | number;
     static getShape(tensor: TensorValue): readonly number[];
@@ -146,6 +147,7 @@ export declare class Tensor {
     bmm(other: TensorValue | Tensor): Tensor;
     mv(other: TensorValue | Tensor): Tensor;
     matmul(other: TensorValue | Tensor): Tensor;
+    dropout(rate: number): Tensor;
     static full(shape: number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
     static ones(shape?: number[], options?: TensorOptions): Tensor;
@@ -160,7 +162,9 @@ export declare class Tensor {
     static randintLike(tensor: Tensor, low: number, high: number, options?: TensorOptions): Tensor;
     static normal(shape: number[], mean: number, stdDev: number, options?: TensorOptions): Tensor;
     static uniform(shape: number[], low: number, high: number, options?: TensorOptions): Tensor;
-    backward(): void;
+    backward(options?: {
+        zeroGrad?: boolean;
+    }): void;
     val(): TensorValue;
     withGrad(requiresGrad: boolean): Tensor;
     detach(): Tensor;

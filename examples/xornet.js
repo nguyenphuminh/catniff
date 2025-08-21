@@ -3,9 +3,9 @@ const { Tensor, Optim, nn } = require("../index");
 // Our model
 class Xornet {
     constructor() {
-        // 2->2->1 xornet
-        this.l1 = new nn.Linear(2, 2);
-        this.l2 = new nn.Linear(2, 1);
+        // 2->3->1 xornet
+        this.l1 = new nn.Linear(2, 3);
+        this.l2 = new nn.Linear(3, 1);
     }
 
     forward(input) {

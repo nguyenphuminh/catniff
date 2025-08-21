@@ -11,6 +11,7 @@ class Tensor {
     gradFn;
     children;
     device;
+    static training = false;
     constructor(value, options = {}) {
         this.value = Tensor.flatten(value);
         this.shape = options.shape || Tensor.getShape(value);
@@ -1335,6 +1336,15 @@ class Tensor {
         }
         throw new Error(`Shapes [${this.shape}] and [${other.shape}] are not supported`);
     }
+    // Dropout
+    dropout(rate) {
+        if (!Tensor.training || rate === 0)
+            return this;
+        const keepRate = 1 - rate;
+        const uniform = Tensor.randLike(this);
+        const mask = uniform.lt(keepRate);
+        return this.mul(mask).div(keepRate);
+    }
     // Utility to create a new tensor filled with a number
     static full(shape, num, options = {}) {
         if (shape.length === 0)
@@ -1347,7 +1357,12 @@ class Tensor {
     static fullLike(tensor, num, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(num, options);
-        return new Tensor(new Array(tensor.value.length).fill(num), { shape: tensor.shape, strides: tensor.strides, ...options });
+        return new Tensor(new Array(tensor.value.length).fill(num), {
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
+        });
     }
     // Utility to create a new tensor filled with 1
     static ones(shape, options = {}) {
@@ -1361,7 +1376,12 @@ class Tensor {
     static onesLike(tensor, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(1, options);
-        return new Tensor(new Array(tensor.value.length).fill(1), { shape: tensor.shape, strides: tensor.strides, ...options });
+        return new Tensor(new Array(tensor.value.length).fill(1), {
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
+        });
     }
     // Utility to create a new tensor filled with 0
     static zeros(shape, options = {}) {
@@ -1375,7 +1395,12 @@ class Tensor {
     static zerosLike(tensor, options = {}) {
         if (typeof tensor.value === "number")
             return new Tensor(0, options);
-        return new Tensor(new Array(tensor.value.length).fill(0), { shape: tensor.shape, strides: tensor.strides, ...options });
+        return new Tensor(new Array(tensor.value.length).fill(0), {
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
+        });
     }
     // Utility to create a new tensor filled with a random number with uniform distribution from 0 to 1
     static rand(shape, options = {}) {
@@ -1397,7 +1422,10 @@ class Tensor {
             outputValue[index] = (0, utils_1.randUniform)();
         }
         return new Tensor(outputValue, {
-            shape: tensor.shape, strides: tensor.strides, ...options
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
         });
     }
     // Utility to create a new tensor filled with a random number with normal distribution of mean=0 and stddev=1
@@ -1420,7 +1448,10 @@ class Tensor {
             outputValue[index] = (0, utils_1.randNormal)();
         }
         return new Tensor(outputValue, {
-            shape: tensor.shape, strides: tensor.strides, ...options
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
         });
     }
     // Utility to create a new tensor filled with a random integer between low and high
@@ -1443,7 +1474,10 @@ class Tensor {
             outputValue[index] = (0, utils_1.randInt)(low, high);
         }
         return new Tensor(outputValue, {
-            shape: tensor.shape, strides: tensor.strides, ...options
+            shape: tensor.shape,
+            strides: tensor.strides,
+            device: tensor.device,
+            ...options
         });
     }
     // Utility to create a new tensor filled with a random number with normal distribution of custom mean and stddev
@@ -1469,14 +1503,20 @@ class Tensor {
         return new Tensor(outputValue, { shape, ...options });
     }
     // Reverse-mode autodiff call
-    backward() {
+    backward(options = {}) {
+        // Init
+        const zeroGrad = options.zeroGrad ?? true;
         // Build topological order
         const topo = [];
         const visited = new Set();
         function build(node) {
+            // Only collects unvisited node and node that requires gradient
             if (!visited.has(node) && node.requiresGrad) {
                 visited.add(node);
-                node.grad = Tensor.zerosLike(node); // Reset grad with 0
+                // Reset grad to zeros if specified
+                if (zeroGrad) {
+                    node.grad = Tensor.zerosLike(node);
+                }
                 for (let child of node.children)
                     build(child);
                 topo.push(node);

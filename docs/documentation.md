@@ -34,6 +34,7 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public requiresGrad: boolean`: Choose whether to do gradient-related operations behind the scenes, uses `options.requiresGrad` if provided, `false` otherwise.
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
 * `public children: Tensor[]`: Holds its child tensors, will be used when computing gradient, uses `options.children` if provided, `[]` otherwise.
+* `static training: boolean = false;`: Holds training flag, set to `true` while training to enable features like dropout, set to `false` while not to prevent unexpected behaviors.
 * `static backends: Map<string, Backend>`: Holds backends, scroll way down below to see what to do with this.
 
 Note: A good rule of thumb when using Catniff is to not mutate values passed into functions/methods. For example, this might introduce some unexpected behaviors:
@@ -154,10 +155,11 @@ All autograd-supported tensor arithmetic methods:
 * `var(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their variances. If `dims` is `undefined`, all axes will be reduced into a scalar. If `dims` is a number/number array, it will reduce dimensions at that/those positions. If `keepDims` is `true`, then the size-1 dimensions after reduction will be kept, discarded otherwise.
 * `std(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their standard deviations. If `dims` is `undefined`, all axes will be reduced into a scalar. If `dims` is a number/number array, it will reduce dimensions at that/those positions. If `keepDims` is `true`, then the size-1 dimensions after reduction will be kept, discarded otherwise.
 * `softmax(dims?: number[] | number): Tensor`: Apply softmax on specified dimensions.
+* `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 
 Here are commonly used utilities:
 
-* `backward()`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation.
+* `backward(options: { zeroGrad?: boolean } = {})`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation if not explicitly specified in `options.zeroGrad`.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
 * `withGrad(requiresGrad: boolean): Tensor`: Returns a view of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
@@ -167,15 +169,15 @@ Here are commonly used utilities:
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
 * `static ones(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 1, configured with `options`.
-* `static onesLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with 1, configured with `options`.
+* `static onesLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with 1, configured with `options`.
 * `static zeros(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with 0, configured with `options`.
-* `static zerosLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with 0, configured with `options`.
+* `static zerosLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with 0, configured with `options`.
 * `static rand(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with uniform distribution from 0 to 1, configured with `options`.
-* `static randLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random number with uniform distribution from 0 to 1, configured with `options`.
+* `static randLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random number with uniform distribution from 0 to 1, configured with `options`.
 * `static randn(shape?: number[], options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
-* `static randnLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
+* `static randnLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
 * `static randint(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random integer between low and high, configured with `options`.
-* `static randintLike(tensor: Tensor, low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with a random integer between low and high, configured with `options`.
+* `static randintLike(tensor: Tensor, low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random integer between low and high, configured with `options`.
 * `static normal(shape: number[], mean: number, stdDev: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of custom `mean` and `stdDev`, configured with `options`.
 * `static uniform(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`,  filled with a random number with uniform distribution from `low` to `high`, configured with `options`.
 
