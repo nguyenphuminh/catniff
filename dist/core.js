@@ -261,11 +261,6 @@ class Tensor {
             tensor.grad = tensor.grad.add(squeezedGrad);
         }
     }
-    // Make tensor contiguous
-    isContiguous() {
-    }
-    contiguous() {
-    }
     // Tensor squeeze
     squeeze(dims) {
         if (typeof this.value === "number")

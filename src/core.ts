@@ -344,15 +344,6 @@ export class Tensor {
         }
     }
 
-    // Make tensor contiguous
-    isContiguous() {
-
-    }
-
-    contiguous() {
-
-    }
-
     // Tensor squeeze
     squeeze(dims?: number[] | number): Tensor {
         if (typeof this.value === "number") return this;

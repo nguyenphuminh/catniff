@@ -40,8 +40,6 @@ export declare class Tensor {
     elementWiseSelfDAG(op: (a: number) => number, thisGrad?: (self: Tensor, outGrad: Tensor) => Tensor): Tensor;
     static forceTensor(value: TensorValue | Tensor): Tensor;
     static addGrad(tensor: Tensor, accumGrad: Tensor): void;
-    isContiguous(): void;
-    contiguous(): void;
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;
     sum(dims?: number[] | number, keepDims?: boolean): Tensor;
