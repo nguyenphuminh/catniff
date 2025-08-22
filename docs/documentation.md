@@ -125,6 +125,7 @@ All autograd-supported tensor arithmetic methods:
 * `softsign(): Tensor`: Returns softsign of `this` element-wise.
 * `silu(): Tensor`: Returns silu (swish) of `this` element-wise.
 * `mish(): Tensor`: Returns mish of `this` element-wise.
+* `gelu(approximate: string = "none"): Tensor`: Returns gelu of `this` element-wise. Use original gelu formula if `approximate` is `none`, use tanh approximation if set to `tanh`.
 * `maximum(other: TensorValue | Tensor): Tensor`: Returns maximum between `this` and `other` element-wise.
 * `minimum(other: TensorValue | Tensor): Tensor`: Returns minimum between `this` and `other` element-wise.
 * `round(): Tensor`: Returns `this` rounded element-wise.

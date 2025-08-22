@@ -344,6 +344,15 @@ export class Tensor {
         }
     }
 
+    // Make tensor contiguous
+    isContiguous() {
+
+    }
+
+    contiguous() {
+
+    }
+
     // Tensor squeeze
     squeeze(dims?: number[] | number): Tensor {
         if (typeof this.value === "number") return this;
@@ -1420,6 +1429,48 @@ export class Tensor {
         );
     }
 
+    // Tensor element-wise gelu
+    gelu(approximate: string = "none"): Tensor {
+        if (approximate === "none") {
+            return this.elementWiseSelfDAG(
+                (a) => 0.5 * a * (1 + erf(a / Math.sqrt(2))),
+                (self, outGrad) => {
+                    const sqrt2 = Math.sqrt(2);
+                    const sqrt2OverPi = Math.sqrt(2 / Math.PI);
+                    
+                    const xOverSqrt2 = self.div(sqrt2);
+                    const erfVal = xOverSqrt2.erf();
+                    const phi = xOverSqrt2.square().neg().exp().div(sqrt2OverPi);
+
+                    const derivative = erfVal.add(1).mul(0.5).add(self.mul(phi));
+                    return outGrad.mul(derivative);
+                }
+            );
+        } else if (approximate === "tanh") {
+            return this.elementWiseSelfDAG(
+                (a) => 0.5 * a * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (a + 0.044715 * a * a * a))),
+                (self, outGrad) => {
+                    const sqrt2OverPi = Math.sqrt(2 / Math.PI);
+                    const c = 0.044715;
+                    
+                    const tanhArg = self.add(self.pow(3).mul(c)).mul(sqrt2OverPi);
+                    const tanhVal = tanhArg.tanh();
+                    const sechSquared = tanhVal.square().neg().add(1);
+                    
+                    const term1 = tanhVal.add(1).mul(0.5);
+                    const term2 = self.mul(sechSquared).mul(sqrt2OverPi).mul(
+                        self.square().mul(c * 3).add(1)
+                    ).mul(0.5);
+                    
+                    const derivative = term1.add(term2);
+                    return outGrad.mul(derivative);
+                }
+            );
+        }
+
+        throw new Error("Specified approximation does not exist");
+    }
+
     // Tensor element-wise maximum
     maximum(other: TensorValue | Tensor): Tensor {
         return this.elementWiseABDAG(
@@ -1763,9 +1814,8 @@ export class Tensor {
         } else if (this.shape.length === 2 && other.shape.length === 2) {
             return this.mm(other);
         } else if (
-            (isThis1D && other.shape.length > 2) ||
-            (isOther1D && this.shape.length > 2) ||
-            (other.shape.length > 2 && this.shape.length > 2)
+            (this.shape.length > 0 && other.shape.length >= 2) ||
+            (this.shape.length >= 2 && other.shape.length > 0)
         ) {
             // Append/prepend dims if needed
             const self = isThis1D ? this.unsqueeze(0) : this;
