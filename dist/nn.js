@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nn = exports.LSTMCell = void 0;
+exports.nn = void 0;
 const core_1 = require("./core");
 function linearTransform(input, weight, bias) {
     let output = input.matmul(weight.t());
@@ -144,7 +144,51 @@ class LSTMCell {
         return [h, c];
     }
 }
-exports.LSTMCell = LSTMCell;
+class LayerNorm {
+    weight;
+    bias;
+    eps;
+    normalizedShape;
+    constructor(normalizedShape, eps = 1e-5, elementwiseAffine = true, bias = true, device) {
+        this.eps = eps;
+        this.normalizedShape = Array.isArray(normalizedShape) ? normalizedShape : [normalizedShape];
+        if (this.normalizedShape.length === 0) {
+            throw new Error("Normalized shape cannot be empty");
+        }
+        if (elementwiseAffine) {
+            this.weight = core_1.Tensor.ones(this.normalizedShape, { requiresGrad: true, device });
+            if (bias) {
+                this.bias = core_1.Tensor.zeros(this.normalizedShape, { requiresGrad: true, device });
+            }
+        }
+    }
+    forward(input) {
+        input = core_1.Tensor.forceTensor(input);
+        // Normalize over the specified dimensions
+        const normalizedDims = this.normalizedShape.length;
+        const startDim = input.shape.length - normalizedDims;
+        if (startDim < 0) {
+            throw new Error("Input does not have enough dims to normalize");
+        }
+        const dims = [];
+        for (let i = 0; i < normalizedDims; i++) {
+            if (input.shape[startDim + i] !== this.normalizedShape[i]) {
+                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${this.normalizedShape[i]}, got ${input.shape[startDim + i]}`);
+            }
+            dims.push(startDim + i);
+        }
+        const mean = input.mean(dims, true);
+        const variance = input.sub(mean).pow(2).mean(dims, true);
+        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
+        if (this.weight) {
+            normalized = normalized.mul(this.weight);
+        }
+        if (this.bias) {
+            normalized = normalized.add(this.bias);
+        }
+        return normalized;
+    }
+}
 const state = {
     getParameters(model, visited = new WeakSet()) {
         if (visited.has(model))
@@ -178,7 +222,7 @@ const state = {
                 stateDict[fullKey] = value.val();
             }
             else if (typeof value === "object" && value !== null) {
-                Object.assign(stateDict, this.getStateDict(value, fullKey, visited));
+                Object.assign(stateDict, state.getStateDict(value, fullKey, visited));
             }
         }
         return stateDict;
@@ -196,7 +240,7 @@ const state = {
                 value.replace(new core_1.Tensor(stateDict[fullKey], { device: value.device }));
             }
             else if (typeof value === "object" && value !== null) {
-                this.loadStateDict(value, stateDict, fullKey, visited);
+                state.loadStateDict(value, stateDict, fullKey, visited);
             }
         }
     }
@@ -205,5 +249,7 @@ exports.nn = {
     Linear,
     RNNCell,
     GRUCell,
+    LSTMCell,
+    LayerNorm,
     state
 };

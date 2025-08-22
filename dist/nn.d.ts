@@ -29,7 +29,7 @@ declare class GRUCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
 }
-export declare class LSTMCell {
+declare class LSTMCell {
     weightII: Tensor;
     weightIF: Tensor;
     weightIG: Tensor;
@@ -49,6 +49,14 @@ export declare class LSTMCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor];
 }
+declare class LayerNorm {
+    weight?: Tensor;
+    bias?: Tensor;
+    eps: number;
+    normalizedShape: number[];
+    constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
+    forward(input: Tensor | TensorValue): Tensor;
+}
 interface StateDict {
     [key: string]: any;
 }
@@ -56,6 +64,8 @@ export declare const nn: {
     Linear: typeof Linear;
     RNNCell: typeof RNNCell;
     GRUCell: typeof GRUCell;
+    LSTMCell: typeof LSTMCell;
+    LayerNorm: typeof LayerNorm;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];
         getStateDict(model: any, prefix?: string, visited?: WeakSet<object>): StateDict;

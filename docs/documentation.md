@@ -397,6 +397,31 @@ constructor(
 
 * `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
 
+## nn.LayerNorm
+
+### Constructor
+
+```ts
+constructor(
+    normalizedShape: number | number[],
+    eps: number = 1e-5,
+    elementwiseAffine: boolean = true,
+    bias: boolean = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public weight?: Tensor`: Weight to scale, available if `elementwiseAffine` is `true`.
+* `public bias?: Tensor`: Bias to scale, available if `elementwiseAffine` and `bias` are `true`.
+* `public eps: number`: Basically just `eps` from the constructor.
+* `public normalizedShape: number[]`: Basically just `normalizedShape` from the constructor, padded into an array if needed.
+
+### Methods
+
+* `forward(input: Tensor | TensorValue): Tensor`: Apply layer norm on input.
+
 ## nn.state
 
 ### Methods
