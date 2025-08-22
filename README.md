@@ -120,10 +120,11 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
 ## Todos
 
-* Bug fixes.
-* More tensor ops.
-* GPU acceleration.
+* More general tensor ops.
 * More general neural net APIs.
+* GPU acceleration.
+* Comprehensive caching.
+* Bug fixes.
 * More detailed documentation.
 * Code refactoring.
 * Proper tests.

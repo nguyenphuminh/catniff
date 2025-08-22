@@ -141,6 +141,10 @@ All autograd-supported tensor arithmetic methods:
 * `erfinv(): Tensor`: Returns inverse error function with `this` as input element-wise.
 * `transpose(dim1: number, dim2: number): Tensor`: Returns transposition of a tensor from two provided dimensions.
 * `t(): Tensor`: Returns transposition of a 2D tensor (matrix). If `this` is not 2D, it will throw an error.
+* `permute(dims: number[]): Tensor`: Returns complete reposition of dims in a tensor.
+* `isContiguous(): boolean`: Checks if tensor is contiguous.
+* `contiguous(): Tensor`: Returns a new tensor, restructured from input to be contiguous.
+* `reshape(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided.
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
 * `mm(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other` 2D tensors (matrices). If the two are not 2D, it will throw an error.
 * `mv(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` 2D tensor (matrix) and `other` 1D tensor (vector). Basically if `other` is of size n, it will be reshaped into an nx1 matrix. If `this` is not 2D and `other` is not 1D, it will throw an error.
@@ -420,7 +424,7 @@ There are two things to keep in mind when building your own custom backend - ten
 
 For tensor values (`someTensor.value` for example), you should create a custom `Proxy` of a normal array, with its getter and setter targeting where the data was originally stored (using N-API to wrap C++ APIs for example) for compatibility with real JS number arrays. But of course this is only for compatibility, your tensor ops should use the original data for computation, so you should probably store a memory address/pointer of the original data in this proxy for your ops to know which tensor data to work with.
 
-For tensor ops, you can reimplement whatever ops you want, but you should implement all methods that directly transform the data, `add` or `matmul` for example, not ops that just create new shapes and strides like `squeeze` or `transpose`.
+For tensor ops, you can reimplement whatever ops you want, but you should implement all methods that directly transform the data, `add` or `matmul` for example, not ops that just create new shapes and strides like `squeeze` or `transpose`. To be more specific, you can have a look at the ops in `./src/core.ts`, and whatever ops that return a new tensor with the same device as input do not need to be reimplemented, because those ops only modify metadata and does not read from or write to memory. Others if not implemented can either break or be very slow.
 
 Other than that, the `transfer` method of the backend should handle whether a tensor is moving to this device, for example:
 ```js

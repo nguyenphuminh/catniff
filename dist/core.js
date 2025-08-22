@@ -201,9 +201,9 @@ class Tensor {
         if (out.requiresGrad) {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
-                const outGrad = out.grad.withGrad(false);
-                const selfNoGrad = this.withGrad(false);
-                const otherNoGrad = other.withGrad(false);
+                const outGrad = out.grad;
+                const selfNoGrad = this.detach();
+                const otherNoGrad = other.detach();
                 if (this.requiresGrad)
                     Tensor.addGrad(this, thisGrad(selfNoGrad, otherNoGrad, outGrad));
                 if (other.requiresGrad)
@@ -222,8 +222,8 @@ class Tensor {
         if (out.requiresGrad) {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
-                const outGrad = out.grad.withGrad(false);
-                const selfNoGrad = this.withGrad(false);
+                const outGrad = out.grad;
+                const selfNoGrad = this.detach();
                 if (this.requiresGrad)
                     Tensor.addGrad(this, thisGrad(selfNoGrad, outGrad));
             };
@@ -260,6 +260,64 @@ class Tensor {
         else {
             tensor.grad = tensor.grad.add(squeezedGrad);
         }
+    }
+    // Contiguity-related ops
+    isContiguous() {
+        const expectedStrides = Tensor.getStrides(this.shape);
+        if (expectedStrides.length !== this.strides.length) {
+            return false;
+        }
+        for (let i = 0; i < this.strides.length; i++) {
+            if (this.strides[i] !== expectedStrides[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    contiguous() {
+        // Check if scalar
+        if (typeof this.value === "number")
+            return this;
+        // Check if already contiguous
+        if (this.isContiguous())
+            return this;
+        const outputStrides = Tensor.getStrides(this.shape);
+        const outputSize = Tensor.shapeToSize(this.shape);
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputSize; index++) {
+            const outputCoords = Tensor.indexToCoords(index, outputStrides);
+            const originalIndex = Tensor.coordsToIndex(outputCoords, this.strides);
+            outputValue[index] = this.value[originalIndex];
+        }
+        const out = new Tensor(outputValue, { shape: this.shape, strides: outputStrides });
+        // Gradient flow back to the original tensor
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                Tensor.addGrad(this, out.grad);
+            };
+        }
+        return out;
+    }
+    reshape(newShape) {
+        // Verify shape size
+        const originalSize = Tensor.shapeToSize(this.shape);
+        const outputSize = Tensor.shapeToSize(newShape);
+        if (originalSize !== outputSize) {
+            throw new Error("Cannot reshape: incompatible sizes");
+        }
+        const outputStrides = Tensor.getStrides(newShape);
+        const out = new Tensor(this.contiguous().value, { shape: newShape, strides: outputStrides });
+        // Gradient reshaped and flow back to the original tensor
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                Tensor.addGrad(this, out.grad.reshape(this.shape));
+            };
+        }
+        return out;
     }
     // Tensor squeeze
     squeeze(dims) {
@@ -302,7 +360,7 @@ class Tensor {
             out.requiresGrad = true;
             out.children.push(this);
             out.gradFn = () => {
-                let restoredGrad = out.grad.withGrad(false);
+                let restoredGrad = out.grad;
                 for (let i = dims.length - 1; i >= 0; i--) {
                     restoredGrad = restoredGrad.unsqueeze(dims[i]);
                 }
@@ -338,7 +396,7 @@ class Tensor {
             out.requiresGrad = true;
             out.children.push(this);
             out.gradFn = () => {
-                Tensor.addGrad(this, out.grad.withGrad(false).squeeze(dim));
+                Tensor.addGrad(this, out.grad.squeeze(dim));
             };
         }
         return out;
@@ -397,7 +455,7 @@ class Tensor {
             out.children.push(this);
             out.gradFn = () => {
                 const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
-                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+                Tensor.addGrad(this, out.grad.mul(localGrad));
             };
         }
         return keepDims ? out : out.squeeze(dims);
@@ -454,7 +512,7 @@ class Tensor {
                     gradValue[realFlatIndex] = outputValue[outFlatIndex] / this.value[realFlatIndex];
                 }
                 const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
-                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+                Tensor.addGrad(this, out.grad.mul(localGrad));
             };
         }
         return keepDims ? out : out.squeeze(dims);
@@ -518,7 +576,7 @@ class Tensor {
                     gradValue[realFlatIndex] = 1 / outputFeeders[outFlatIndex];
                 }
                 const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
-                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+                Tensor.addGrad(this, out.grad.mul(localGrad));
             };
         }
         return keepDims ? out : out.squeeze(dims);
@@ -588,7 +646,7 @@ class Tensor {
                     gradValue[realFlatIndex] = outputValue[outFlatIndex] === originalValue[realFlatIndex] ? 1 / shareCounts[outFlatIndex] : 0;
                 }
                 const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
-                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+                Tensor.addGrad(this, out.grad.mul(localGrad));
             };
         }
         return keepDims ? out : out.squeeze(dims);
@@ -658,7 +716,7 @@ class Tensor {
                     gradValue[realFlatIndex] = outputValue[outFlatIndex] === originalValue[realFlatIndex] ? 1 / shareCounts[outFlatIndex] : 0;
                 }
                 const localGrad = new Tensor(gradValue, { shape: gradShape, strides: gradStrides });
-                Tensor.addGrad(this, out.grad.withGrad(false).mul(localGrad));
+                Tensor.addGrad(this, out.grad.mul(localGrad));
             };
         }
         return keepDims ? out : out.squeeze(dims);
@@ -727,8 +785,8 @@ class Tensor {
             out.requiresGrad = true;
             out.children.push(this);
             out.gradFn = () => {
-                const upstreamGrad = out.grad.withGrad(false);
-                const softmaxOutput = out.withGrad(false);
+                const upstreamGrad = out.grad;
+                const softmaxOutput = out.detach();
                 // Compute element-wise product: ∂L/∂σᵢ × σᵢ
                 const gradTimesOutput = upstreamGrad.mul(softmaxOutput);
                 // Sum over softmax dimensions: Σᵢ(∂L/∂σᵢ × σᵢ)
@@ -1096,7 +1154,7 @@ class Tensor {
         if (this.requiresGrad) {
             out.children.push(this);
             out.gradFn = () => {
-                Tensor.addGrad(this, out.grad.withGrad(false).transpose(dim1, dim2));
+                Tensor.addGrad(this, out.grad.transpose(dim1, dim2));
             };
         }
         return out;
@@ -1110,6 +1168,39 @@ class Tensor {
             throw new Error("Input is not a matrix");
         }
         return this.transpose(0, 1);
+    }
+    // Permute
+    permute(dims) {
+        if (dims.length !== this.shape.length) {
+            throw new Error("Permutation must specify all dimensions");
+        }
+        // Compute new shape and strides
+        const newShape = new Array(dims.length);
+        const newStrides = new Array(dims.length);
+        for (let index = 0; index < dims.length; index++) {
+            const dim = dims[index];
+            newShape[index] = this.shape[dim];
+            newStrides[index] = this.strides[dim];
+        }
+        const out = new Tensor(this.value, {
+            shape: newShape,
+            strides: newStrides
+        });
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                // Compute inverse permutation
+                const inverseAxes = new Array(dims.length);
+                for (let i = 0; i < dims.length; i++) {
+                    inverseAxes[dims[i]] = i;
+                }
+                // Permute gradient back to original order
+                const permutedGrad = out.grad.permute(inverseAxes);
+                Tensor.addGrad(this, permutedGrad);
+            };
+        }
+        return out;
     }
     // 1D tensor dot product
     dot(other) {
@@ -1138,9 +1229,9 @@ class Tensor {
         if (out.requiresGrad) {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
-                const outGrad = out.grad.withGrad(false);
-                const selfNoGrad = this.withGrad(false);
-                const otherNoGrad = other.withGrad(false);
+                const outGrad = out.grad;
+                const selfNoGrad = this.detach();
+                const otherNoGrad = other.detach();
                 if (this.requiresGrad)
                     Tensor.addGrad(this, outGrad.mul(otherNoGrad));
                 if (other.requiresGrad)
@@ -1193,9 +1284,9 @@ class Tensor {
         if (out.requiresGrad) {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
-                const outGrad = out.grad.withGrad(false);
-                const selfNoGrad = this.withGrad(false);
-                const otherNoGrad = other.withGrad(false);
+                const outGrad = out.grad;
+                const selfNoGrad = this.detach();
+                const otherNoGrad = other.detach();
                 if (this.requiresGrad)
                     Tensor.addGrad(this, outGrad.mm(otherNoGrad.t()));
                 if (other.requiresGrad)
@@ -1251,9 +1342,9 @@ class Tensor {
         if (out.requiresGrad) {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
-                const outGrad = out.grad.withGrad(false);
-                const selfNoGrad = this.withGrad(false);
-                const otherNoGrad = other.withGrad(false);
+                const outGrad = out.grad;
+                const selfNoGrad = this.detach();
+                const otherNoGrad = other.detach();
                 if (this.requiresGrad)
                     Tensor.addGrad(this, outGrad.bmm(otherNoGrad.transpose(1, 2)));
                 if (other.requiresGrad)
@@ -1350,9 +1441,9 @@ class Tensor {
             if (out.requiresGrad) {
                 out.gradFn = () => {
                     other = other;
-                    const outGrad = out.grad.withGrad(false);
-                    const selfNoGrad = self.withGrad(false);
-                    const otherNoGrad = other.withGrad(false);
+                    const outGrad = out.grad;
+                    const selfNoGrad = self.detach();
+                    const otherNoGrad = other.detach();
                     if (this.requiresGrad)
                         Tensor.addGrad(this, outGrad.matmul(otherNoGrad.transpose(lastDim - 1, lastDim)));
                     if (other.requiresGrad)
