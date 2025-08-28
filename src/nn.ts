@@ -268,7 +268,7 @@ class LayerNorm {
     }
 }
 
-interface StateDict {
+export interface StateDict {
     [key: string]: any; // Could be nested objects or tensor data
 }
 

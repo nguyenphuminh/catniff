@@ -230,7 +230,7 @@ Here are utilities (that might be deleted in the future) that you probably won't
 * `weightDecay?: number`
 * `nesterov?: boolean`
 
-## Optim.SGD
+## Optim.BaseOptimizer (abtract class)
 
 ### Constructor
 
@@ -241,6 +241,21 @@ constructor(params: Tensor[], options?: SGDOptions)
 ### Properties
 
 * `public params: Tensor[]`: Holds the params to be optimized, initialized with the `params` argument mentioned above.
+
+### Methods
+
+* `zeroGrad()`: Set the `grad` property of each param in `this.params` to `Tensor.zerosLike(param)`.
+
+## Optim.SGD extends Optim.BaseOptimizer
+
+### Constructor
+
+```ts
+constructor(params: Tensor[], options?: SGDOptions)
+```
+
+### Properties
+
 * `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum buffer of each param, updated per optimization iteration if `this.momentum` is not `0`.
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
 * `public momentum: number`: Holds the momentum, uses `options.momentum` if available, `0` otherwise.
@@ -261,7 +276,7 @@ constructor(params: Tensor[], options?: SGDOptions)
 * `eps?: number`
 * `weightDecay?: number`
 
-## Optim.Adam
+## Optim.Adam extends Optim.BaseOptimizer
 
 ### Constructor
 
@@ -271,7 +286,6 @@ constructor(params: Tensor[], options?: AdamOptions)
 
 ### Properties
 
-* `public params: Tensor[]`: Holds the params to be optimized, initialized with the `params` argument mentioned above.
 * `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
 * `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
@@ -429,6 +443,10 @@ constructor(
 * `getParamemters(model: any, visited: WeakSet<object> = new WeakSet()): Tensor`: Collect all parameters (tensors) used in a model.
 * `getStateDict(model: any, prefix: string = "", visited: WeakSet<object> = new WeakSet()): StateDict`: Get Torch-style dictionary (object) of model's state (StateDict is just a flat object).
 * `loadStateDict(model: any, stateDict: StateDict, prefix: string = "", visited: WeakSet<object> = new WeakSet()): void`: Load a model's params into another model through a given `stateDict`.
+
+## StateDict
+
+`StateDict` is just an object with string keys and values of type `any`.
 
 
 # Custom backend

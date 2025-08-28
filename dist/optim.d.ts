@@ -1,4 +1,9 @@
 import { Tensor } from "./core";
+declare abstract class BaseOptimizer {
+    params: Tensor[];
+    constructor(params: Tensor[]);
+    zeroGrad(): void;
+}
 export interface SGDOptions {
     lr?: number;
     momentum?: number;
@@ -6,8 +11,7 @@ export interface SGDOptions {
     weightDecay?: number;
     nesterov?: boolean;
 }
-declare class SGD {
-    params: Tensor[];
+declare class SGD extends BaseOptimizer {
     momentumBuffers: Map<Tensor, Tensor>;
     lr: number;
     momentum: number;
@@ -23,8 +27,7 @@ export interface AdamOptions {
     eps?: number;
     weightDecay?: number;
 }
-declare class Adam {
-    params: Tensor[];
+declare class Adam extends BaseOptimizer {
     momentumBuffers: Map<Tensor, Tensor>;
     velocityBuffers: Map<Tensor, Tensor>;
     stepCount: number;
@@ -36,6 +39,7 @@ declare class Adam {
     step(): void;
 }
 export declare class Optim {
+    static BaseOptimizer: typeof BaseOptimizer;
     static SGD: typeof SGD;
     static Adam: typeof Adam;
 }

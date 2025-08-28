@@ -1,5 +1,21 @@
 import { Tensor } from "./core";
 
+abstract class BaseOptimizer {
+    public params: Tensor[];
+
+    constructor(params: Tensor[]) {
+        this.params = params;
+    }
+
+    zeroGrad() {
+        for (let index = 0; index < this.params.length; index++) {
+            const param = this.params[index];
+
+            param.grad = Tensor.zerosLike(param);
+        }
+    }
+}
+
 export interface SGDOptions {
     lr?: number;
     momentum?: number;
@@ -8,8 +24,7 @@ export interface SGDOptions {
     nesterov?: boolean;
 }
 
-class SGD {
-    public params: Tensor[];
+class SGD extends BaseOptimizer {
     public momentumBuffers: Map<Tensor, Tensor> = new Map();
     public lr: number;
     public momentum: number;
@@ -18,7 +33,8 @@ class SGD {
     public nesterov: boolean;
 
     constructor(params: Tensor[], options?: SGDOptions) {
-        this.params = params;
+        super(params);
+
         this.lr = options?.lr || 0.001;
         this.momentum = options?.momentum || 0;
         this.dampening = options?.dampening || 0;
@@ -74,8 +90,7 @@ export interface AdamOptions {
     weightDecay?: number;
 }
 
-class Adam {
-    public params: Tensor[];
+class Adam extends BaseOptimizer {
     public momentumBuffers: Map<Tensor, Tensor> = new Map(); // First moment (m_t)
     public velocityBuffers: Map<Tensor, Tensor> = new Map(); // Second moment (v_t)
     public stepCount = 0;
@@ -85,7 +100,8 @@ class Adam {
     public weightDecay: number;
 
     constructor(params: Tensor[], options?: AdamOptions) {
-        this.params = params;
+        super(params);
+
         this.lr = options?.lr || 0.001;
         this.betas = options?.betas || [0.9, 0.999];
         this.eps = options?.eps || 1e-8;
@@ -151,6 +167,7 @@ class Adam {
 }
 
 export class Optim {
+    static BaseOptimizer = BaseOptimizer;
     static SGD = SGD;
     static Adam = Adam;
 }

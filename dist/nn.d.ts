@@ -57,7 +57,7 @@ declare class LayerNorm {
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue): Tensor;
 }
-interface StateDict {
+export interface StateDict {
     [key: string]: any;
 }
 export declare const nn: {
