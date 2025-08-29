@@ -177,4 +177,5 @@ export declare class Tensor {
     replace(other: Tensor, allowShapeMismatch?: boolean): Tensor;
     static backends: Map<string, Backend>;
     to(device: string): Tensor;
+    to_(device: string): Tensor;
 }

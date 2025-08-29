@@ -469,58 +469,58 @@ For tensor values (`someTensor.value` for example), you should create a custom `
 
 For tensor ops, you can reimplement whatever ops you want, but you should implement all methods that directly transform the data, `add` or `matmul` for example, not ops that just create new shapes and strides like `squeeze` or `transpose`. To be more specific, you can have a look at the ops in `./src/core.ts`, and whatever ops that return a new tensor with the same device as input do not need to be reimplemented, because those ops only modify metadata and does not read from or write to memory. Others if not implemented can either break or be very slow.
 
-Other than that, the `transfer` method of the backend should handle whether a tensor is moving to this device, for example:
+Other than that, you must create two methods for your backend, `transfer` for tensor transfer from another device to this device, `create` for doing that in-place. Here is an example (pay attention to the comments):
 ```js
 const backend = {
     transfer(tensor) {
-        // Transfer data to this device and reassign with a proxy, reassign methods, reassign device, etc
-        tensor.value = yourProxyToRealData;
-        tensor.device = "your_device_name";
+        // Create a new tensor object, reassign the ops, and do something to move to device here
         // ...
 
         // Reassign "to" to move from this device to another device
         tensor.to = function(device) {
             // Do something here
 
+            // A backend does not exist for cpu, so you have to reimplement a way to move back to cpu
+            if (device === "cpu") {
+                // Create a new on-cpu array
+                tensor.value = something;
+                // Change device to cpu
+                tensor.device = "cpu";
+                // Reassign original ops:
+                tensor.add = Tensor.prototype.add;
+                // The rest of the code goes here
+            }
+
             // Call the transfer method of another backend
             const backend = Tensor.backends.get(device);
 
             if (backend && backend.transfer) {
-                backend.transfer(this);
+                return backend.transfer(this);
+            }
+
+            throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);
+        }
+
+        // Reassign "to_" to move from this device to another device in-place
+        tensor.to_ = function(device) {
+            // ...
+
+            // Same as to, but now use create:
+            const backend = Tensor.backends.get(this.device);
+
+            if (backend && backend.create) {
+                backend.create(this);
                 return this;
             }
 
             throw new Error(`No device found to transfer tensor to or a handler is not implemented for device.`);
         }
+
+        return tensor;
+    }
+
+    create(tensor) {
+        // Do the same as above, but modify into the tensor object directly
     }
 }
 ```
-
-Note that you have to manually reassign ops in `transfer`, for example:
-```js
-function add(tensorA, tensorB) {
-    // Your add implementation
-}
-
-const backend = {
-    transfer(tensor) {
-        // Do whatever here
-
-        // Reassign ops with your ops implementation
-        tensor.add = function(other) {
-            return add(this, other);
-        }
-        
-        tensor.to = function(device) {
-            // If you are moving to CPU, you have to manually reset methods
-            if (device === "cpu") {
-                tensor.add = Tensor.prototype.add;
-            }
-
-            // The rest of your code goes here
-        }
-    }
-}
-```
-
-This way, any unimplemented ops can use the original CPU implementation, and there would not be any conflicts thanks to the `Proxy` mentioned above (although unimplemented ops would be slow then).
