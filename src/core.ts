@@ -247,7 +247,7 @@ export class Tensor {
         thisGrad: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0),
         otherGrad: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0)
     ): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         const out = Tensor.elementWiseAB(this, other, op);
 
@@ -301,10 +301,17 @@ export class Tensor {
         return out;
     }
 
-    // Utility to force an input value to be a tensor
-    static forceTensor(value: TensorValue | Tensor): Tensor {
-        if (value instanceof Tensor) return value;
-        return new Tensor(value);
+    // Utility to handle other tensor if an op needs a second operand
+    handleOther(other: Tensor | TensorValue): Tensor {
+        if (other instanceof Tensor) {
+            if (this.device !== other.device) {
+                throw new Error("Can not operate on tensors that are not on the same device");
+            }
+
+            return other;
+        }
+
+        return new Tensor(other, { device: this.device });
     }
 
     // Utility to add to gradient of tensor
@@ -1708,7 +1715,7 @@ export class Tensor {
 
     // 1D tensor dot product
     dot(other: TensorValue | Tensor): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         // Verify 1D shape
         if (this.shape.length !== 1 || other.shape.length !== 1) {
@@ -1754,7 +1761,7 @@ export class Tensor {
 
     // Matrix multiplication
     mm(other: TensorValue | Tensor): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         // Verify 2D shape
         if (this.shape.length !== 2 || other.shape.length !== 2) {
@@ -1818,7 +1825,7 @@ export class Tensor {
 
     // Batched 3D tensor matmul
     bmm(other: TensorValue | Tensor): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         // Verify 3D shape
         if (this.shape.length !== 3 || other.shape.length !== 3 || this.shape[0] !== other.shape[0]) {
@@ -1885,7 +1892,7 @@ export class Tensor {
 
     // Convert right-side 1D tensor to a vector (nx1 tensor) to do matmul
     mv(other: TensorValue | Tensor): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         // Verify 2D shape
         if (this.shape.length !== 2 || other.shape.length !== 1) {
@@ -1897,7 +1904,7 @@ export class Tensor {
 
     // General matrix multiplication with different shapes
     matmul(other: TensorValue | Tensor): Tensor {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
 
         const isThis1D = this.shape.length === 1;
         const isOther1D = other.shape.length === 1;
@@ -2299,7 +2306,9 @@ export class Tensor {
     }
 
     // Returns this tensor with value replaced with the value of another tensor
-    replace(other: Tensor, allowShapeMismatch: boolean = false): Tensor {
+    replace(other: Tensor | TensorValue, allowShapeMismatch: boolean = false): Tensor {
+        other = this.handleOther(other);
+
         // Verify shape
         if (!allowShapeMismatch) {
             for (let index = 0; index < this.shape.length; index++) {

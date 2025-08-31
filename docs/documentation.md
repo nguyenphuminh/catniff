@@ -50,7 +50,7 @@ because Catniff try not to allocate new arrays and use the argument if possible 
 
 All autograd-supported tensor arithmetic methods:
 
-* `add(other: TensorValue | Tensor): Tensor`: Returns `this` added with `other` element-wise. If `other` is a `TensorValue`, it will be converted to a `Tensor` with `Tensor.forceTensor(other)`, and this rule will apply for other element-wise ops as well. Two tensors of different shapes and sizes will get broadcasted if they are compatible, or else the function will throw an error.
+* `add(other: TensorValue | Tensor): Tensor`: Returns `this` added with `other` element-wise. If `other` is a `TensorValue`, it will be converted to a `Tensor` with `this.handleOther(other)`, and this rule will apply for other element-wise ops as well. Two tensors of different shapes and sizes will get broadcasted if they are compatible, or else the function will throw an error.
 * `sub(other: TensorValue | Tensor): Tensor`: Returns `this` subtracted by `other` element-wise.
 * `subtract(other: TensorValue | Tensor): Tensor`: Alias for `sub`.
 * `mul(other: TensorValue | Tensor): Tensor`: Returns `this` multiplied with `other` element-wise.
@@ -169,7 +169,7 @@ Here are commonly used utilities:
 * `withGrad(requiresGrad: boolean): Tensor`: Returns a view of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and detaches from DAG.
-* `replace(other: Tensor, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
+* `replace(other: Tensor | TensorValue, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
 * `to(device: string): Tensor`: Returns a new tensor with the same value as this tensor, but on a different device.
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
@@ -217,7 +217,7 @@ Here are utilities (that might be deleted in the future) that you probably won't
         * `op: (a: number) => number`: The custom op to do element-wise.
         * `thisGrad: (self: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0)`: Custom gradient for `this` tensor if `this.requiresGrad` is `true`, returns a tensor that will be assigned to `this.grad`. Note that `self` represents `this` tensor, and `outGrad` represents the upstream gradient, but all of these tensors have all gradient-related operations disabled and are not the original tensors.
     * returns: A new `Tensor`. If `this.requiresGrad` is `true`, then `this` will be a child of the new tensor`.
-* `static forceTensor(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input.
+* `handleOther(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input that is on the same device as `this`. It will throw an error if the param is a tensor that is not on the same device as `this`.
 * `static addGrad(tensor: Tensor, accumGrad: Tensor)`: Add to the `grad` prop of a tensor. It can handle broadcasted shapes and make `accumGrad` fit `tensor`'s shape.
 
 ## SGDOptions
@@ -296,6 +296,36 @@ constructor(params: Tensor[], options?: AdamOptions)
 ### Methods
 
 * `step()`: Perform one Adam iteration and update values of parameters in-place.
+
+## AdamWOptions
+
+`AdamWOptions` is an interface that contains options/configurations of an AdamW optimizer passed into the `Optim.AdamW` class constructor (more on that later). It includes:
+
+* `lr?: number`
+* `betas?: [number, number]`
+* `eps?: number`
+* `weightDecay?: number`
+
+## Optim.AdamW extends Optim.BaseOptimizer
+
+### Constructor
+
+```ts
+constructor(params: Tensor[], options?: AdamWOptions)
+```
+
+### Properties
+
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
+* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
+* `public betas: [number, number]`: Holds the momentum, uses `options.betas` if available, `[0.9, 0.999]` otherwise.
+* `public eps: number`: Holds the dampening, uses `options.eps` if available, `1e-8` otherwise.
+* `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
+
+### Methods
+
+* `step()`: Perform one AdamW iteration and update values of parameters in-place.
 
 ## nn.Linear
 
@@ -434,13 +464,14 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue): Tensor`: Apply layer norm on input.
+* `forward(input: Tensor): Tensor`: Apply layer norm on input tensor.
 
 ## nn.state
 
 ### Methods
 
 * `getParamemters(model: any, visited: WeakSet<object> = new WeakSet()): Tensor`: Collect all parameters (tensors) used in a model.
+* `moveParameters(model: any, device: string): void`: Collect all parameters (tensors) used in a model and move it to another device.
 * `getStateDict(model: any, prefix: string = "", visited: WeakSet<object> = new WeakSet()): StateDict`: Get Torch-style dictionary (object) of model's state (StateDict is just a flat object).
 * `loadStateDict(model: any, stateDict: StateDict, prefix: string = "", visited: WeakSet<object> = new WeakSet()): void`: Load a model's params into another model through a given `stateDict`.
 

@@ -38,9 +38,27 @@ declare class Adam extends BaseOptimizer {
     constructor(params: Tensor[], options?: AdamOptions);
     step(): void;
 }
+export interface AdamWOptions {
+    lr?: number;
+    betas?: [number, number];
+    eps?: number;
+    weightDecay?: number;
+}
+declare class AdamW extends BaseOptimizer {
+    momentumBuffers: Map<Tensor, Tensor>;
+    velocityBuffers: Map<Tensor, Tensor>;
+    stepCount: number;
+    lr: number;
+    betas: [number, number];
+    eps: number;
+    weightDecay: number;
+    constructor(params: Tensor[], options?: AdamWOptions);
+    step(): void;
+}
 export declare class Optim {
     static BaseOptimizer: typeof BaseOptimizer;
     static SGD: typeof SGD;
     static Adam: typeof Adam;
+    static AdamW: typeof AdamW;
 }
 export {};

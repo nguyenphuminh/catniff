@@ -183,7 +183,7 @@ class Tensor {
     }
     // Utility to do element-wise operation and build a dag node with another tensor
     elementWiseABDAG(other, op, thisGrad = () => new Tensor(0), otherGrad = () => new Tensor(0)) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         const out = Tensor.elementWiseAB(this, other, op);
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -225,11 +225,15 @@ class Tensor {
         }
         return out;
     }
-    // Utility to force an input value to be a tensor
-    static forceTensor(value) {
-        if (value instanceof Tensor)
-            return value;
-        return new Tensor(value);
+    // Utility to handle other tensor if an op needs a second operand
+    handleOther(other) {
+        if (other instanceof Tensor) {
+            if (this.device !== other.device) {
+                throw new Error("Can not operate on tensors that are not on the same device");
+            }
+            return other;
+        }
+        return new Tensor(other, { device: this.device });
     }
     // Utility to add to gradient of tensor
     static addGrad(tensor, accumGrad) {
@@ -1199,7 +1203,7 @@ class Tensor {
     }
     // 1D tensor dot product
     dot(other) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         // Verify 1D shape
         if (this.shape.length !== 1 || other.shape.length !== 1) {
             throw new Error("Inputs are not 1D tensors");
@@ -1237,7 +1241,7 @@ class Tensor {
     }
     // Matrix multiplication
     mm(other) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         // Verify 2D shape
         if (this.shape.length !== 2 || other.shape.length !== 2) {
             throw new Error("Inputs are not matrices");
@@ -1292,7 +1296,7 @@ class Tensor {
     }
     // Batched 3D tensor matmul
     bmm(other) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         // Verify 3D shape
         if (this.shape.length !== 3 || other.shape.length !== 3 || this.shape[0] !== other.shape[0]) {
             throw new Error("Inputs are not 3D tensors with the same first dim size");
@@ -1350,7 +1354,7 @@ class Tensor {
     }
     // Convert right-side 1D tensor to a vector (nx1 tensor) to do matmul
     mv(other) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         // Verify 2D shape
         if (this.shape.length !== 2 || other.shape.length !== 1) {
             throw new Error("Input is not a 2D and 1D tensor pair");
@@ -1359,7 +1363,7 @@ class Tensor {
     }
     // General matrix multiplication with different shapes
     matmul(other) {
-        other = Tensor.forceTensor(other);
+        other = this.handleOther(other);
         const isThis1D = this.shape.length === 1;
         const isOther1D = other.shape.length === 1;
         if (isThis1D && isOther1D) {
@@ -1692,6 +1696,7 @@ class Tensor {
     }
     // Returns this tensor with value replaced with the value of another tensor
     replace(other, allowShapeMismatch = false) {
+        other = this.handleOther(other);
         // Verify shape
         if (!allowShapeMismatch) {
             for (let index = 0; index < this.shape.length; index++) {

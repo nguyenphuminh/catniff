@@ -38,7 +38,7 @@ export declare class Tensor {
     static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor;
     elementWiseABDAG(other: TensorValue | Tensor, op: (a: number, b: number) => number, thisGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor, otherGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor): Tensor;
     elementWiseSelfDAG(op: (a: number) => number, thisGrad?: (self: Tensor, outGrad: Tensor) => Tensor): Tensor;
-    static forceTensor(value: TensorValue | Tensor): Tensor;
+    handleOther(other: Tensor | TensorValue): Tensor;
     static addGrad(tensor: Tensor, accumGrad: Tensor): void;
     isContiguous(): boolean;
     contiguous(): Tensor;
@@ -174,7 +174,7 @@ export declare class Tensor {
     withGrad(requiresGrad: boolean): Tensor;
     detach(): Tensor;
     clone(): Tensor;
-    replace(other: Tensor, allowShapeMismatch?: boolean): Tensor;
+    replace(other: Tensor | TensorValue, allowShapeMismatch?: boolean): Tensor;
     static backends: Map<string, Backend>;
     to(device: string): Tensor;
     to_(device: string): Tensor;

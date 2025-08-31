@@ -55,7 +55,7 @@ declare class LayerNorm {
     eps: number;
     normalizedShape: number[];
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
-    forward(input: Tensor | TensorValue): Tensor;
+    forward(input: Tensor): Tensor;
 }
 export interface StateDict {
     [key: string]: any;
@@ -68,6 +68,7 @@ export declare const nn: {
     LayerNorm: typeof LayerNorm;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];
+        moveParameters(model: any, device: string): void;
         getStateDict(model: any, prefix?: string, visited?: WeakSet<object>): StateDict;
         loadStateDict(model: any, stateDict: StateDict, prefix?: string, visited?: WeakSet<object>): void;
     };

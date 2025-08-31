@@ -20,7 +20,7 @@ class Linear {
         }
     }
     forward(input) {
-        input = core_1.Tensor.forceTensor(input);
+        input = this.weight.handleOther(input);
         return linearTransform(input, this.weight, this.bias);
     }
 }
@@ -49,8 +49,8 @@ class RNNCell {
         }
     }
     forward(input, hidden) {
-        input = core_1.Tensor.forceTensor(input);
-        hidden = core_1.Tensor.forceTensor(hidden);
+        input = this.weightIH.handleOther(input);
+        hidden = this.weightHH.handleOther(hidden);
         return rnnTransform(input, hidden, this.weightIH, this.weightHH, this.biasIH, this.biasHH).tanh();
     }
 }
@@ -85,8 +85,8 @@ class GRUCell {
         }
     }
     forward(input, hidden) {
-        input = core_1.Tensor.forceTensor(input);
-        hidden = core_1.Tensor.forceTensor(hidden);
+        input = this.weightIN.handleOther(input);
+        hidden = this.weightHN.handleOther(hidden);
         const r = rnnTransform(input, hidden, this.weightIR, this.weightHR, this.biasIR, this.biasHR).sigmoid();
         const z = rnnTransform(input, hidden, this.weightIZ, this.weightHZ, this.biasIZ, this.biasHZ).sigmoid();
         const n = linearTransform(input, this.weightIN, this.biasIN).add(r.mul(linearTransform(hidden, this.weightHN, this.biasHN))).tanh();
@@ -132,9 +132,9 @@ class LSTMCell {
         }
     }
     forward(input, hidden, cell) {
-        input = core_1.Tensor.forceTensor(input);
-        hidden = core_1.Tensor.forceTensor(hidden);
-        cell = core_1.Tensor.forceTensor(cell);
+        input = this.weightII.handleOther(input);
+        hidden = this.weightHI.handleOther(hidden);
+        cell = this.weightHI.handleOther(cell);
         const i = rnnTransform(input, hidden, this.weightII, this.weightHI, this.biasII, this.biasHI).sigmoid();
         const f = rnnTransform(input, hidden, this.weightIF, this.weightHF, this.biasIF, this.biasHF).sigmoid();
         const g = rnnTransform(input, hidden, this.weightIG, this.weightHG, this.biasIG, this.biasHG).tanh();
@@ -163,7 +163,6 @@ class LayerNorm {
         }
     }
     forward(input) {
-        input = core_1.Tensor.forceTensor(input);
         // Normalize over the specified dimensions
         const normalizedDims = this.normalizedShape.length;
         const startDim = input.shape.length - normalizedDims;
@@ -207,6 +206,12 @@ const state = {
             }
         }
         return parameters;
+    },
+    moveParameters(model, device) {
+        const params = state.getParameters(model);
+        for (const param of params) {
+            param.to_(device);
+        }
     },
     getStateDict(model, prefix = "", visited = new WeakSet()) {
         if (visited.has(model))
