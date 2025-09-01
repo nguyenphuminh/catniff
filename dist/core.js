@@ -432,9 +432,9 @@ class Tensor {
         }
         // Calculate new value after sum
         for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-            const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
-            const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+            const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+            outCoords[dims] = 0;
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Add into sum
@@ -483,9 +483,9 @@ class Tensor {
         const originalSize = Tensor.shapeToSize(this.shape);
         // Calculate new value after multiplying
         for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-            const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
-            const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+            const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+            outCoords[dims] = 0;
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Multiply into product
@@ -502,9 +502,9 @@ class Tensor {
             out.gradFn = () => {
                 const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // Grad is the product of other elements of the same axis, which is product of all els divided by the current value
@@ -541,9 +541,9 @@ class Tensor {
         const originalSize = Tensor.shapeToSize(this.shape);
         // Calculate sums and how many elements contribute to specific positions
         for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-            const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
-            const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+            const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+            outCoords[dims] = 0;
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Calculate sum and contributors to the sum
@@ -566,9 +566,9 @@ class Tensor {
                 const gradShape = this.shape, gradStrides = this.strides, gradValue = new Array(originalSize).fill(0);
                 // Calculate grad by assigning 1 divided by the number of contributors to the position
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // Mean = 1/n * (el1 + el2 + ... + eln) so grad = 1/n
@@ -604,9 +604,9 @@ class Tensor {
         const originalSize = Tensor.shapeToSize(this.shape);
         // Calculate maximum values of axes
         for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-            const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
-            const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+            const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+            outCoords[dims] = 0;
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Get max over time
@@ -627,18 +627,18 @@ class Tensor {
                 const shareCounts = new Array(outputSize).fill(0);
                 const originalValue = this.value;
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // We collect how many elements share the same max value first
                     shareCounts[outFlatIndex] += outputValue[outFlatIndex] === originalValue[realFlatIndex] ? 1 : 0;
                 }
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // Here we share the grad between the elements that share the same max value
@@ -674,9 +674,9 @@ class Tensor {
         const originalSize = Tensor.shapeToSize(this.shape);
         // Calculate minimum values of axes
         for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-            const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
             // Force 0 on reduced axes to collapse into size-1 dims
-            const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+            const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+            outCoords[dims] = 0;
             // Convert output coordinates to flat index
             const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
             // Get min over time
@@ -697,18 +697,18 @@ class Tensor {
                 const shareCounts = new Array(outputSize).fill(0);
                 const originalValue = this.value;
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // We collect how many elements share the same min value first
                     shareCounts[outFlatIndex] += outputValue[outFlatIndex] === originalValue[realFlatIndex] ? 1 : 0;
                 }
                 for (let realFlatIndex = 0; realFlatIndex < originalSize; realFlatIndex++) {
-                    const coords = Tensor.indexToCoords(realFlatIndex, this.strides);
                     // Force 0 on reduced axes to collapse into size-1 dims
-                    const outCoords = coords.map((val, i) => dims === i ? 0 : val);
+                    const outCoords = Tensor.indexToCoords(realFlatIndex, this.strides);
+                    outCoords[dims] = 0;
                     // Convert output coordinates to flat index
                     const outFlatIndex = Tensor.coordsToIndex(outCoords, outputStrides);
                     // Here we share the grad between the elements that share the same min value
@@ -719,6 +719,14 @@ class Tensor {
             };
         }
         return keepDims ? out : out.squeeze(dims);
+    }
+    // Tensor all condition reduction
+    all(dims, keepDims = false) {
+        return this.min(dims, keepDims).ne(0);
+    }
+    // Tensor any condition reduction
+    any(dims, keepDims = false) {
+        return this.max(dims, keepDims).ne(0);
     }
     // Tensor variance reduction
     var(dims, keepDims = false) {
