@@ -12,10 +12,13 @@ Type `TensorValue` is either `number` or `TensorValue[]`, which means it represe
 
 * `shape?: readonly number[]`
 * `strides?: readonly number[]`
+* `offset?: number;`
+* `numel?: number;`
 * `grad?: Tensor`
 * `requiresGrad?: boolean`
 * `gradFn?: Function`
 * `children?: Tensor[]`
+* `device?: string;`
 
 ## Tensor
 
@@ -30,6 +33,8 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public value: number[] | number`: Holds the tensor value as either a flat number array or a number, it is `Tensor.flatten(value)` behind the scenes.
 * `public readonly shape: readonly number[]`: Holds the tensor shape, uses `options.shape` if provided, `Tensor.getShape(value)` otherwise.
 * `public readonly strides: readonly number[]`: Holds the tensor strides, uses `options.strides` if provided, `Tensor.getStrides(this.shape)` otherwise.
+* `public offset: number`: Holds the tensor storage offset, uses `options.offset` if provided, 0 otherwise.
+* `public numel: number`: Holds the tensor tensor size (number of real elements, not this.value.length), uses `options.numel` if provided, `Tensor.shapeToSize(this.shape)` otherwise.
 * `public grad?: Tensor`: Holds the tensor gradient, uses `options.grad` if provided, `undefined` otherwise to save memory.
 * `public requiresGrad: boolean`: Choose whether to do gradient-related operations behind the scenes, uses `options.requiresGrad` if provided, `false` otherwise.
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
@@ -145,6 +150,7 @@ All autograd-supported tensor arithmetic methods:
 * `isContiguous(): boolean`: Checks if tensor is contiguous.
 * `contiguous(): Tensor`: Returns a new tensor, restructured from input to be contiguous.
 * `reshape(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided.
+* `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
 * `mm(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other` 2D tensors (matrices). If the two are not 2D, it will throw an error.
 * `mv(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` 2D tensor (matrix) and `other` 1D tensor (vector). Basically if `other` is of size n, it will be reshaped into an nx1 matrix. If `this` is not 2D and `other` is not 1D, it will throw an error.
@@ -161,7 +167,7 @@ All autograd-supported tensor arithmetic methods:
 * `all(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to 1 if all values in a dim are 1, 0 otherwise.
 * `var(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their variances.
 * `std(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their standard deviations.
-* `softmax(dims?: number[] | number): Tensor`: Apply softmax on specified dimensions.
+* `softmax(dim: number = -1): Tensor`: Apply softmax on the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 
 Here are commonly used utilities:
@@ -205,6 +211,7 @@ Here are utilities (that might be deleted in the future) that you probably won't
 * `static coordsToIndex(coords: number[], strides: readonly number[]): number`: Convert coordinates (indices) of an nD array to an index of an 1D array, based on the nD array's `strides`.
 * `static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number`: Convert coordinates (indices) of an unbroadcasted nD array to an index of an 1D array, based on the nD array's `shape` and `strides`. Basically the same as above but coordinates of dimensions with size 1 are forced to be 0.
 * `static shapeToSize(shape: readonly number[]): number`: Convert shape into 1D array size.
+* `static normalizeDims(dims: number[], numDims: number): number[]`: Convert negative dims to normal and check if out of bound.
 * `static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor`: Perform a custom element-wise `op` between two tensors, returns a new tensor that holds the result.
 * `static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor`: Perform a custom element-wise `op` on a tensor, returns a new tensor that holds the result.
 * `elementWiseABDAG`: Perform a custom element-wise op between this tensor with another tensor. If `this` or `other` have `requiresGrad` as `true`, it will build a DAG node for future gradient computation.
