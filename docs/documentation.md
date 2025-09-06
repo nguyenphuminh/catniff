@@ -150,6 +150,8 @@ All autograd-supported tensor arithmetic methods:
 * `isContiguous(): boolean`: Checks if tensor is contiguous.
 * `contiguous(): Tensor`: Returns a new tensor, restructured from input to be contiguous.
 * `reshape(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided.
+* `view(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided. This is different from reshape in that it will only return a view (does not allocate new mem) of the original tensor and throws an error if the tensor can not be reshaped by just modifying the metadata, while reshape will force it to be contiguous if it is not compatible, thus using more mem without an error.
+* `index(indices: Tensor | TensorValue): Tensor`: Returns a new tensor with items indexed from `this` tensor. For example, if `this` has shape `[3,4,5]`, and `indices` is a scalar, the result will have shape `[4,5]`, and if `indices` has shape `[2,3]`, the result will have shape `[2,3,4,5]`. There is also `indexWithArray` but `indices` are only of type `number[]`.
 * `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
 * `mm(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other` 2D tensors (matrices). If the two are not 2D, it will throw an error.
@@ -474,6 +476,26 @@ constructor(
 ### Methods
 
 * `forward(input: Tensor): Tensor`: Apply layer norm on input tensor.
+
+## nn.Embedding
+
+### Constructor
+
+```ts
+constructor(
+    numEmbeddings: number,
+    embeddingDim: number,
+    device: string
+)
+```
+
+### Properties
+
+* `public weight: Tensor`: Weight to look up from, initialized with `Tensor.randn` with shape `[numEmbeddings, embeddingDim]`, on the specified `device`.
+
+### Methods
+
+* `input: Tensor | TensorValue`: Perform a lookup from the weight.
 
 ## nn.state
 

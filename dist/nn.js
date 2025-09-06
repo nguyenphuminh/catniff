@@ -188,6 +188,15 @@ class LayerNorm {
         return normalized;
     }
 }
+class Embedding {
+    weight;
+    constructor(numEmbeddings, embeddingDim, device) {
+        this.weight = core_1.Tensor.randn([numEmbeddings, embeddingDim], { device });
+    }
+    forward(input) {
+        return this.weight.index(input);
+    }
+}
 const state = {
     getParameters(model, visited = new WeakSet()) {
         if (visited.has(model))
@@ -256,5 +265,6 @@ exports.nn = {
     GRUCell,
     LSTMCell,
     LayerNorm,
+    Embedding,
     state
 };

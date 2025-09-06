@@ -143,7 +143,7 @@ export class Tensor {
             } else if (shapeA[index] === shapeB[index]) {
                 newShape[index] = shapeA[index]
             } else {
-                throw new Error(`Cannot broadcast shapes: ${shapeA} and ${shapeB}`);
+                throw new Error(`Can not broadcast shapes: ${shapeA} and ${shapeB}`);
             }
         }
 
@@ -426,15 +426,45 @@ export class Tensor {
         return out;
     }
 
+    view(newShape: readonly number[]): Tensor {
+        // Verify shape size
+        const originalSize = this.numel;
+        const outputSize = Tensor.shapeToSize(newShape);
+
+        if (originalSize !== outputSize) {
+            throw new Error("Can not create view: incompatible sizes");
+        }
+
+        // Verify compatibility (only contiguity for now)
+        if (!this.isContiguous()) {
+            throw new Error("Can not create view: incompatible metadata");
+        }
+
+        const outputStrides = Tensor.getStrides(newShape);
+        const out = new Tensor(this.value, { shape: newShape, strides: outputStrides, numel: outputSize });
+
+        // Gradient reshaped and flow back to the original tensor
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                Tensor.addGrad(this, (out.grad as Tensor).reshape(this.shape));
+            };
+        }
+
+        return out;
+    }
+
     reshape(newShape: readonly number[]): Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
 
         if (originalSize !== outputSize) {
-            throw new Error("Cannot reshape: incompatible sizes");
+            throw new Error("Can not reshape: incompatible sizes");
         }
 
+        // Create new tensor with forced compatibility (only contiguity for now)
         const outputStrides = Tensor.getStrides(newShape);
         const out = new Tensor(this.contiguous().value, { shape: newShape, strides: outputStrides, numel: outputSize });
 
@@ -550,6 +580,88 @@ export class Tensor {
         return out;
     }
 
+    // Utility for indexing with array of indices
+    indexWithArray(indices: number[]): Tensor {
+        if (typeof this.value === "number") return this;
+
+        indices = Tensor.normalizeDims(indices, this.shape[0]);
+        
+        // Init necessary stuff for indexing
+        const reducedShape = this.shape.slice(1);
+        const reducedStrides = this.strides.slice(1);
+        const elementsPerIndex = Tensor.shapeToSize(reducedShape);
+
+        // Init output data
+        const outputShape = [indices.length, ...reducedShape];
+        const outputSize = Tensor.shapeToSize(outputShape);        
+        const outputValue = new Array(outputSize);
+        
+        for (let i = 0; i < indices.length; i++) {
+            const sourceRowIndex = indices[i];
+            const targetStart = i * elementsPerIndex;
+            
+            for (let j = 0; j < elementsPerIndex; j++) {
+                const fullCoords = Tensor.indexToCoords(j, reducedStrides);
+                fullCoords.unshift(sourceRowIndex);
+                const sourceIndex = Tensor.coordsToIndex(fullCoords, this.strides);
+                
+                outputValue[targetStart + j] = this.value[this.offset + sourceIndex];
+            }
+        }
+        
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            numel: outputSize
+        });
+        
+        // Handle gradient
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const outGrad = out.grad as Tensor;
+
+                // Create zero gradient tensor with original shape
+                const grad = Tensor.zerosLike(this);
+
+                // Scatter gradients back to original positions
+                for (let i = 0; i < indices.length; i++) {
+                    const originalRowIndex = indices[i];
+                    const sourceStart = i * elementsPerIndex;
+                    
+                    for (let j = 0; j < elementsPerIndex; j++) {
+                        const fullCoords = Tensor.indexToCoords(j, reducedStrides);
+                        fullCoords.unshift(originalRowIndex);
+                        const targetIndex = Tensor.coordsToIndex(fullCoords, this.strides);
+                        
+                        (grad.value as number[])[targetIndex] += (outGrad.value as number[])[sourceStart + j];
+                    }
+                }
+
+                Tensor.addGrad(this, grad);
+            };
+        }
+        
+        return out;
+    }
+
+    // Tensor indexing
+    index(indices: Tensor | TensorValue): Tensor {
+        if (typeof indices === "number") {
+            return this.indexWithArray([indices]).squeeze(0);
+        } else {
+            const tensorIndices = this.handleOther(indices).contiguous();
+            const originalShape = tensorIndices.shape;
+            const flatIndices = tensorIndices.value as number[];
+
+            const result = this.indexWithArray(flatIndices);
+        
+            // Reshape to preserve input shape
+            const outputShape = [...originalShape, ...this.shape.slice(1)];
+            return result.reshape(outputShape);
+        }
+    }
+
     // Tensor slicing
     slice(ranges: number[][]): Tensor {
         // Handle scalars
@@ -606,7 +718,7 @@ export class Tensor {
             out.children.push(this);
             out.gradFn = () => {
                 // Create zero tensor of original shape
-                const zeroGrad = Tensor.zerosLike(this);
+                const grad = Tensor.zerosLike(this);
                 // Upstream grad
                 const outGrad = out.grad as Tensor;
                 
@@ -630,13 +742,13 @@ export class Tensor {
 
                     // Get flat indices with offsets
                     const srcIndex = Tensor.coordsToIndex(slicedCoords, outGrad.strides) + outGrad.offset;
-                    const targetIndex = Tensor.coordsToIndex(originalCoords, zeroGrad.strides) + zeroGrad.offset;
+                    const targetIndex = Tensor.coordsToIndex(originalCoords, grad.strides) + grad.offset;
                     
                     // Accumulate gradient
-                    (zeroGrad.value as number[])[targetIndex] += (outGrad.value as number[])[srcIndex];
+                    (grad.value as number[])[targetIndex] += (outGrad.value as number[])[srcIndex];
                 }
 
-                Tensor.addGrad(this, zeroGrad);
+                Tensor.addGrad(this, grad);
             };
         }
         

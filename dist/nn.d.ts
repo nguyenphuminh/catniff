@@ -57,6 +57,11 @@ declare class LayerNorm {
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
     forward(input: Tensor): Tensor;
 }
+declare class Embedding {
+    weight: Tensor;
+    constructor(numEmbeddings: number, embeddingDim: number, device: string);
+    forward(input: Tensor | TensorValue): Tensor;
+}
 export interface StateDict {
     [key: string]: any;
 }
@@ -66,6 +71,7 @@ export declare const nn: {
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
     LayerNorm: typeof LayerNorm;
+    Embedding: typeof Embedding;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];
         moveParameters(model: any, device: string): void;

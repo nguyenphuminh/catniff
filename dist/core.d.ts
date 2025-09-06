@@ -47,12 +47,15 @@ export declare class Tensor {
     static normalizeDims(dims: number[], numDims: number): number[];
     isContiguous(): boolean;
     contiguous(): Tensor;
+    view(newShape: readonly number[]): Tensor;
     reshape(newShape: readonly number[]): Tensor;
     transpose(dim1: number, dim2: number): Tensor;
     swapaxes: (dim1: number, dim2: number) => Tensor;
     swapdims: (dim1: number, dim2: number) => Tensor;
     t(): Tensor;
     permute(dims: number[]): Tensor;
+    indexWithArray(indices: number[]): Tensor;
+    index(indices: Tensor | TensorValue): Tensor;
     slice(ranges: number[][]): Tensor;
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;

@@ -266,6 +266,18 @@ class LayerNorm {
     }
 }
 
+class Embedding {
+    public weight: Tensor;
+
+    constructor(numEmbeddings: number, embeddingDim: number, device: string) {
+        this.weight = Tensor.randn([numEmbeddings, embeddingDim], { device });
+    }
+
+    forward(input: Tensor | TensorValue) {
+        return this.weight.index(input);
+    }
+}
+
 export interface StateDict {
     [key: string]: any; // Could be nested objects or tensor data
 }
@@ -350,5 +362,6 @@ export const nn = {
     GRUCell,
     LSTMCell,
     LayerNorm,
+    Embedding,
     state
 }
