@@ -647,12 +647,13 @@ export class Tensor {
 
     // Tensor indexing
     index(indices: Tensor | TensorValue): Tensor {
-        if (typeof indices === "number") {
-            return this.indexWithArray([indices]).squeeze(0);
+        const tensorIndices = this.handleOther(indices).contiguous();
+
+        if (typeof tensorIndices.value === "number") {
+            return this.indexWithArray([tensorIndices.value]).squeeze(0);
         } else {
-            const tensorIndices = this.handleOther(indices).contiguous();
             const originalShape = tensorIndices.shape;
-            const flatIndices = tensorIndices.value as number[];
+            const flatIndices = tensorIndices.value
 
             const result = this.indexWithArray(flatIndices);
         
