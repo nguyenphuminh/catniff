@@ -196,6 +196,9 @@ export declare class Tensor {
     static randintLike(tensor: Tensor, low: number, high: number, options?: TensorOptions): Tensor;
     static normal(shape: number[], mean: number, stdDev: number, options?: TensorOptions): Tensor;
     static uniform(shape: number[], low: number, high: number, options?: TensorOptions): Tensor;
+    static arange(start: number, stop?: number, step?: number, options?: TensorOptions): Tensor;
+    static linspace(start: number, stop: number, steps: number, options?: TensorOptions): Tensor;
+    static eye(n: number, m?: number, options?: TensorOptions): Tensor;
     backward(options?: {
         zeroGrad?: boolean;
     }): void;

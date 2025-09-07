@@ -1574,6 +1574,47 @@ class Tensor {
         }
         return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
+    // Utility to create an 1D tensor from a range incrementing with "step"
+    static arange(start, stop, step = 1, options = {}) {
+        if (typeof stop === "undefined") {
+            stop = start;
+            start = 0;
+        }
+        const outputSize = Math.ceil((stop - start) / step);
+        const outputShape = [outputSize];
+        const outputValue = new Array(outputSize);
+        for (let index = 0; index < outputValue.length; index++) {
+            outputValue[index] = start + step * index;
+        }
+        return new Tensor(outputValue, { shape: outputShape, numel: outputSize, ...options });
+    }
+    // Utility to create an 1D tensor from a range evenly spaced out with a given amount of steps
+    static linspace(start, stop, steps, options = {}) {
+        if (steps <= 0)
+            throw new Error("Steps must be positive");
+        if (steps === 1) {
+            return new Tensor([start], { shape: [1], numel: 1, ...options });
+        }
+        const step = (stop - start) / (steps - 1);
+        const outputValue = new Array(steps);
+        for (let index = 0; index < steps; index++) {
+            outputValue[index] = start + step * index;
+        }
+        // Ensure we hit the endpoint exactly (avoids floating point errors)
+        outputValue[steps - 1] = stop;
+        return new Tensor(outputValue, { shape: [steps], numel: steps, ...options });
+    }
+    // Utility to create a 2D tensor with its main diagonal filled with 1s and others with 0s
+    static eye(n, m = n, options = {}) {
+        const outputSize = n * m;
+        const outputShape = [n, m];
+        const outputStrides = Tensor.getStrides(outputShape);
+        const outputValue = new Array(outputSize).fill(0);
+        for (let i = 0; i < Math.min(n, m); i++) {
+            outputValue[i * outputStrides[0] + i * outputStrides[1]] = 1;
+        }
+        return new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: outputSize, ...options });
+    }
     // Reverse-mode autodiff call
     backward(options = {}) {
         // Init

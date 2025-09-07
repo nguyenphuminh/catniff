@@ -195,6 +195,10 @@ Here are commonly used utilities:
 * `static randintLike(tensor: Tensor, low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random integer between low and high, configured with `options`.
 * `static normal(shape: number[], mean: number, stdDev: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of custom `mean` and `stdDev`, configured with `options`.
 * `static uniform(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`,  filled with a random number with uniform distribution from `low` to `high`, configured with `options`.
+* `static eye(n: number, m: number = n, options: TensorOptions = {}): Tensor`: Returns a 2D tensor (matrix of size `nxm`) with its main diagonal filled with 1s and others with 0s, configured with `options`.
+* `static linspace(start: number, stop: number, steps: number, options: TensorOptions = {}): Tensor`: Returns a new 1D tensor from a range evenly spaced out with a given amount of steps, configured with `options`.
+* `static arange(start: number, stop?: number, step = 1, options: TensorOptions = {}): Tensor`: Returns a new 1D tensor from a range incrementing with `step`, configured with `options`. If `stop` is not provided, `start` will be `0` and `stop` will be the original `start`.
+
 
 Here are utilities (that might be deleted in the future) that you probably won't have to use but they might come in handy:
 
