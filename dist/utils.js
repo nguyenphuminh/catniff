@@ -6,6 +6,7 @@ exports.erfinv = erfinv;
 exports.randUniform = randUniform;
 exports.randNormal = randNormal;
 exports.randInt = randInt;
+exports.fyShuffle = fyShuffle;
 // Error function using Abramowitz and Stegun approximation
 function erf(x) {
     const a1 = 0.254829592;
@@ -36,15 +37,26 @@ function erfinv(x) {
     const sign = x >= 0 ? 1 : -1;
     return sign * Math.sqrt(-part1 + Math.sqrt(part1 * part1 - part2));
 }
+// Generate a random number with uniform distribution
 function randUniform(low = 0, high = 1) {
     return Math.random() * (high - low) + low;
 }
+// Generate a random number with normal distribution
 function randNormal(mean = 0, stdDev = 1) {
     const u = 1 - Math.random();
     const v = 1 - Math.random();
     const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     return z * stdDev + mean;
 }
+// Generate a random integer
 function randInt(low, high) {
     return Math.floor(Math.random() * (high - low) + low);
 }
+// Randomly shuffle an array with fisher-yates algorithm
+function fyShuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+;

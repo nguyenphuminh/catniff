@@ -182,6 +182,8 @@ export declare class Tensor {
     mv(other: TensorValue | Tensor): Tensor;
     matmul(other: TensorValue | Tensor): Tensor;
     dropout(rate: number): Tensor;
+    triu(diagonal?: number): Tensor;
+    tril(diagonal?: number): Tensor;
     static full(shape: readonly number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
     static ones(shape?: readonly number[], options?: TensorOptions): Tensor;
@@ -194,6 +196,7 @@ export declare class Tensor {
     static randnLike(tensor: Tensor, options?: TensorOptions): Tensor;
     static randint(shape: readonly number[], low: number, high: number, options?: TensorOptions): Tensor;
     static randintLike(tensor: Tensor, low: number, high: number, options?: TensorOptions): Tensor;
+    static randperm(n: number, options?: TensorOptions): Tensor;
     static normal(shape: number[], mean: number, stdDev: number, options?: TensorOptions): Tensor;
     static uniform(shape: number[], low: number, high: number, options?: TensorOptions): Tensor;
     static arange(start: number, stop?: number, step?: number, options?: TensorOptions): Tensor;

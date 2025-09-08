@@ -1,5 +1,5 @@
 import { Backend } from "./backend";
-import { erf, erfc, erfinv, randInt, randNormal, randUniform } from "./utils";
+import { erf, erfc, erfinv, fyShuffle, randInt, randNormal, randUniform } from "./utils";
 
 export type TensorValue = number | TensorValue[];
 
@@ -2001,6 +2001,66 @@ export class Tensor {
         return this.mul(mask).div(keepRate);
     }
 
+    // Get the upper triangular part with respect to main diagonal
+    triu(diagonal=0): Tensor {
+        if (this.shape.length < 2) {
+            throw new Error("triu requires at least 2 dimensions");
+        }
+
+        const maskShape = this.shape.slice(-2);
+        const maskStrides = Tensor.getStrides(maskShape);
+        const maskSize = Tensor.shapeToSize(maskShape);
+        const maskValue = new Array(maskSize).fill(1);
+
+        const [rows, cols] = maskShape;
+
+        for (let i = 0; i < rows; i++) {
+            const maxJ = Math.min(cols, i + diagonal);
+            for (let j = 0; j < maxJ; j++) {
+                maskValue[i * maskStrides[0] + j * maskStrides[1]] = 0;
+            }
+        }
+
+        const mask = new Tensor(maskValue, {
+            shape: maskShape,
+            strides: maskStrides,
+            numel: maskSize,
+            device: this.device
+        });
+
+        return this.mul(mask);
+    }
+
+    // Get the lower triangular part with respect to main diagonal
+    tril(diagonal=0): Tensor {
+        if (this.shape.length < 2) {
+            throw new Error("triu requires at least 2 dimensions");
+        }
+
+        const maskShape = this.shape.slice(-2);
+        const maskStrides = Tensor.getStrides(maskShape);
+        const maskSize = Tensor.shapeToSize(maskShape);
+        const maskValue = new Array(maskSize).fill(0);
+
+        const [rows, cols] = maskShape;
+
+        for (let i = 0; i < rows; i++) {
+            const maxJ = Math.min(cols, i + diagonal + 1);
+            for (let j = 0; j < maxJ; j++) {
+                maskValue[i * maskStrides[0] + j * maskStrides[1]] = 1;
+            }
+        }
+
+        const mask = new Tensor(maskValue, {
+            shape: maskShape,
+            strides: maskStrides,
+            numel: maskSize,
+            device: this.device
+        });
+
+        return this.mul(mask);
+    }
+
     // Utility to create a new tensor filled with a number
     static full(shape: readonly number[], num: number, options: TensorOptions = {}): Tensor {
         if (shape.length === 0) return new Tensor(num, options);
@@ -2008,7 +2068,7 @@ export class Tensor {
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(num);
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with a number
@@ -2030,7 +2090,7 @@ export class Tensor {
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(1);
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with 1
@@ -2052,7 +2112,7 @@ export class Tensor {
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(0);
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with 0
@@ -2078,7 +2138,7 @@ export class Tensor {
             outputValue[index] = randUniform();
         }
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with a random number with uniform distribution from 0 to 1
@@ -2110,7 +2170,7 @@ export class Tensor {
             outputValue[index] = randNormal();
         }
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with a random number with normal distribution of mean=0 and stddev=1
@@ -2142,7 +2202,7 @@ export class Tensor {
             outputValue[index] = randInt(low, high);
         }
 
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options })
+        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
     }
 
     // Utility to create a new tensor with shape of another tensor, filled with a random integer between low and high
@@ -2161,6 +2221,19 @@ export class Tensor {
             device: tensor.device,
             ...options
         });
+    }
+
+    // Utility to create a new tensor filled with integers from 0 to n, randomly shuffled
+    static randperm(n: number, options: TensorOptions = {}): Tensor {
+        const outputValue = new Array(n);
+
+        for (let i = 0; i < n; i++) {
+            outputValue[i] = i;
+        }
+
+        fyShuffle(outputValue);
+
+        return new Tensor(outputValue, { shape: [n], numel: n, ...options });
     }
 
     // Utility to create a new tensor filled with a random number with normal distribution of custom mean and stddev

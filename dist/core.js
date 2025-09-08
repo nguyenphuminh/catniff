@@ -1417,6 +1417,54 @@ class Tensor {
         const mask = uniform.lt(keepRate);
         return this.mul(mask).div(keepRate);
     }
+    // Get the upper triangular part with respect to main diagonal
+    triu(diagonal = 0) {
+        if (this.shape.length < 2) {
+            throw new Error("triu requires at least 2 dimensions");
+        }
+        const maskShape = this.shape.slice(-2);
+        const maskStrides = Tensor.getStrides(maskShape);
+        const maskSize = Tensor.shapeToSize(maskShape);
+        const maskValue = new Array(maskSize).fill(1);
+        const [rows, cols] = maskShape;
+        for (let i = 0; i < rows; i++) {
+            const maxJ = Math.min(cols, i + diagonal);
+            for (let j = 0; j < maxJ; j++) {
+                maskValue[i * maskStrides[0] + j * maskStrides[1]] = 0;
+            }
+        }
+        const mask = new Tensor(maskValue, {
+            shape: maskShape,
+            strides: maskStrides,
+            numel: maskSize,
+            device: this.device
+        });
+        return this.mul(mask);
+    }
+    // Get the lower triangular part with respect to main diagonal
+    tril(diagonal = 0) {
+        if (this.shape.length < 2) {
+            throw new Error("triu requires at least 2 dimensions");
+        }
+        const maskShape = this.shape.slice(-2);
+        const maskStrides = Tensor.getStrides(maskShape);
+        const maskSize = Tensor.shapeToSize(maskShape);
+        const maskValue = new Array(maskSize).fill(0);
+        const [rows, cols] = maskShape;
+        for (let i = 0; i < rows; i++) {
+            const maxJ = Math.min(cols, i + diagonal + 1);
+            for (let j = 0; j < maxJ; j++) {
+                maskValue[i * maskStrides[0] + j * maskStrides[1]] = 1;
+            }
+        }
+        const mask = new Tensor(maskValue, {
+            shape: maskShape,
+            strides: maskStrides,
+            numel: maskSize,
+            device: this.device
+        });
+        return this.mul(mask);
+    }
     // Utility to create a new tensor filled with a number
     static full(shape, num, options = {}) {
         if (shape.length === 0)
@@ -1551,6 +1599,15 @@ class Tensor {
             device: tensor.device,
             ...options
         });
+    }
+    // Utility to create a new tensor filled with integers from 0 to n, randomly shuffled
+    static randperm(n, options = {}) {
+        const outputValue = new Array(n);
+        for (let i = 0; i < n; i++) {
+            outputValue[i] = i;
+        }
+        (0, utils_1.fyShuffle)(outputValue);
+        return new Tensor(outputValue, { shape: [n], numel: n, ...options });
     }
     // Utility to create a new tensor filled with a random number with normal distribution of custom mean and stddev
     static normal(shape, mean, stdDev, options = {}) {

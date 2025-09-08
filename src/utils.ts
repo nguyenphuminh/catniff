@@ -34,10 +34,12 @@ export function erfinv(x: number): number {
     return sign * Math.sqrt(-part1 + Math.sqrt(part1 * part1 - part2));
 }
 
+// Generate a random number with uniform distribution
 export function randUniform(low: number = 0, high: number = 1): number {
     return Math.random() * (high - low) + low;
 }
 
+// Generate a random number with normal distribution
 export function randNormal(mean = 0, stdDev = 1): number {
     const u = 1 - Math.random();
     const v = 1 - Math.random();
@@ -45,6 +47,15 @@ export function randNormal(mean = 0, stdDev = 1): number {
     return z * stdDev + mean;
 }
 
+// Generate a random integer
 export function randInt(low: number, high: number): number {
     return Math.floor(Math.random() * (high - low) + low);
 }
+
+// Randomly shuffle an array with fisher-yates algorithm
+export function fyShuffle(array: any[]) { 
+    for (let i = array.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1)); 
+        [array[i], array[j]] = [array[j], array[i]]; 
+    }
+};

@@ -171,6 +171,8 @@ All autograd-supported tensor arithmetic methods:
 * `std(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their standard deviations.
 * `softmax(dim: number = -1): Tensor`: Apply softmax on the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
+* `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
+* `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
 
 Here are commonly used utilities:
 
@@ -193,6 +195,7 @@ Here are commonly used utilities:
 * `static randnLike(tensor: Tensor, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random number with normal distribution of mean=0 and stddev=1, configured with `options`.
 * `static randint(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random integer between low and high, configured with `options`.
 * `static randintLike(tensor: Tensor, low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same device, shape, and strides as `tensor`, filled with a random integer between low and high, configured with `options`.
+* `static randperm(n: number, options: TensorOptions = {}): Tensor`: a new tensor filled with integers from 0 to `n`, randomly shuffled, configured with `options`.
 * `static normal(shape: number[], mean: number, stdDev: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with a random number with normal distribution of custom `mean` and `stdDev`, configured with `options`.
 * `static uniform(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`,  filled with a random number with uniform distribution from `low` to `high`, configured with `options`.
 * `static eye(n: number, m: number = n, options: TensorOptions = {}): Tensor`: Returns a 2D tensor (matrix of size `nxm`) with its main diagonal filled with 1s and others with 0s, configured with `options`.
