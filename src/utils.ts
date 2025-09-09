@@ -53,9 +53,9 @@ export function randInt(low: number, high: number): number {
 }
 
 // Randomly shuffle an array with fisher-yates algorithm
-export function fyShuffle(array: any[]) { 
-    for (let i = array.length - 1; i > 0; i--) { 
-        const j = Math.floor(Math.random() * (i + 1)); 
-        [array[i], array[j]] = [array[j], array[i]]; 
+export function fyShuffle(array: any[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
 };

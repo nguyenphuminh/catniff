@@ -62,6 +62,18 @@ declare class Embedding {
     constructor(numEmbeddings: number, embeddingDim: number, device: string);
     forward(input: Tensor | TensorValue): Tensor;
 }
+declare class MultiheadAttention {
+    qProjection: Linear;
+    kProjection: Linear;
+    vProjection: Linear;
+    oProjection: Linear;
+    embedDim: number;
+    numHeads: number;
+    headDim: number;
+    dropout: number;
+    constructor(embedDim: number, numHeads: number, dropout?: number, bias?: boolean, device?: string);
+    forward(query: Tensor, key: Tensor, value: Tensor, needWeights?: boolean, attnMask?: Tensor, averageAttnWeights?: boolean): [Tensor, Tensor | undefined];
+}
 export interface StateDict {
     [key: string]: any;
 }
@@ -72,6 +84,7 @@ export declare const nn: {
     LSTMCell: typeof LSTMCell;
     LayerNorm: typeof LayerNorm;
     Embedding: typeof Embedding;
+    MultiheadAttention: typeof MultiheadAttention;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];
         moveParameters(model: any, device: string): void;

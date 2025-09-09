@@ -1465,6 +1465,11 @@ class Tensor {
         });
         return this.mul(mask);
     }
+    // Fill specific positions of this tensor with a value through a mask
+    maskedFill(mask, value) {
+        mask = this.handleOther(mask);
+        return this.mul(mask.logicalNot()).add(mask.mul(value));
+    }
     // Utility to create a new tensor filled with a number
     static full(shape, num, options = {}) {
         if (shape.length === 0)

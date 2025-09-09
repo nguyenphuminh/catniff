@@ -76,9 +76,9 @@ optim.step();
 console.log("Updated weight:", w.data);  // Should move toward 3.0
 ```
 
-## Neural networks
+## Neural networks & Deep learning
 
-There are built-in neural network constructs in Catniff as well:
+There are built-in neural network constructs in Catniff as well, from simple prebuilt nn layers:
 ```js
 const { Tensor, nn } = require("catniff");
 
@@ -100,6 +100,24 @@ linear.forward(a);
 rnnCell.forward(b, c);
 gruCell.forward(b, c);
 lstmCell.forward(b, c, c);
+```
+
+to more advanced constructs like normalization, embedding, and attention:
+```js
+// 1. Embedding: tokens -> vectors
+const embedding = new nn.Embedding(100, 64);
+const tokens = new Tensor([[1, 5, 23], [8, 2, 15]]);
+const embedded = embedding.forward(tokens);
+
+// 2. Self-Attention
+const attention = new nn.MultiheadAttention(64, 8, 0.1);
+const [output, weights] = attention.forward(embedded, embedded, embedded);
+
+// 3. Layer Normalization
+const layerNorm = new nn.LayerNorm(64);
+const normalized = layerNorm.forward(output);
+
+console.log(normalized.val());
 ```
 
 And it can still do much more, check out the docs and examples below for more information.

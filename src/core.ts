@@ -2002,7 +2002,7 @@ export class Tensor {
     }
 
     // Get the upper triangular part with respect to main diagonal
-    triu(diagonal=0): Tensor {
+    triu(diagonal = 0): Tensor {
         if (this.shape.length < 2) {
             throw new Error("triu requires at least 2 dimensions");
         }
@@ -2032,7 +2032,7 @@ export class Tensor {
     }
 
     // Get the lower triangular part with respect to main diagonal
-    tril(diagonal=0): Tensor {
+    tril(diagonal = 0): Tensor {
         if (this.shape.length < 2) {
             throw new Error("triu requires at least 2 dimensions");
         }
@@ -2059,6 +2059,13 @@ export class Tensor {
         });
 
         return this.mul(mask);
+    }
+
+    // Fill specific positions of this tensor with a value through a mask
+    maskedFill(mask: Tensor | TensorValue, value: number): Tensor {
+        mask = this.handleOther(mask);
+
+        return this.mul(mask.logicalNot()).add(mask.mul(value));
     }
 
     // Utility to create a new tensor filled with a number

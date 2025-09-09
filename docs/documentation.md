@@ -173,6 +173,7 @@ All autograd-supported tensor arithmetic methods:
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 * `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
 * `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
+* `maskedFill(mask: Tensor | TensorValue, value: number): Tensor`: Fill specific positions of this tensor with a `value` through a `mask` (1 for fill, 0 for unchanged).
 
 Here are commonly used utilities:
 
@@ -502,7 +503,46 @@ constructor(
 
 ### Methods
 
-* `input: Tensor | TensorValue`: Perform a lookup from the weight.
+* `forward(input: Tensor | TensorValue): Tensor`: Perform a lookup from the weight.
+
+## nn.MultiheadAttention
+
+### Constructor
+
+```ts
+constructor(
+    embedDim: number,
+    numHeads: number,
+    dropout = 0,
+    bias = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public qProjection: Linear`: A linear projection layer for queries, initialized with `new nn.Linear(embedDim, embedDim, bias, device)`.
+* `public kProjection: Linear`: A linear projection layer for keys, initialized with `new nn.Linear(embedDim, embedDim, bias, device)`.
+* `public vProjection: Linear`: A linear projection layer for values, initialized with `new nn.Linear(embedDim, embedDim, bias, device)`.
+* `public oProjection: Linear`: A linear projection layer for outputs, initialized with `new nn.Linear(embedDim, embedDim, bias, device)`.
+* `public embedDim: number`: Embedding dimension, from the `embedDim` param.
+* `public numHeads: number`: Number of attention heads, from the `numHeads` param.
+* `public headDim: number`: Dimension of a head, which is just `Math.floor(embedDim / numHeads)`.
+* `public dropout: number`: Dropout rate, from the `dropout` param.
+
+### Methods
+
+* Forward pass:
+```js
+forward(
+    query: Tensor,
+    key: Tensor,
+    value: Tensor,
+    needWeights = true,
+    attnMask?: Tensor,
+    averageAttnWeights = true
+): [Tensor, Tensor | undefined]
+```
 
 ## nn.state
 

@@ -197,6 +197,57 @@ class Embedding {
         return this.weight.index(input);
     }
 }
+class MultiheadAttention {
+    qProjection;
+    kProjection;
+    vProjection;
+    oProjection;
+    embedDim;
+    numHeads;
+    headDim;
+    dropout;
+    constructor(embedDim, numHeads, dropout = 0, bias = true, device) {
+        this.qProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
+        this.kProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
+        this.vProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
+        this.oProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
+        this.embedDim = embedDim;
+        this.numHeads = numHeads;
+        this.headDim = Math.floor(embedDim / numHeads);
+        this.dropout = dropout;
+    }
+    forward(query, key, value, needWeights = true, attnMask, averageAttnWeights = true) {
+        // Batch-first
+        const [batchSize, targetLen, embedDim] = query.shape;
+        const sourceLen = key.shape[1];
+        let Q = this.qProjection.forward(query); // (batchSize, targetLen, embedDim)
+        let K = this.kProjection.forward(key); // (batchSize, sourceLen, embedDim)
+        let V = this.vProjection.forward(value); // (batchSize, sourceLen, embedDim)
+        // (batchSize, numHeads, targetLen/sourceLen, headDim)
+        Q = Q.reshape([batchSize, targetLen, this.numHeads, this.headDim]).transpose(1, 2);
+        K = K.reshape([batchSize, sourceLen, this.numHeads, this.headDim]).transpose(1, 2);
+        V = V.reshape([batchSize, sourceLen, this.numHeads, this.headDim]).transpose(1, 2);
+        // Attention scores
+        let scores = Q.matmul(K.transpose(-2, -1)).div(Math.sqrt(this.headDim));
+        // Apply attention mask if specified
+        if (attnMask) {
+            scores = scores.maskedFill(attnMask, -Infinity);
+        }
+        // Calculate attention weights
+        let attnWeights = scores.softmax().dropout(this.dropout);
+        // Apply attention to values
+        let attnOutput = attnWeights.matmul(V); // (batchSize, numHeads, targetLen, headDim)
+        // (batchSize, targetLen, embedDim)
+        attnOutput = attnOutput.transpose(1, 2).reshape([batchSize, targetLen, embedDim]);
+        // Output
+        const output = this.oProjection.forward(attnOutput);
+        // Average weights if needed
+        if (averageAttnWeights) {
+            attnWeights = attnWeights.mean(1);
+        }
+        return [output, needWeights ? attnWeights : undefined];
+    }
+}
 const state = {
     getParameters(model, visited = new WeakSet()) {
         if (visited.has(model))
@@ -266,5 +317,6 @@ exports.nn = {
     LSTMCell,
     LayerNorm,
     Embedding,
+    MultiheadAttention,
     state
 };

@@ -221,7 +221,7 @@ class LayerNorm {
         if (this.normalizedShape.length === 0) {
             throw new Error("Normalized shape cannot be empty");
         }
-        
+
         if (elementwiseAffine) {
             this.weight = Tensor.ones(this.normalizedShape, { requiresGrad: true, device });
 
@@ -239,7 +239,7 @@ class LayerNorm {
         if (startDim < 0) {
             throw new Error("Input does not have enough dims to normalize");
         }
-        
+
         const dims = [];
 
         for (let i = 0; i < normalizedDims; i++) {
@@ -249,19 +249,19 @@ class LayerNorm {
 
             dims.push(startDim + i);
         }
-        
+
         const mean = input.mean(dims, true);
         const variance = input.sub(mean).pow(2).mean(dims, true);
-        
+
         let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
-        
+
         if (this.weight) {
             normalized = normalized.mul(this.weight);
         }
         if (this.bias) {
             normalized = normalized.add(this.bias);
         }
-        
+
         return normalized;
     }
 }
@@ -273,8 +273,86 @@ class Embedding {
         this.weight = Tensor.randn([numEmbeddings, embeddingDim], { device });
     }
 
-    forward(input: Tensor | TensorValue) {
+    forward(input: Tensor | TensorValue): Tensor {
         return this.weight.index(input);
+    }
+}
+
+class MultiheadAttention {
+    public qProjection: Linear;
+    public kProjection: Linear;
+    public vProjection: Linear;
+    public oProjection: Linear;
+
+    public embedDim: number;
+    public numHeads: number;
+    public headDim: number;
+    public dropout: number;
+
+    constructor(
+        embedDim: number,
+        numHeads: number,
+        dropout = 0,
+        bias = true,
+        device?: string
+    ) {
+        this.qProjection = new nn.Linear(embedDim, embedDim, bias, device);
+        this.kProjection = new nn.Linear(embedDim, embedDim, bias, device);
+        this.vProjection = new nn.Linear(embedDim, embedDim, bias, device);
+        this.oProjection = new nn.Linear(embedDim, embedDim, bias, device);
+
+        this.embedDim = embedDim;
+        this.numHeads = numHeads;
+        this.headDim = Math.floor(embedDim / numHeads);
+        this.dropout = dropout;
+    }
+
+    forward(
+        query: Tensor,
+        key: Tensor,
+        value: Tensor,
+        needWeights = true,
+        attnMask?: Tensor,
+        averageAttnWeights = true
+    ): [Tensor, Tensor | undefined] {
+        // Batch-first
+        const [batchSize, targetLen, embedDim] = query.shape;
+        const sourceLen = key.shape[1];
+
+        let Q = this.qProjection.forward(query); // (batchSize, targetLen, embedDim)
+        let K = this.kProjection.forward(key);   // (batchSize, sourceLen, embedDim)
+        let V = this.vProjection.forward(value); // (batchSize, sourceLen, embedDim)
+
+        // (batchSize, numHeads, targetLen/sourceLen, headDim)
+        Q = Q.reshape([batchSize, targetLen, this.numHeads, this.headDim]).transpose(1, 2);
+        K = K.reshape([batchSize, sourceLen, this.numHeads, this.headDim]).transpose(1, 2);
+        V = V.reshape([batchSize, sourceLen, this.numHeads, this.headDim]).transpose(1, 2);
+
+        // Attention scores
+        let scores = Q.matmul(K.transpose(-2, -1)).div(Math.sqrt(this.headDim));
+
+        // Apply attention mask if specified
+        if (attnMask) {
+            scores = scores.maskedFill(attnMask, -Infinity);
+        }
+
+        // Calculate attention weights
+        let attnWeights = scores.softmax().dropout(this.dropout);
+
+        // Apply attention to values
+        let attnOutput = attnWeights.matmul(V); // (batchSize, numHeads, targetLen, headDim)
+        // (batchSize, targetLen, embedDim)
+        attnOutput = attnOutput.transpose(1, 2).reshape([batchSize, targetLen, embedDim]);
+
+        // Output
+        const output = this.oProjection.forward(attnOutput);
+
+        // Average weights if needed
+        if (averageAttnWeights) {
+            attnWeights = attnWeights.mean(1);
+        }
+
+        return [output, needWeights ? attnWeights : undefined];
     }
 }
 
@@ -363,5 +441,6 @@ export const nn = {
     LSTMCell,
     LayerNorm,
     Embedding,
+    MultiheadAttention,
     state
 }

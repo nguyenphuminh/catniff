@@ -184,6 +184,7 @@ export declare class Tensor {
     dropout(rate: number): Tensor;
     triu(diagonal?: number): Tensor;
     tril(diagonal?: number): Tensor;
+    maskedFill(mask: Tensor | TensorValue, value: number): Tensor;
     static full(shape: readonly number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
     static ones(shape?: readonly number[], options?: TensorOptions): Tensor;
