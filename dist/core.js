@@ -337,7 +337,12 @@ class Tensor {
             throw new Error("Can not create view: incompatible metadata");
         }
         const outputStrides = Tensor.getStrides(newShape);
-        const out = new Tensor(this.value, { shape: newShape, strides: outputStrides, numel: outputSize });
+        const out = new Tensor(this.value, {
+            shape: newShape,
+            strides: outputStrides,
+            numel: outputSize,
+            device: this.device
+        });
         // Gradient reshaped and flow back to the original tensor
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -357,7 +362,11 @@ class Tensor {
         }
         // Create new tensor with forced compatibility (only contiguity for now)
         const outputStrides = Tensor.getStrides(newShape);
-        const out = new Tensor(this.contiguous().value, { shape: newShape, strides: outputStrides, numel: outputSize });
+        const out = new Tensor(this.contiguous().value, {
+            shape: newShape,
+            strides: outputStrides,
+            numel: outputSize
+        });
         // Gradient reshaped and flow back to the original tensor
         if (this.requiresGrad) {
             out.requiresGrad = true;
