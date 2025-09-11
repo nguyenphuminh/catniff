@@ -270,7 +270,7 @@ class Embedding {
     public weight: Tensor;
 
     constructor(numEmbeddings: number, embeddingDim: number, device: string) {
-        this.weight = Tensor.randn([numEmbeddings, embeddingDim], { device });
+        this.weight = Tensor.randn([numEmbeddings, embeddingDim], { requiresGrad: true, device });
     }
 
     forward(input: Tensor | TensorValue): Tensor {
@@ -296,10 +296,10 @@ class MultiheadAttention {
         bias = true,
         device?: string
     ) {
-        this.qProjection = new nn.Linear(embedDim, embedDim, bias, device);
-        this.kProjection = new nn.Linear(embedDim, embedDim, bias, device);
-        this.vProjection = new nn.Linear(embedDim, embedDim, bias, device);
-        this.oProjection = new nn.Linear(embedDim, embedDim, bias, device);
+        this.qProjection = new Linear(embedDim, embedDim, bias, device);
+        this.kProjection = new Linear(embedDim, embedDim, bias, device);
+        this.vProjection = new Linear(embedDim, embedDim, bias, device);
+        this.oProjection = new Linear(embedDim, embedDim, bias, device);
 
         this.embedDim = embedDim;
         this.numHeads = numHeads;

@@ -191,7 +191,7 @@ class LayerNorm {
 class Embedding {
     weight;
     constructor(numEmbeddings, embeddingDim, device) {
-        this.weight = core_1.Tensor.randn([numEmbeddings, embeddingDim], { device });
+        this.weight = core_1.Tensor.randn([numEmbeddings, embeddingDim], { requiresGrad: true, device });
     }
     forward(input) {
         return this.weight.index(input);
@@ -207,10 +207,10 @@ class MultiheadAttention {
     headDim;
     dropout;
     constructor(embedDim, numHeads, dropout = 0, bias = true, device) {
-        this.qProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
-        this.kProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
-        this.vProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
-        this.oProjection = new exports.nn.Linear(embedDim, embedDim, bias, device);
+        this.qProjection = new Linear(embedDim, embedDim, bias, device);
+        this.kProjection = new Linear(embedDim, embedDim, bias, device);
+        this.vProjection = new Linear(embedDim, embedDim, bias, device);
+        this.oProjection = new Linear(embedDim, embedDim, bias, device);
         this.embedDim = embedDim;
         this.numHeads = numHeads;
         this.headDim = Math.floor(embedDim / numHeads);
