@@ -605,6 +605,25 @@ class Tensor {
         }
         return out;
     }
+    // Tensor chunk
+    chunk(chunks, dim = 0) {
+        // Handle negative indices
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        const sliceOpt = new Array(this.shape.length);
+        for (let index = 0; index < sliceOpt.length; index++) {
+            sliceOpt[index] = [];
+        }
+        const dimSize = this.shape[dim];
+        const chunkDimSize = Math.ceil(dimSize / chunks);
+        const results = [];
+        for (let index = 0; index < dimSize; index += chunkDimSize) {
+            sliceOpt[dim] = [index, Math.min(index + chunkDimSize, dimSize)];
+            results.push(this.slice(sliceOpt));
+        }
+        return results;
+    }
     // Tensor squeeze
     squeeze(dims) {
         if (typeof this.value === "number")
