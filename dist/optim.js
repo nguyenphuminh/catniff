@@ -108,17 +108,17 @@ class Adam extends BaseOptimizer {
                 velocityBuffer = core_1.Tensor.zerosLike(grad); // Initialize with zeros (same shape as grad)
                 this.velocityBuffers.set(param, velocityBuffer);
             }
-            // Update biased first moment estimate: m_t = β1 * m_{t-1} + (1 - β1) * g_t
+            // Update biased first moment estimate: m_t = beta1 * m_{t-1} + (1 - beta1) * g_t
             momentumBuffer = momentumBuffer.mul(beta1).add(grad.mul(1 - beta1));
             this.momentumBuffers.set(param, momentumBuffer);
-            // Update biased second moment estimate: v_t = β2 * v_{t-1} + (1 - β2) * g_t^2
+            // Update biased second moment estimate: v_t = beta2 * v_{t-1} + (1 - beta2) * g_t^2
             velocityBuffer = velocityBuffer.mul(beta2).add(grad.pow(2).mul(1 - beta2));
             this.velocityBuffers.set(param, velocityBuffer);
-            // Compute bias-corrected first moment: m̂_t = m_t / (1 - β1^t)
+            // Compute bias-corrected first moment: m_hat_t = m_t / (1 - beta1^t)
             const correctedMomentum = momentumBuffer.div(biasCorrection1);
-            // Compute bias-corrected second moment: v̂_t = v_t / (1 - β2^t)
+            // Compute bias-corrected second moment: v_hat_t = v_t / (1 - beta2^t)
             const correctedVelocity = velocityBuffer.div(biasCorrection2);
-            // Update parameters: θ_t = θ_{t-1} - α * m̂_t / (√v̂_t + ε)
+            // Update parameters: theta_t = theta_{t-1} - alpha * m_hat_t / (sqrt(v_hat_t) + epsilon)
             const denom = correctedVelocity.sqrt().add(this.eps);
             const stepSize = correctedMomentum.div(denom).mul(this.lr);
             const newParam = detachedParam.sub(stepSize);
@@ -166,17 +166,17 @@ class AdamW extends BaseOptimizer {
                 velocityBuffer = core_1.Tensor.zerosLike(grad); // Initialize with zeros (same shape as grad)
                 this.velocityBuffers.set(param, velocityBuffer);
             }
-            // Update biased first moment estimate: m_t = β1 * m_{t-1} + (1 - β1) * g_t
+            // Update biased first moment estimate: m_t = beta1 * m_{t-1} + (1 - beta1) * g_t
             momentumBuffer = momentumBuffer.mul(beta1).add(grad.mul(1 - beta1));
             this.momentumBuffers.set(param, momentumBuffer);
-            // Update biased second moment estimate: v_t = β2 * v_{t-1} + (1 - β2) * g_t^2
+            // Update biased second moment estimate: v_t = beta2 * v_{t-1} + (1 - beta2) * g_t^2
             velocityBuffer = velocityBuffer.mul(beta2).add(grad.pow(2).mul(1 - beta2));
             this.velocityBuffers.set(param, velocityBuffer);
-            // Compute bias-corrected first moment: m̂_t = m_t / (1 - β1^t)
+            // Compute bias-corrected first moment: m_hat_t = m_t / (1 - beta1^t)
             const correctedMomentum = momentumBuffer.div(biasCorrection1);
-            // Compute bias-corrected second moment: v̂_t = v_t / (1 - β2^t)
+            // Compute bias-corrected second moment: v_hat_t = v_t / (1 - beta2^t)
             const correctedVelocity = velocityBuffer.div(biasCorrection2);
-            // Update parameters: θ_t = θ_t - α * m̂_t / (√v̂_t + ε)
+            // Update parameters: theta_t = theta_{t-1} - alpha * m_hat_t / (sqrt(v_hat_t) + epsilon)
             const denom = correctedVelocity.sqrt().add(this.eps);
             const stepSize = correctedMomentum.div(denom).mul(this.lr);
             const newParam = detachedParam.sub(stepSize);

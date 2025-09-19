@@ -4,8 +4,8 @@ import { erf, erfc, erfinv, fyShuffle, randInt, randNormal, randUniform } from "
 export type TensorValue = number | TensorValue[];
 
 export interface TensorOptions {
-    shape?: readonly number[];
-    strides?: readonly number[];
+    shape?: number[];
+    strides?: number[];
     offset?: number;
     numel?: number;
     grad?: Tensor;
@@ -17,8 +17,8 @@ export interface TensorOptions {
 
 export class Tensor {
     public value: number[] | number;
-    public readonly shape: readonly number[];
-    public readonly strides: readonly number[];
+    public shape: number[];
+    public strides: number[];
     public offset: number;
     public numel: number;
     public grad?: Tensor;
@@ -30,7 +30,7 @@ export class Tensor {
 
     constructor(value: TensorValue, options: TensorOptions = {}) {
         // Storage
-        this.value = Tensor.flatten(value);
+        this.value = Tensor.flattenValue(value);
 
         // Tensor metadata
         this.shape = options.shape || Tensor.getShape(value);
@@ -50,7 +50,7 @@ export class Tensor {
     }
 
     // Utility to flatten an nD array to be 1D
-    static flatten(tensor: TensorValue): number[] | number {
+    static flattenValue(tensor: TensorValue): number[] | number {
         // Handle scalar tensors
         if (typeof tensor === "number") return tensor;
         // If value is already 1D, we just need to return the value ('s reference)
@@ -73,7 +73,7 @@ export class Tensor {
     }
 
     // Utility to get shape from tensor *value*
-    static getShape(tensor: TensorValue): readonly number[] {
+    static getShape(tensor: TensorValue): number[] {
         const shape: number[] = [];
 
         let subA = tensor;
@@ -87,7 +87,7 @@ export class Tensor {
     }
 
     // Utility to get strides from shape
-    static getStrides(shape: readonly number[]): readonly number[] {
+    static getStrides(shape: number[]): number[] {
         if (shape.length === 0) return [];
 
         const strides: number[] = new Array(shape.length);
@@ -103,16 +103,16 @@ export class Tensor {
 
     // Left-pad shape and strides for two shape to be of same length
     static padShape(
-        stridesA: readonly number[],
-        stridesB: readonly number[],
-        shapeA: readonly number[],
-        shapeB: readonly number[]
+        stridesA: number[],
+        stridesB: number[],
+        shapeA: number[],
+        shapeB: number[]
     ): [
-            readonly number[],
-            readonly number[],
-            readonly number[],
-            readonly number[]
-        ] {
+        number[],
+        number[],
+        number[],
+        number[]
+    ] {
         const newStrideA = [...stridesA], newStrideB = [...stridesB];
         const newShapeA = [...shapeA], newShapeB = [...shapeB];
 
@@ -132,7 +132,7 @@ export class Tensor {
     }
 
     // Broadcast shapes
-    static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[] {
+    static broadcastShapes(shapeA: number[], shapeB: number[]): number[] {
         const newShape = new Array(shapeA.length);
 
         for (let index = 0; index < shapeA.length; index++) {
@@ -151,7 +151,7 @@ export class Tensor {
     }
 
     // Utility to convert flat index to array of coordinates
-    static indexToCoords(index: number, strides: readonly number[]): number[] {
+    static indexToCoords(index: number, strides: number[]): number[] {
         const coords = new Array(strides.length);
         let remaining = index;
 
@@ -164,7 +164,7 @@ export class Tensor {
     }
 
     // Utility to convert array of coordinates to *unbroadcasted* flat index 
-    static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number {
+    static coordsToUnbroadcastedIndex(coords: number[], shape: number[], strides: number[]): number {
         let index = 0;
 
         for (let i = 0; i < coords.length; i++) {
@@ -177,7 +177,7 @@ export class Tensor {
     }
 
     // Utility to convert array of coordinates to flat index 
-    static coordsToIndex(coords: number[], strides: readonly number[]): number {
+    static coordsToIndex(coords: number[], strides: number[]): number {
         let index = 0;
 
         for (let i = 0; i < coords.length; i++) {
@@ -188,7 +188,7 @@ export class Tensor {
     }
 
     // Utility to convert shape into 1D value array size
-    static shapeToSize(shape: readonly number[]): number {
+    static shapeToSize(shape: number[]): number {
         let prod = 1;
 
         for (let i = 0; i < shape.length; i++) {
@@ -426,7 +426,7 @@ export class Tensor {
         return out;
     }
 
-    view(newShape: readonly number[]): Tensor {
+    view(newShape: number[]): Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
@@ -460,7 +460,7 @@ export class Tensor {
         return out;
     }
 
-    reshape(newShape: readonly number[]): Tensor {
+    reshape(newShape: number[]): Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
@@ -487,6 +487,44 @@ export class Tensor {
         }
 
         return out;
+    }
+
+    flatten(startDim = 0, endDim = -1): Tensor {
+        // Handle negative indices
+        if (startDim < 0) { startDim += this.shape.length }
+        if (endDim < 0) { endDim += this.shape.length }
+
+        // If dimension out of bound, throw error
+        if (startDim >= this.shape.length || endDim >= this.shape.length || startDim < 0 || endDim < 0) {
+            throw new Error("Dimensions do not exist to flatten");
+        }
+
+        const newShape = [];
+        let middleSize = 1;
+
+        for (let index = 0; index < this.shape.length; index++) {
+            // Keep dims before startDim
+            if (index < startDim) {
+                newShape.push(this.shape[index]);
+            }
+
+            // Multiply dims from startDim to endDim
+            if (index >= startDim && index <= endDim) {
+                middleSize *= this.shape[index];
+            }
+
+            // Push new flatten middle
+            if (index === endDim) {
+                newShape.push(middleSize);
+            }
+
+            // Keep dims after endDim
+            if (index > endDim) {
+                newShape.push(this.shape[index]);
+            }
+        }
+
+        return this.reshape(newShape);
     }
 
     // Transpose
@@ -923,10 +961,13 @@ export class Tensor {
         if (Array.isArray(dims)) {
             dims = Tensor.normalizeDims(dims, tensor.shape.length);
             const sortedDims = dims.sort((a, b) => b - a);
+
             let reducedThis: Tensor = tensor;
+
             for (let i = 0; i < sortedDims.length; i++) {
                 reducedThis = Tensor.reduce(reducedThis, sortedDims[i], true, config);
             }
+
             return keepDims ? reducedThis : reducedThis.squeeze(dims);
         }
 
@@ -1619,7 +1660,7 @@ export class Tensor {
             (self, outGrad) => {
                 const tanhSoftPlus = self.exp().add(1).log().tanh();
 
-                // tanh(softplus(x)) + x * (1 - tanh²(softplus(x))) * sigmoid(x)
+                // tanh(softplus(x)) + x * (1 - tanh^2(softplus(x))) * sigmoid(x)
                 const derivative = tanhSoftPlus.add(
                     self.mul(tanhSoftPlus.square().neg().add(1)).mul(self.sigmoid())
                 );
@@ -2101,7 +2142,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with a number
-    static full(shape: readonly number[], num: number, options: TensorOptions = {}): Tensor {
+    static full(shape: number[], num: number, options: TensorOptions = {}): Tensor {
         if (shape.length === 0) return new Tensor(num, options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2123,7 +2164,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with 1
-    static ones(shape?: readonly number[], options: TensorOptions = {}): Tensor {
+    static ones(shape?: number[], options: TensorOptions = {}): Tensor {
         if (typeof shape === "undefined" || shape.length === 0) return new Tensor(1, options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2145,7 +2186,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with 0
-    static zeros(shape?: readonly number[], options: TensorOptions = {}): Tensor {
+    static zeros(shape?: number[], options: TensorOptions = {}): Tensor {
         if (typeof shape === "undefined" || shape.length === 0) return new Tensor(0, options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2167,7 +2208,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with a random number with uniform distribution from 0 to 1
-    static rand(shape?: readonly number[], options: TensorOptions = {}): Tensor {
+    static rand(shape?: number[], options: TensorOptions = {}): Tensor {
         if (typeof shape === "undefined" || shape.length === 0) return new Tensor(randUniform(), options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2199,7 +2240,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with a random number with normal distribution of mean=0 and stddev=1
-    static randn(shape?: readonly number[], options: TensorOptions = {}): Tensor {
+    static randn(shape?: number[], options: TensorOptions = {}): Tensor {
         if (typeof shape === "undefined" || shape.length === 0) return new Tensor(randNormal(), options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2231,7 +2272,7 @@ export class Tensor {
     }
 
     // Utility to create a new tensor filled with a random integer between low and high
-    static randint(shape: readonly number[], low: number, high: number, options: TensorOptions = {}): Tensor {
+    static randint(shape: number[], low: number, high: number, options: TensorOptions = {}): Tensor {
         if (shape.length === 0) return new Tensor(randInt(low, high), options);
 
         const outputSize = Tensor.shapeToSize(shape);
@@ -2394,8 +2435,8 @@ export class Tensor {
 
         function buildNested(
             data: number[],
-            shape: readonly number[],
-            strides: readonly number[],
+            shape: number[],
+            strides: number[],
             baseIndex = 0,
             dim = 0
         ): TensorValue {

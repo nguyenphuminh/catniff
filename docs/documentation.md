@@ -10,8 +10,8 @@ Type `TensorValue` is either `number` or `TensorValue[]`, which means it represe
 
 `TensorOptions` is an interface that contains options/configurations of a tensor passed into the `Tensor` class constructor (more on that later). It includes:
 
-* `shape?: readonly number[]`
-* `strides?: readonly number[]`
+* `shape?: number[]`
+* `strides?: number[]`
 * `offset?: number;`
 * `numel?: number;`
 * `grad?: Tensor`
@@ -31,8 +31,8 @@ constructor(value: TensorValue, options: TensorOptions = {})
 ### Properties
 
 * `public value: number[] | number`: Holds the tensor value as either a flat number array or a number, it is `Tensor.flatten(value)` behind the scenes.
-* `public readonly shape: readonly number[]`: Holds the tensor shape, uses `options.shape` if provided, `Tensor.getShape(value)` otherwise.
-* `public readonly strides: readonly number[]`: Holds the tensor strides, uses `options.strides` if provided, `Tensor.getStrides(this.shape)` otherwise.
+* `public shape: number[]`: Holds the tensor shape, uses `options.shape` if provided, `Tensor.getShape(value)` otherwise.
+* `public strides: number[]`: Holds the tensor strides, uses `options.strides` if provided, `Tensor.getStrides(this.shape)` otherwise.
 * `public offset: number`: Holds the tensor storage offset, uses `options.offset` if provided, 0 otherwise.
 * `public numel: number`: Holds the tensor tensor size (number of real elements, not this.value.length), uses `options.numel` if provided, `Tensor.shapeToSize(this.shape)` otherwise.
 * `public grad?: Tensor`: Holds the tensor gradient, uses `options.grad` if provided, `undefined` otherwise to save memory.
@@ -149,8 +149,9 @@ All autograd-supported tensor arithmetic methods:
 * `permute(dims: number[]): Tensor`: Returns complete reposition of dims in a tensor.
 * `isContiguous(): boolean`: Checks if tensor is contiguous.
 * `contiguous(): Tensor`: Returns a new tensor, restructured from input to be contiguous.
-* `reshape(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided.
-* `view(newShape: readonly number[]): Tensor`: Returns input, reshaped based on `newShape` provided. This is different from reshape in that it will only return a view (does not allocate new mem) of the original tensor and throws an error if the tensor can not be reshaped by just modifying the metadata, while reshape will force it to be contiguous if it is not compatible, thus using more mem without an error.
+* `reshape(newShape: number[]): Tensor`: Returns input, reshaped based on `newShape` provided.
+* `view(newShape: number[]): Tensor`: Returns input, reshaped based on `newShape` provided. This is different from reshape in that it will only return a view (does not allocate new mem) of the original tensor and throws an error if the tensor can not be reshaped by just modifying the metadata, while reshape will force it to be contiguous if it is not compatible, thus using more mem without an error.
+* `flatten(startDim = 0, endDim = -1): Tensor`: Returns input flattened from `startDim` to `endDim`.
 * `index(indices: Tensor | TensorValue): Tensor`: Returns a new tensor with items indexed from `this` tensor. For example, if `this` has shape `[3,4,5]`, and `indices` is a scalar, the result will have shape `[4,5]`, and if `indices` has shape `[2,3]`, the result will have shape `[2,3,4,5]`. There is also `indexWithArray` but `indices` are only of type `number[]`.
 * `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `chunk(chunks: number, dim = 0): Tensor[]`: Returns a `chunks` number of chunks split from `this`, at dimension `dim`.
@@ -207,21 +208,21 @@ Here are commonly used utilities:
 
 Here are utilities (that might be deleted in the future) that you probably won't have to use but they might come in handy:
 
-* `static flatten(tensor: TensorValue): number[] | number`: Used to flatten an n-D array to 1D. If argument is a number, it would return the number.
-* `static getShape(tensor: TensorValue): readonly number[]`: Used to get shape (size of each dimension) of an n-D array as a number array.
-* `static getStrides(shape: readonly number[]): readonly number[]`: Used to get strides of tensor from its shape. Strides are needed internally because they are steps taken to get a value at each dimension now that the tensor has been flatten to 1D.
+* `static flattenValue(tensor: TensorValue): number[] | number`: Used to flatten an n-D array to 1D. If argument is a number, it would return the number.
+* `static getShape(tensor: TensorValue): number[]`: Used to get shape (size of each dimension) of an n-D array as a number array.
+* `static getStrides(shape: number[]): number[]`: Used to get strides of tensor from its shape. Strides are needed internally because they are steps taken to get a value at each dimension now that the tensor has been flatten to 1D.
 * `static padShape`: Used to pad shape and strides of two tensors to be of same number of dimensions.
     * args:
-        * `stridesA: readonly number[]`: Strides of the first tensor.
-        * `stridesB: readonly number[]`: Strides of the second tensor.
-        * `shapeA: readonly number[]`: Shape of the first tensor.
-        * `shapeB: readonly number[]`: Shape of the second tensor.
-    * returns: A tuple of `(newStridesA, newStridesB, newShapeA, newShapeB)` with type `[readonly number[], readonly number[], readonly number[], readonly number[]]`.
-* `static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[]`: Returns the new shape broadcasted from `shapeA` and `shapeB`. Basically if one shape's dimension is of size n, and other shape's corresponding dimension if of size n or 1, then the new shape's corresponding dimension is n, otherwise throw an error. For example `[1,2,3]` and `[4,1,3]` would be `[4,2,3]` after broadcasting.
-* `static indexToCoords(index: number, strides: readonly number[]): number[]`: Convert an index of an 1D array to coordinates (indices) of an nD array, based on the nD array's `strides`.
-* `static coordsToIndex(coords: number[], strides: readonly number[]): number`: Convert coordinates (indices) of an nD array to an index of an 1D array, based on the nD array's `strides`.
-* `static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number`: Convert coordinates (indices) of an unbroadcasted nD array to an index of an 1D array, based on the nD array's `shape` and `strides`. Basically the same as above but coordinates of dimensions with size 1 are forced to be 0.
-* `static shapeToSize(shape: readonly number[]): number`: Convert shape into 1D array size.
+        * `stridesA: number[]`: Strides of the first tensor.
+        * `stridesB: number[]`: Strides of the second tensor.
+        * `shapeA: number[]`: Shape of the first tensor.
+        * `shapeB: number[]`: Shape of the second tensor.
+    * returns: A tuple of `(newStridesA, newStridesB, newShapeA, newShapeB)` with type `[number[], number[], number[], number[]]`.
+* `static broadcastShapes(shapeA: number[], shapeB: number[]): number[]`: Returns the new shape broadcasted from `shapeA` and `shapeB`. Basically if one shape's dimension is of size n, and other shape's corresponding dimension if of size n or 1, then the new shape's corresponding dimension is n, otherwise throw an error. For example `[1,2,3]` and `[4,1,3]` would be `[4,2,3]` after broadcasting.
+* `static indexToCoords(index: number, strides: number[]): number[]`: Convert an index of an 1D array to coordinates (indices) of an nD array, based on the nD array's `strides`.
+* `static coordsToIndex(coords: number[], strides: number[]): number`: Convert coordinates (indices) of an nD array to an index of an 1D array, based on the nD array's `strides`.
+* `static coordsToUnbroadcastedIndex(coords: number[], shape: number[], strides: number[]): number`: Convert coordinates (indices) of an unbroadcasted nD array to an index of an 1D array, based on the nD array's `shape` and `strides`. Basically the same as above but coordinates of dimensions with size 1 are forced to be 0.
+* `static shapeToSize(shape: number[]): number`: Convert shape into 1D array size.
 * `static normalizeDims(dims: number[], numDims: number): number[]`: Convert negative dims to normal and check if out of bound.
 * `static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor`: Perform a custom element-wise `op` between two tensors, returns a new tensor that holds the result.
 * `static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor`: Perform a custom element-wise `op` on a tensor, returns a new tensor that holds the result.

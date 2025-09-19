@@ -1,8 +1,8 @@
 import { Backend } from "./backend";
 export type TensorValue = number | TensorValue[];
 export interface TensorOptions {
-    shape?: readonly number[];
-    strides?: readonly number[];
+    shape?: number[];
+    strides?: number[];
     offset?: number;
     numel?: number;
     grad?: Tensor;
@@ -13,8 +13,8 @@ export interface TensorOptions {
 }
 export declare class Tensor {
     value: number[] | number;
-    readonly shape: readonly number[];
-    readonly strides: readonly number[];
+    shape: number[];
+    strides: number[];
     offset: number;
     numel: number;
     grad?: Tensor;
@@ -24,20 +24,20 @@ export declare class Tensor {
     device: string;
     static training: boolean;
     constructor(value: TensorValue, options?: TensorOptions);
-    static flatten(tensor: TensorValue): number[] | number;
-    static getShape(tensor: TensorValue): readonly number[];
-    static getStrides(shape: readonly number[]): readonly number[];
-    static padShape(stridesA: readonly number[], stridesB: readonly number[], shapeA: readonly number[], shapeB: readonly number[]): [
-        readonly number[],
-        readonly number[],
-        readonly number[],
-        readonly number[]
+    static flattenValue(tensor: TensorValue): number[] | number;
+    static getShape(tensor: TensorValue): number[];
+    static getStrides(shape: number[]): number[];
+    static padShape(stridesA: number[], stridesB: number[], shapeA: number[], shapeB: number[]): [
+        number[],
+        number[],
+        number[],
+        number[]
     ];
-    static broadcastShapes(shapeA: readonly number[], shapeB: readonly number[]): readonly number[];
-    static indexToCoords(index: number, strides: readonly number[]): number[];
-    static coordsToUnbroadcastedIndex(coords: number[], shape: readonly number[], strides: readonly number[]): number;
-    static coordsToIndex(coords: number[], strides: readonly number[]): number;
-    static shapeToSize(shape: readonly number[]): number;
+    static broadcastShapes(shapeA: number[], shapeB: number[]): number[];
+    static indexToCoords(index: number, strides: number[]): number[];
+    static coordsToUnbroadcastedIndex(coords: number[], shape: number[], strides: number[]): number;
+    static coordsToIndex(coords: number[], strides: number[]): number;
+    static shapeToSize(shape: number[]): number;
     static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor;
     static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor;
     elementWiseABDAG(other: TensorValue | Tensor, op: (a: number, b: number) => number, thisGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor, otherGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor): Tensor;
@@ -47,8 +47,9 @@ export declare class Tensor {
     static normalizeDims(dims: number[], numDims: number): number[];
     isContiguous(): boolean;
     contiguous(): Tensor;
-    view(newShape: readonly number[]): Tensor;
-    reshape(newShape: readonly number[]): Tensor;
+    view(newShape: number[]): Tensor;
+    reshape(newShape: number[]): Tensor;
+    flatten(startDim?: number, endDim?: number): Tensor;
     transpose(dim1: number, dim2: number): Tensor;
     swapaxes: (dim1: number, dim2: number) => Tensor;
     swapdims: (dim1: number, dim2: number) => Tensor;
@@ -186,17 +187,17 @@ export declare class Tensor {
     triu(diagonal?: number): Tensor;
     tril(diagonal?: number): Tensor;
     maskedFill(mask: Tensor | TensorValue, value: number): Tensor;
-    static full(shape: readonly number[], num: number, options?: TensorOptions): Tensor;
+    static full(shape: number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
-    static ones(shape?: readonly number[], options?: TensorOptions): Tensor;
+    static ones(shape?: number[], options?: TensorOptions): Tensor;
     static onesLike(tensor: Tensor, options?: TensorOptions): Tensor;
-    static zeros(shape?: readonly number[], options?: TensorOptions): Tensor;
+    static zeros(shape?: number[], options?: TensorOptions): Tensor;
     static zerosLike(tensor: Tensor, options?: TensorOptions): Tensor;
-    static rand(shape?: readonly number[], options?: TensorOptions): Tensor;
+    static rand(shape?: number[], options?: TensorOptions): Tensor;
     static randLike(tensor: Tensor, options?: TensorOptions): Tensor;
-    static randn(shape?: readonly number[], options?: TensorOptions): Tensor;
+    static randn(shape?: number[], options?: TensorOptions): Tensor;
     static randnLike(tensor: Tensor, options?: TensorOptions): Tensor;
-    static randint(shape: readonly number[], low: number, high: number, options?: TensorOptions): Tensor;
+    static randint(shape: number[], low: number, high: number, options?: TensorOptions): Tensor;
     static randintLike(tensor: Tensor, low: number, high: number, options?: TensorOptions): Tensor;
     static randperm(n: number, options?: TensorOptions): Tensor;
     static normal(shape: number[], mean: number, stdDev: number, options?: TensorOptions): Tensor;

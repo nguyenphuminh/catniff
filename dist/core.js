@@ -16,7 +16,7 @@ class Tensor {
     static training = false;
     constructor(value, options = {}) {
         // Storage
-        this.value = Tensor.flatten(value);
+        this.value = Tensor.flattenValue(value);
         // Tensor metadata
         this.shape = options.shape || Tensor.getShape(value);
         this.strides = options.strides || Tensor.getStrides(this.shape);
@@ -32,7 +32,7 @@ class Tensor {
         this.to_(this.device);
     }
     // Utility to flatten an nD array to be 1D
-    static flatten(tensor) {
+    static flattenValue(tensor) {
         // Handle scalar tensors
         if (typeof tensor === "number")
             return tensor;
@@ -376,6 +376,40 @@ class Tensor {
             };
         }
         return out;
+    }
+    flatten(startDim = 0, endDim = -1) {
+        // Handle negative indices
+        if (startDim < 0) {
+            startDim += this.shape.length;
+        }
+        if (endDim < 0) {
+            endDim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (startDim >= this.shape.length || endDim >= this.shape.length || startDim < 0 || endDim < 0) {
+            throw new Error("Dimensions do not exist to flatten");
+        }
+        const newShape = [];
+        let middleSize = 1;
+        for (let index = 0; index < this.shape.length; index++) {
+            // Keep dims before startDim
+            if (index < startDim) {
+                newShape.push(this.shape[index]);
+            }
+            // Multiply dims from startDim to endDim
+            if (index >= startDim && index <= endDim) {
+                middleSize *= this.shape[index];
+            }
+            // Push new flatten middle
+            if (index === endDim) {
+                newShape.push(middleSize);
+            }
+            // Keep dims after endDim
+            if (index > endDim) {
+                newShape.push(this.shape[index]);
+            }
+        }
+        return this.reshape(newShape);
     }
     // Transpose
     transpose(dim1, dim2) {
@@ -1133,7 +1167,7 @@ class Tensor {
     mish() {
         return this.elementWiseSelfDAG((a) => a * Math.tanh(Math.log1p(Math.exp(a))), (self, outGrad) => {
             const tanhSoftPlus = self.exp().add(1).log().tanh();
-            // tanh(softplus(x)) + x * (1 - tanh²(softplus(x))) * sigmoid(x)
+            // tanh(softplus(x)) + x * (1 - tanh^2(softplus(x))) * sigmoid(x)
             const derivative = tanhSoftPlus.add(self.mul(tanhSoftPlus.square().neg().add(1)).mul(self.sigmoid()));
             return outGrad.mul(derivative);
         });
