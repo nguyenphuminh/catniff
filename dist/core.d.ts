@@ -158,6 +158,7 @@ export declare class Tensor {
     log10(): Tensor;
     log1p(): Tensor;
     relu(): Tensor;
+    leakyRelu(negativeSlope?: number): Tensor;
     sigmoid(): Tensor;
     tanh(): Tensor;
     softplus(): Tensor;

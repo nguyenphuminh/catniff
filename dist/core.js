@@ -329,7 +329,7 @@ class Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
-        if (originalSize !== outputSize) {
+        if (originalSize !== outputSize || typeof this.value === "number") {
             throw new Error("Can not create view: incompatible sizes");
         }
         // Verify compatibility (only contiguity for now)
@@ -357,7 +357,7 @@ class Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
-        if (originalSize !== outputSize) {
+        if (originalSize !== outputSize || typeof this.value === "number") {
             throw new Error("Can not reshape: incompatible sizes");
         }
         // Create new tensor with forced compatibility (only contiguity for now)
@@ -644,6 +644,10 @@ class Tensor {
         // Handle negative indices
         if (dim < 0) {
             dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to chunk");
         }
         const sliceOpt = new Array(this.shape.length);
         for (let index = 0; index < sliceOpt.length; index++) {
@@ -1136,6 +1140,12 @@ class Tensor {
     // Tensor element-wise relu
     relu() {
         return this.elementWiseSelfDAG((a) => Math.max(a, 0), (self, outGrad) => outGrad.mul(self.gt(0)));
+    }
+    // Tensor element-wise leaky relu
+    leakyRelu(negativeSlope = 0.01) {
+        return this.elementWiseSelfDAG((a) => Math.max(a, 0) + negativeSlope * Math.min(a, 0), (self, outGrad) => {
+            return outGrad.mul(self.gt(0).add(self.le(0).mul(negativeSlope)));
+        });
     }
     // Tensor element-wise sigmoid
     sigmoid() {

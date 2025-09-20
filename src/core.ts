@@ -431,7 +431,7 @@ export class Tensor {
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
 
-        if (originalSize !== outputSize) {
+        if (originalSize !== outputSize || typeof this.value === "number") {
             throw new Error("Can not create view: incompatible sizes");
         }
 
@@ -465,7 +465,7 @@ export class Tensor {
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
 
-        if (originalSize !== outputSize) {
+        if (originalSize !== outputSize || typeof this.value === "number") {
             throw new Error("Can not reshape: incompatible sizes");
         }
 
@@ -808,6 +808,11 @@ export class Tensor {
         // Handle negative indices
         if (dim < 0) { dim += this.shape.length }
 
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to chunk");
+        }
+
         const sliceOpt = new Array(this.shape.length);
 
         for (let index = 0; index < sliceOpt.length; index++) {
@@ -1145,10 +1150,34 @@ export class Tensor {
         if (typeof this.value === "number") return this;
 
         // Handle negative indexing
-        if (dim < 0) dim = this.shape.length + dim;
+        if (dim < 0) { dim += this.shape.length; }
+
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to apply softmax");
+        }
 
         const maxVals = this.max(dim, true);
         const shifted = this.sub(maxVals);
+        const expVals = shifted.exp();
+        const sumExp = expVals.sum(dim, true);
+        return expVals.div(sumExp);
+    }
+
+    // Tensor softmin
+    softmin(dim: number = -1): Tensor {
+        if (typeof this.value === "number") return this;
+
+        // Handle negative indexing
+        if (dim < 0) { dim += this.shape.length; }
+
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to apply softmin");
+        }
+
+        const maxVals = this.max(dim, true);
+        const shifted = maxVals.sub(this);
         const expVals = shifted.exp();
         const sumExp = expVals.sum(dim, true);
         return expVals.div(sumExp);
@@ -1604,6 +1633,16 @@ export class Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.max(a, 0),
             (self, outGrad) => outGrad.mul(self.gt(0))
+        );
+    }
+
+    // Tensor element-wise leaky relu
+    leakyRelu(negativeSlope = 0.01): Tensor {
+        return this.elementWiseSelfDAG(
+            (a) => Math.max(a, 0) + negativeSlope * Math.min(a, 0),
+            (self, outGrad) => {
+                return outGrad.mul(self.gt(0).add(self.le(0).mul(negativeSlope)));
+            }
         );
     }
 

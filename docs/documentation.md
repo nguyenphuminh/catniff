@@ -124,6 +124,7 @@ All autograd-supported tensor arithmetic methods:
 * `log10(): Tensor`: Returns log base 10 of `this` element-wise.
 * `log1p(): Tensor`: Returns natural log of 1 plus `this` element-wise.
 * `relu(): Tensor`: Returns relu of `this` element-wise.
+* `leakyRelu(negativeSlope = 0.01): Tensor`: Returns leaky relu of `this` element-wise.
 * `sigmoid(): Tensor`: Returns sigmoid of `this` element-wise.
 * `tanh(): Tensor`: Returns tanh of `this` element-wise.
 * `softplus(): Tensor`: Returns softplus of `this` element-wise.
@@ -171,7 +172,8 @@ All autograd-supported tensor arithmetic methods:
 * `all(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to 1 if all values in a dim are 1, 0 otherwise.
 * `var(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their variances.
 * `std(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their standard deviations.
-* `softmax(dim: number = -1): Tensor`: Apply softmax on the specified dimension.
+* `softmax(dim: number = -1): Tensor`: Apply numerically stable softmax on the specified dimension.
+* `softmin(dim: number = -1): Tensor`: Apply numerically stable softmin on the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 * `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
 * `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
