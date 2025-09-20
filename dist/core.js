@@ -911,10 +911,33 @@ class Tensor {
         if (typeof this.value === "number")
             return this;
         // Handle negative indexing
-        if (dim < 0)
-            dim = this.shape.length + dim;
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to apply softmax");
+        }
         const maxVals = this.max(dim, true);
         const shifted = this.sub(maxVals);
+        const expVals = shifted.exp();
+        const sumExp = expVals.sum(dim, true);
+        return expVals.div(sumExp);
+    }
+    // Tensor softmin
+    softmin(dim = -1) {
+        if (typeof this.value === "number")
+            return this;
+        // Handle negative indexing
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to apply softmin");
+        }
+        const maxVals = this.max(dim, true);
+        const shifted = maxVals.sub(this);
         const expVals = shifted.exp();
         const sumExp = expVals.sum(dim, true);
         return expVals.div(sumExp);

@@ -89,6 +89,7 @@ export declare class Tensor {
     var(dims?: number[] | number, keepDims?: boolean): Tensor;
     std(dims?: number[] | number, keepDims?: boolean): Tensor;
     softmax(dim?: number): Tensor;
+    softmin(dim?: number): Tensor;
     add(other: TensorValue | Tensor): Tensor;
     sub(other: TensorValue | Tensor): Tensor;
     subtract: (other: TensorValue | Tensor) => Tensor;
