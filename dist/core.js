@@ -1170,6 +1170,26 @@ class Tensor {
             return outGrad.mul(self.gt(0).add(self.le(0).mul(negativeSlope)));
         });
     }
+    // Tensor element-wise elu
+    elu(alpha = 1) {
+        return this.elementWiseSelfDAG((a) => a > 0 ? a : alpha * (Math.expm1(a)), (self, outGrad) => {
+            return outGrad.mul(self.gt(0).add(self.le(0).mul(self.exp().mul(alpha))));
+        });
+    }
+    // Tensor element-wise selu
+    selu() {
+        const alpha = 1.6732632423543772848170429916717;
+        const scale = 1.0507009873554804934193349852946;
+        return this.elementWiseSelfDAG((a) => scale * (a >= 0 ? a : alpha * Math.expm1(a)), (self, outGrad) => {
+            return outGrad.mul(self.gt(0).mul(scale).add(self.le(0).mul(self.exp().mul(alpha * scale))));
+        });
+    }
+    // Tensor element-wise celu
+    celu(alpha = 1) {
+        return this.elementWiseSelfDAG((a) => a >= 0 ? a : alpha * (Math.expm1(a / alpha)), (self, outGrad) => {
+            return outGrad.mul(self.gt(0).add(self.le(0).mul(self.div(alpha).exp())));
+        });
+    }
     // Tensor element-wise sigmoid
     sigmoid() {
         return this.elementWiseSelfDAG((a) => 1 / (1 + Math.exp(-a)), (self, outGrad) => {

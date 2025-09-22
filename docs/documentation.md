@@ -125,6 +125,9 @@ All autograd-supported tensor arithmetic methods:
 * `log1p(): Tensor`: Returns natural log of 1 plus `this` element-wise.
 * `relu(): Tensor`: Returns relu of `this` element-wise.
 * `leakyRelu(negativeSlope = 0.01): Tensor`: Returns leaky relu of `this` element-wise.
+* `elu(alpha = 1): Tensor`: Returns elu of `this` element-wise.
+* `selu(): Tensor`: Returns selu of `this` element-wise.
+* `celu(alpha = 1): Tensor`: Returns celu of `this` element-wise.
 * `sigmoid(): Tensor`: Returns sigmoid of `this` element-wise.
 * `tanh(): Tensor`: Returns tanh of `this` element-wise.
 * `softplus(): Tensor`: Returns softplus of `this` element-wise.

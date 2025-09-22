@@ -55,10 +55,10 @@ declare class AdamW extends BaseOptimizer {
     constructor(params: Tensor[], options?: AdamWOptions);
     step(): void;
 }
-export declare class Optim {
-    static BaseOptimizer: typeof BaseOptimizer;
-    static SGD: typeof SGD;
-    static Adam: typeof Adam;
-    static AdamW: typeof AdamW;
-}
+export declare const Optim: {
+    BaseOptimizer: typeof BaseOptimizer;
+    SGD: typeof SGD;
+    Adam: typeof Adam;
+    AdamW: typeof AdamW;
+};
 export {};

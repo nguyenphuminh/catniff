@@ -184,10 +184,9 @@ class AdamW extends BaseOptimizer {
         }
     }
 }
-class Optim {
-    static BaseOptimizer = BaseOptimizer;
-    static SGD = SGD;
-    static Adam = Adam;
-    static AdamW = AdamW;
-}
-exports.Optim = Optim;
+exports.Optim = {
+    BaseOptimizer,
+    SGD,
+    Adam,
+    AdamW
+};

@@ -247,9 +247,9 @@ class AdamW extends BaseOptimizer {
     }
 }
 
-export class Optim {
-    static BaseOptimizer = BaseOptimizer;
-    static SGD = SGD;
-    static Adam = Adam;
-    static AdamW = AdamW;
+export const Optim = {
+    BaseOptimizer,
+    SGD,
+    Adam,
+    AdamW
 }
