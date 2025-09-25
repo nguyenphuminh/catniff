@@ -132,6 +132,7 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
 * [Shakespeare-style text generator](https://github.com/nguyenphuminh/shakespeare-lm).
 * [Simple neural net for XOR calculation](./examples/xornet.js).
+* [N-th order derivative calculation](./examples/nthorder.js).
 * [Tensors](./examples/tensors.js).
 * [Optimizer](./examples/optim.js).
 * [Simple quadratic equation](./examples/quadratic.js).

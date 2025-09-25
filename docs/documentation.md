@@ -40,6 +40,8 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
 * `public children: Tensor[]`: Holds its child tensors, will be used when computing gradient, uses `options.children` if provided, `[]` otherwise.
 * `static training: boolean = false;`: Holds training flag, set to `true` while training to enable features like dropout, set to `false` while not to prevent unexpected behaviors.
+* `static noGrad: boolean = false;`: Set to `true` to disable grad accumulation.
+* `static createGraph: boolean = false;`: Preserves graph, set to `true` when computing nth-order derivative.
 * `static backends: Map<string, Backend>`: Holds backends, scroll way down below to see what to do with this.
 
 Note: A good rule of thumb when using Catniff is to not mutate values passed into functions/methods. For example, this might introduce some unexpected behaviors:
@@ -186,9 +188,8 @@ Here are commonly used utilities:
 
 * `backward(options: { zeroGrad?: boolean } = {})`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation if not explicitly specified in `options.zeroGrad`.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
-* `withGrad(requiresGrad: boolean): Tensor`: Returns a view of the tensor with requiresGrad changed and detaches from DAG (reset children, grad, gradFn, etc).
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
-* `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and detaches from DAG.
+* `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and keeps grad connection.
 * `replace(other: Tensor | TensorValue, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
 * `to(device: string): Tensor`: Returns a new tensor with the same value as this tensor, but on a different device.
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.

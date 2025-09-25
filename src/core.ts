@@ -27,6 +27,8 @@ export class Tensor {
     public children: Tensor[];
     public device: string;
     static training: boolean = false;
+    static noGrad: boolean = false;
+    static createGraph: boolean = false;
 
     constructor(value: TensorValue, options: TensorOptions = {}) {
         // Storage
@@ -282,11 +284,11 @@ export class Tensor {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
-                const selfNoGrad = this.detach();
-                const otherNoGrad = other.detach();
+                const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                const otherWithGrad = Tensor.createGraph ? other : other.detach();
 
-                if (this.requiresGrad) Tensor.addGrad(this, thisGrad(selfNoGrad, otherNoGrad, outGrad));
-                if (other.requiresGrad) Tensor.addGrad(other, otherGrad(selfNoGrad, otherNoGrad, outGrad));
+                if (this.requiresGrad) Tensor.addGrad(this, thisGrad(selfWithGrad, otherWithGrad, outGrad));
+                if (other.requiresGrad) Tensor.addGrad(other, otherGrad(selfWithGrad, otherWithGrad, outGrad));
             };
         }
 
@@ -309,9 +311,9 @@ export class Tensor {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
-                const selfNoGrad = this.detach();
+                const selfWithGrad = Tensor.createGraph ? this : this.detach();
 
-                if (this.requiresGrad) Tensor.addGrad(this, thisGrad(selfNoGrad, outGrad));
+                if (this.requiresGrad) Tensor.addGrad(this, thisGrad(selfWithGrad, outGrad));
             };
         }
 
@@ -1940,11 +1942,11 @@ export class Tensor {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
-                const selfNoGrad = this.detach();
-                const otherNoGrad = other.detach();
+                const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                const otherWithGrad = Tensor.createGraph ? other : other.detach();
 
-                if (this.requiresGrad) Tensor.addGrad(this, outGrad.mm(otherNoGrad.t()));
-                if (other.requiresGrad) Tensor.addGrad(other, selfNoGrad.t().mm(outGrad));
+                if (this.requiresGrad) Tensor.addGrad(this, outGrad.mm(otherWithGrad.t()));
+                if (other.requiresGrad) Tensor.addGrad(other, selfWithGrad.t().mm(outGrad));
             };
         }
 
@@ -2007,11 +2009,11 @@ export class Tensor {
             out.gradFn = () => {
                 // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
-                const selfNoGrad = this.detach();
-                const otherNoGrad = other.detach();
+                const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                const otherWithGrad = Tensor.createGraph ? other : other.detach();
 
-                if (this.requiresGrad) Tensor.addGrad(this, outGrad.bmm(otherNoGrad.transpose(1, 2)));
-                if (other.requiresGrad) Tensor.addGrad(other, selfNoGrad.transpose(1, 2).bmm(outGrad));
+                if (this.requiresGrad) Tensor.addGrad(this, outGrad.bmm(otherWithGrad.transpose(1, 2)));
+                if (other.requiresGrad) Tensor.addGrad(other, selfWithGrad.transpose(1, 2).bmm(outGrad));
             };
         }
 
@@ -2121,11 +2123,11 @@ export class Tensor {
                 out.gradFn = () => {
                     other = other as Tensor;
                     const outGrad = (out.grad as Tensor);
-                    const selfNoGrad = self.detach();
-                    const otherNoGrad = other.detach();
+                    const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                    const otherWithGrad = Tensor.createGraph ? other : other.detach();
 
-                    if (this.requiresGrad) Tensor.addGrad(this, outGrad.matmul(otherNoGrad.transpose(-2, -1)));
-                    if (other.requiresGrad) Tensor.addGrad(other, selfNoGrad.transpose(-2, -1).matmul(outGrad));
+                    if (this.requiresGrad) Tensor.addGrad(this, outGrad.matmul(otherWithGrad.transpose(-2, -1)));
+                    if (other.requiresGrad) Tensor.addGrad(other, selfWithGrad.transpose(-2, -1).matmul(outGrad));
                 };
             }
 
@@ -2478,7 +2480,7 @@ export class Tensor {
 
         function build(node: Tensor) {
             // Only collects unvisited node and node that requires gradient
-            if (!visited.has(node) && node.requiresGrad) {
+            if (!visited.has(node) && node.requiresGrad && !Tensor.noGrad) {
                 visited.add(node);
 
                 // Reset grad to zeros if specified
@@ -2536,18 +2538,6 @@ export class Tensor {
         return buildNested(this.value, this.shape, this.strides, this.offset);
     }
 
-    // Returns a view of the tensor with gradient turned on/off and detaches from autograd
-    withGrad(requiresGrad: boolean): Tensor {
-        return new Tensor(this.value, {
-            shape: this.shape,
-            strides: this.strides,
-            offset: this.offset,
-            numel: this.numel,
-            device: this.device,
-            requiresGrad
-        })
-    }
-
     // Returns a view of the tensor with gradient turned off and detaches from autograd
     detach(): Tensor {
         return new Tensor(this.value, {
@@ -2560,15 +2550,20 @@ export class Tensor {
         })
     }
 
-    // Returns a copy of the tensor (with new data allocation) and detaches from autograd
+    // Returns a copy of the tensor (with new data allocation) and keeps grad connection
     clone(): Tensor {
-        return new Tensor(typeof this.value === "number" ? this.value : [...this.value], {
-            shape: this.shape,
-            strides: this.strides,
-            offset: this.offset,
-            numel: this.numel,
-            requiresGrad: this.requiresGrad
-        })
+        const newValue = typeof this.value === "number" ? this.value : [...this.value];
+        const out = new Tensor(newValue);
+
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                Tensor.addGrad(this, out.grad as Tensor);
+            }
+        }
+
+        return out;
     }
 
     // Returns this tensor with value replaced with the value of another tensor

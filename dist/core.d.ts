@@ -23,6 +23,8 @@ export declare class Tensor {
     children: Tensor[];
     device: string;
     static training: boolean;
+    static noGrad: boolean;
+    static createGraph: boolean;
     constructor(value: TensorValue, options?: TensorOptions);
     static flattenValue(tensor: TensorValue): number[] | number;
     static getShape(tensor: TensorValue): number[];
@@ -214,7 +216,6 @@ export declare class Tensor {
         zeroGrad?: boolean;
     }): void;
     val(): TensorValue;
-    withGrad(requiresGrad: boolean): Tensor;
     detach(): Tensor;
     clone(): Tensor;
     replace(other: Tensor | TensorValue, allowShapeMismatch?: boolean): Tensor;
