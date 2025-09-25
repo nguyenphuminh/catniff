@@ -5,19 +5,17 @@ Tensor.createGraph = true;
 const x = new Tensor(2, { requiresGrad: true });
 const L = x.pow(3).add(x);
 
-L.backward();
-
+// Result
 console.log(`f = x^3 + x = ${L.val()}`)
+
+// First-order grad
+L.backward();
 console.log(`f' = 3x^2 + 1 = ${x.grad.val()}`)
 
-const grad1 = x.grad.clone();
-
-grad1.backward();
-
+// Second-order grad
+x.grad.backward();
 console.log(`f'' = 6x = ${x.grad.val()}`);
 
-const grad2 = x.grad.clone();
-
-grad2.backward();
-
+// Third-order grad
+x.grad.backward();
 console.log(`f''' = ${x.grad.val()}`);
