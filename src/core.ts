@@ -2123,7 +2123,7 @@ export class Tensor {
                 out.gradFn = () => {
                     other = other as Tensor;
                     const outGrad = (out.grad as Tensor);
-                    const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                    const selfWithGrad = Tensor.createGraph ? self : self.detach();
                     const otherWithGrad = Tensor.createGraph ? other : other.detach();
 
                     if (this.requiresGrad) Tensor.addGrad(this, outGrad.matmul(otherWithGrad.transpose(-2, -1)));

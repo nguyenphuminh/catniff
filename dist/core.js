@@ -1513,7 +1513,7 @@ class Tensor {
                 out.gradFn = () => {
                     other = other;
                     const outGrad = out.grad;
-                    const selfWithGrad = Tensor.createGraph ? this : this.detach();
+                    const selfWithGrad = Tensor.createGraph ? self : self.detach();
                     const otherWithGrad = Tensor.createGraph ? other : other.detach();
                     if (this.requiresGrad)
                         Tensor.addGrad(this, outGrad.matmul(otherWithGrad.transpose(-2, -1)));
