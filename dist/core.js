@@ -185,14 +185,22 @@ class Tensor {
     static elementWiseSelf(tA, op) {
         if (typeof tA.value === "number")
             return new Tensor(op(tA.value));
+        const contiguous = tA.isContiguous();
         const outputShape = tA.shape;
-        const outputStrides = Tensor.getStrides(outputShape);
+        const outputStrides = contiguous ? tA.strides : Tensor.getStrides(outputShape);
         const outputSize = tA.numel;
         const outputValue = new Array(outputSize);
-        for (let index = 0; index < outputSize; index++) {
-            const outputCoords = Tensor.indexToCoords(index, outputStrides);
-            const originalIndex = tA.offset + Tensor.coordsToIndex(outputCoords, tA.strides);
-            outputValue[index] = op(tA.value[originalIndex]);
+        if (contiguous) {
+            for (let index = 0; index < outputSize; index++) {
+                outputValue[index] = op(tA.value[index + tA.offset]);
+            }
+        }
+        else {
+            for (let index = 0; index < outputSize; index++) {
+                const outputCoords = Tensor.indexToCoords(index, outputStrides);
+                const originalIndex = tA.offset + Tensor.coordsToIndex(outputCoords, tA.strides);
+                outputValue[index] = op(tA.value[originalIndex]);
+            }
         }
         return new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: tA.numel });
     }
@@ -291,9 +299,6 @@ class Tensor {
     // Contiguity-related ops
     isContiguous() {
         const expectedStrides = Tensor.getStrides(this.shape);
-        if (expectedStrides.length !== this.strides.length) {
-            return false;
-        }
         for (let i = 0; i < this.strides.length; i++) {
             if (this.strides[i] !== expectedStrides[i]) {
                 return false;
@@ -342,6 +347,7 @@ class Tensor {
         const out = new Tensor(this.value, {
             shape: newShape,
             strides: outputStrides,
+            offset: this.offset,
             numel: outputSize,
             device: this.device
         });
@@ -356,28 +362,7 @@ class Tensor {
         return out;
     }
     reshape(newShape) {
-        // Verify shape size
-        const originalSize = this.numel;
-        const outputSize = Tensor.shapeToSize(newShape);
-        if (originalSize !== outputSize || typeof this.value === "number") {
-            throw new Error("Can not reshape: incompatible sizes");
-        }
-        // Create new tensor with forced compatibility (only contiguity for now)
-        const outputStrides = Tensor.getStrides(newShape);
-        const out = new Tensor(this.contiguous().value, {
-            shape: newShape,
-            strides: outputStrides,
-            numel: outputSize
-        });
-        // Gradient reshaped and flow back to the original tensor
-        if (this.requiresGrad) {
-            out.requiresGrad = true;
-            out.children.push(this);
-            out.gradFn = () => {
-                Tensor.addGrad(this, out.grad.reshape(this.shape));
-            };
-        }
-        return out;
+        return this.contiguous().view(newShape);
     }
     flatten(startDim = 0, endDim = -1) {
         // Handle negative indices
@@ -552,7 +537,7 @@ class Tensor {
     }
     // Tensor indexing
     index(indices) {
-        const tensorIndices = this.handleOther(indices).contiguous();
+        const tensorIndices = this.handleOther(indices).clone();
         if (typeof tensorIndices.value === "number") {
             return this.indexWithArray([tensorIndices.value]).squeeze(0);
         }
@@ -1856,8 +1841,29 @@ class Tensor {
     }
     // Returns a copy of the tensor (with new data allocation) and keeps grad connection
     clone() {
-        const newValue = typeof this.value === "number" ? this.value : [...this.value];
-        const out = new Tensor(newValue);
+        let out;
+        if (typeof this.value === "number") {
+            out = new Tensor(this.value);
+        }
+        else {
+            const contiguous = this.isContiguous();
+            const outputStrides = contiguous ? this.strides : Tensor.getStrides(this.shape);
+            const outputSize = this.numel;
+            const outputValue = new Array(outputSize);
+            if (contiguous) {
+                for (let index = 0; index < outputSize; index++) {
+                    outputValue[index] = this.value[this.offset + index];
+                }
+            }
+            else {
+                for (let index = 0; index < outputSize; index++) {
+                    const outputCoords = Tensor.indexToCoords(index, outputStrides);
+                    const originalIndex = Tensor.coordsToIndex(outputCoords, this.strides);
+                    outputValue[index] = this.value[this.offset + originalIndex];
+                }
+            }
+            out = new Tensor(outputValue, { shape: this.shape, strides: outputStrides, numel: outputSize });
+        }
         if (this.requiresGrad) {
             out.requiresGrad = true;
             out.children.push(this);
