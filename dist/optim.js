@@ -139,7 +139,7 @@ class AdamW extends BaseOptimizer {
         this.lr = options?.lr || 0.001;
         this.betas = options?.betas || [0.9, 0.999];
         this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0;
+        this.weightDecay = options?.weightDecay || 0.01;
     }
     step() {
         this.stepCount++;

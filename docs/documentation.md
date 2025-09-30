@@ -348,7 +348,7 @@ constructor(params: Tensor[], options?: AdamWOptions)
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
 * `public betas: [number, number]`: Holds the momentum, uses `options.betas` if available, `[0.9, 0.999]` otherwise.
 * `public eps: number`: Holds the dampening, uses `options.eps` if available, `1e-8` otherwise.
-* `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
+* `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0.01` otherwise.
 
 ### Methods
 

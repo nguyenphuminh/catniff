@@ -188,7 +188,7 @@ class AdamW extends BaseOptimizer {
         this.lr = options?.lr || 0.001;
         this.betas = options?.betas || [0.9, 0.999];
         this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0;
+        this.weightDecay = options?.weightDecay || 0.01;
     }
 
     step() {
@@ -207,7 +207,7 @@ class AdamW extends BaseOptimizer {
             let grad = param.grad.detach(), detachedParam = param.detach();
 
             // Apply weight decay (L2 regularization)
-            detachedParam = detachedParam.sub(detachedParam.mul(this.weightDecay).mul(this.lr))
+            detachedParam = detachedParam.sub(detachedParam.mul(this.weightDecay).mul(this.lr));
 
             // Get or initialize first moment buffer (momentum)
             let momentumBuffer = this.momentumBuffers.get(param);
