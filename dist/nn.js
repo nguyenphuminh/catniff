@@ -188,6 +188,42 @@ class LayerNorm {
         return normalized;
     }
 }
+class RMSNorm {
+    weight;
+    eps;
+    normalizedShape;
+    constructor(normalizedShape, eps = 1e-5, elementwiseAffine = true, device) {
+        this.eps = eps;
+        this.normalizedShape = Array.isArray(normalizedShape) ? normalizedShape : [normalizedShape];
+        if (this.normalizedShape.length === 0) {
+            throw new Error("Normalized shape cannot be empty");
+        }
+        if (elementwiseAffine) {
+            this.weight = core_1.Tensor.ones(this.normalizedShape, { requiresGrad: true, device });
+        }
+    }
+    forward(input) {
+        // Normalize over the specified dimensions
+        const normalizedDims = this.normalizedShape.length;
+        const startDim = input.shape.length - normalizedDims;
+        if (startDim < 0) {
+            throw new Error("Input does not have enough dims to normalize");
+        }
+        const dims = [];
+        for (let i = 0; i < normalizedDims; i++) {
+            if (input.shape[startDim + i] !== this.normalizedShape[i]) {
+                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${this.normalizedShape[i]}, got ${input.shape[startDim + i]}`);
+            }
+            dims.push(startDim + i);
+        }
+        let rms = input.square().mean(dims, true).add(this.eps).sqrt();
+        let normalized = input.div(rms);
+        if (this.weight) {
+            normalized = normalized.mul(this.weight);
+        }
+        return normalized;
+    }
+}
 class Embedding {
     weight;
     constructor(numEmbeddings, embeddingDim, device) {
@@ -316,6 +352,7 @@ exports.nn = {
     GRUCell,
     LSTMCell,
     LayerNorm,
+    RMSNorm,
     Embedding,
     MultiheadAttention,
     state

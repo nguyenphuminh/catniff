@@ -57,6 +57,13 @@ declare class LayerNorm {
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
     forward(input: Tensor): Tensor;
 }
+declare class RMSNorm {
+    weight?: Tensor;
+    eps: number;
+    normalizedShape: number[];
+    constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, device?: string);
+    forward(input: Tensor): Tensor;
+}
 declare class Embedding {
     weight: Tensor;
     constructor(numEmbeddings: number, embeddingDim: number, device: string);
@@ -83,6 +90,7 @@ export declare const nn: {
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
     LayerNorm: typeof LayerNorm;
+    RMSNorm: typeof RMSNorm;
     Embedding: typeof Embedding;
     MultiheadAttention: typeof MultiheadAttention;
     state: {
