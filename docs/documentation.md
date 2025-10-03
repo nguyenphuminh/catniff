@@ -493,6 +493,29 @@ constructor(
 
 * `forward(input: Tensor): Tensor`: Apply layer norm on input tensor.
 
+## nn.RMSNorm
+
+### Constructor
+
+```ts
+constructor(
+    normalizedShape: number | number[],
+    eps: number = 1e-5,
+    elementwiseAffine: boolean = true,
+    device?: string
+)
+```
+
+### Properties
+
+* `public weight?: Tensor`: Weight to scale, available if `elementwiseAffine` is `true`.
+* `public eps: number`: Basically just `eps` from the constructor.
+* `public normalizedShape: number[]`: Basically just `normalizedShape` from the constructor, padded into an array if needed.
+
+### Methods
+
+* `forward(input: Tensor): Tensor`: Apply RMS norm on input tensor.
+
 ## nn.Embedding
 
 ### Constructor
