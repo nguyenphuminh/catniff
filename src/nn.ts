@@ -10,7 +10,7 @@ function linearTransform(input: Tensor, weight: Tensor, bias?: Tensor): Tensor {
     return output;
 }
 
-class Linear {
+export class Linear {
     public weight: Tensor;
     public bias?: Tensor;
 
@@ -56,7 +56,7 @@ function rnnTransform(
     return output;
 }
 
-class RNNCell {
+export class RNNCell {
     public weightIH: Tensor;
     public weightHH: Tensor;
     public biasIH?: Tensor;
@@ -86,7 +86,7 @@ class RNNCell {
     }
 }
 
-class GRUCell {
+export class GRUCell {
     public weightIR: Tensor;
     public weightIZ: Tensor;
     public weightIN: Tensor;
@@ -136,7 +136,7 @@ class GRUCell {
     }
 }
 
-class LSTMCell {
+export class LSTMCell {
     public weightII: Tensor;
     public weightIF: Tensor;
     public weightIG: Tensor;
@@ -202,7 +202,7 @@ class LSTMCell {
     }
 }
 
-class LayerNorm {
+export class LayerNorm {
     public weight?: Tensor;
     public bias?: Tensor;
     public eps: number;
@@ -266,7 +266,7 @@ class LayerNorm {
     }
 }
 
-class RMSNorm {
+export class RMSNorm {
     public weight?: Tensor;
     public eps: number;
     public normalizedShape: number[];
@@ -319,7 +319,7 @@ class RMSNorm {
     }
 }
 
-class Embedding {
+export class Embedding {
     public weight: Tensor;
 
     constructor(numEmbeddings: number, embeddingDim: number, device: string) {
@@ -331,7 +331,7 @@ class Embedding {
     }
 }
 
-class MultiheadAttention {
+export class MultiheadAttention {
     public qProjection: Linear;
     public kProjection: Linear;
     public vProjection: Linear;

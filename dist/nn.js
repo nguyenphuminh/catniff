@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nn = void 0;
+exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
 const core_1 = require("./core");
 function linearTransform(input, weight, bias) {
     let output = input.matmul(weight.t());
@@ -24,6 +24,7 @@ class Linear {
         return linearTransform(input, this.weight, this.bias);
     }
 }
+exports.Linear = Linear;
 function rnnTransform(input, hidden, inputWeight, hiddenWeight, inputBias, hiddenBias) {
     let output = input.matmul(inputWeight.t()).add(hidden.matmul(hiddenWeight.t()));
     if (inputBias) {
@@ -54,6 +55,7 @@ class RNNCell {
         return rnnTransform(input, hidden, this.weightIH, this.weightHH, this.biasIH, this.biasHH).tanh();
     }
 }
+exports.RNNCell = RNNCell;
 class GRUCell {
     weightIR;
     weightIZ;
@@ -93,6 +95,7 @@ class GRUCell {
         return (z.neg().add(1).mul(n).add(z.mul(hidden)));
     }
 }
+exports.GRUCell = GRUCell;
 class LSTMCell {
     weightII;
     weightIF;
@@ -144,6 +147,7 @@ class LSTMCell {
         return [h, c];
     }
 }
+exports.LSTMCell = LSTMCell;
 class LayerNorm {
     weight;
     bias;
@@ -188,6 +192,7 @@ class LayerNorm {
         return normalized;
     }
 }
+exports.LayerNorm = LayerNorm;
 class RMSNorm {
     weight;
     eps;
@@ -224,6 +229,7 @@ class RMSNorm {
         return normalized;
     }
 }
+exports.RMSNorm = RMSNorm;
 class Embedding {
     weight;
     constructor(numEmbeddings, embeddingDim, device) {
@@ -233,6 +239,7 @@ class Embedding {
         return this.weight.index(input);
     }
 }
+exports.Embedding = Embedding;
 class MultiheadAttention {
     qProjection;
     kProjection;
@@ -284,6 +291,7 @@ class MultiheadAttention {
         return [output, needWeights ? attnWeights : undefined];
     }
 }
+exports.MultiheadAttention = MultiheadAttention;
 const state = {
     getParameters(model, visited = new WeakSet()) {
         if (visited.has(model))

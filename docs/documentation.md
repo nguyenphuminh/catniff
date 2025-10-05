@@ -257,7 +257,7 @@ Here are utilities (that might be deleted in the future) that you probably won't
 * `weightDecay?: number`
 * `nesterov?: boolean`
 
-## Optim.BaseOptimizer (abtract class)
+## Optim.BaseOptimizer / BaseOptimizer (abtract class)
 
 ### Constructor
 
@@ -273,7 +273,7 @@ constructor(params: Tensor[], options?: SGDOptions)
 
 * `zeroGrad()`: Set the `grad` property of each param in `this.params` to `Tensor.zerosLike(param)`.
 
-## Optim.SGD extends Optim.BaseOptimizer
+## Optim.SGD extends Optim.BaseOptimizer / SGD
 
 ### Constructor
 
@@ -303,7 +303,7 @@ constructor(params: Tensor[], options?: SGDOptions)
 * `eps?: number`
 * `weightDecay?: number`
 
-## Optim.Adam extends Optim.BaseOptimizer
+## Optim.Adam extends Optim.BaseOptimizer / Adam
 
 ### Constructor
 
@@ -333,7 +333,7 @@ constructor(params: Tensor[], options?: AdamOptions)
 * `eps?: number`
 * `weightDecay?: number`
 
-## Optim.AdamW extends Optim.BaseOptimizer
+## Optim.AdamW extends Optim.BaseOptimizer / AdamW
 
 ### Constructor
 
@@ -354,7 +354,7 @@ constructor(params: Tensor[], options?: AdamWOptions)
 
 * `step()`: Perform one AdamW iteration and update values of parameters in-place.
 
-## nn.Linear
+## nn.Linear / Linear
 
 ### Constructor
 
@@ -376,7 +376,7 @@ constructor(
 
 * `forward(input: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
 
-## nn.RNNCell
+## nn.RNNCell / RNNCell
 
 ### Constructor
 
@@ -400,7 +400,7 @@ constructor(
 
 * `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the recurrent cell, returning the new hidden state.
 
-## nn.GRUCell
+## nn.GRUCell / GRUCell
 
 ### Constructor
 
@@ -432,7 +432,7 @@ constructor(
 
 * `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the GRU cell, returning the new hidden state.
 
-## nn.LSTMCell
+## nn.LSTMCell / LSTMCell
 
 ### Constructor
 
@@ -468,7 +468,7 @@ constructor(
 
 * `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
 
-## nn.LayerNorm
+## nn.LayerNorm / LayerNorm
 
 ### Constructor
 
@@ -493,7 +493,7 @@ constructor(
 
 * `forward(input: Tensor): Tensor`: Apply layer norm on input tensor.
 
-## nn.RMSNorm
+## nn.RMSNorm / RMSNorm
 
 ### Constructor
 
@@ -516,7 +516,7 @@ constructor(
 
 * `forward(input: Tensor): Tensor`: Apply RMS norm on input tensor.
 
-## nn.Embedding
+## nn.Embedding / Embedding
 
 ### Constructor
 
@@ -536,7 +536,7 @@ constructor(
 
 * `forward(input: Tensor | TensorValue): Tensor`: Perform a lookup from the weight.
 
-## nn.MultiheadAttention
+## nn.MultiheadAttention / MultiHeadAttention
 
 ### Constructor
 
@@ -588,6 +588,30 @@ forward(
 
 `StateDict` is just an object with string keys and values of type `any`.
 
+## LRScheduler.StepLR
+
+### Constructor
+
+```ts
+constructor(
+    optimizer: BaseOptimizer,
+    stepSize: number,
+    gamma = 0.1,
+    lastEpoch = -1
+)
+```
+
+### Properties
+
+* `public optimizer: BaseOptimizer;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
+* `public stepSize: number;`: Holds the number of steps before an LR update, initialized with the `stepSize` param.
+* `public gamma: number;`: Holds a number to multiply into LR , initialized with the `gamma` param.
+* `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
+* `public baseLR: number;`: Holds the original LR of optimizer.
+
+### Methods
+
+* `step(epoch?: number)`: Apply a scheduler run one time. If an `epoch` is passed, it will replace the current `lastEpoch` prop.
 
 # Custom backend
 

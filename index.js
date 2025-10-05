@@ -1,5 +1,6 @@
 module.exports = {
     ...require("./dist/core"),
     ...require("./dist/optim"),
-    ...require("./dist/nn")
+    ...require("./dist/nn"),
+    ...require("./dist/lrscheduler")
 };

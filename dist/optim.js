@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Optim = void 0;
+exports.Optim = exports.AdamW = exports.Adam = exports.SGD = exports.BaseOptimizer = void 0;
 const core_1 = require("./core");
 class BaseOptimizer {
     params;
-    constructor(params) {
+    lr;
+    constructor(params, options) {
         this.params = params;
+        this.lr = options?.lr || 0.001;
     }
     zeroGrad() {
         for (let index = 0; index < this.params.length; index++) {
@@ -14,16 +16,15 @@ class BaseOptimizer {
         }
     }
 }
+exports.BaseOptimizer = BaseOptimizer;
 class SGD extends BaseOptimizer {
     momentumBuffers = new Map();
-    lr;
     momentum;
     dampening;
     weightDecay;
     nesterov;
     constructor(params, options) {
-        super(params);
-        this.lr = options?.lr || 0.001;
+        super(params, options);
         this.momentum = options?.momentum || 0;
         this.dampening = options?.dampening || 0;
         this.weightDecay = options?.weightDecay || 0;
@@ -66,17 +67,16 @@ class SGD extends BaseOptimizer {
         }
     }
 }
+exports.SGD = SGD;
 class Adam extends BaseOptimizer {
     momentumBuffers = new Map(); // First moment (m_t)
     velocityBuffers = new Map(); // Second moment (v_t)
     stepCount = 0;
-    lr;
     betas;
     eps;
     weightDecay;
     constructor(params, options) {
-        super(params);
-        this.lr = options?.lr || 0.001;
+        super(params, options);
         this.betas = options?.betas || [0.9, 0.999];
         this.eps = options?.eps || 1e-8;
         this.weightDecay = options?.weightDecay || 0;
@@ -126,17 +126,16 @@ class Adam extends BaseOptimizer {
         }
     }
 }
+exports.Adam = Adam;
 class AdamW extends BaseOptimizer {
     momentumBuffers = new Map(); // First moment (m_t)
     velocityBuffers = new Map(); // Second moment (v_t)
     stepCount = 0;
-    lr;
     betas;
     eps;
     weightDecay;
     constructor(params, options) {
-        super(params);
-        this.lr = options?.lr || 0.001;
+        super(params, options);
         this.betas = options?.betas || [0.9, 0.999];
         this.eps = options?.eps || 1e-8;
         this.weightDecay = options?.weightDecay || 0.01;
@@ -184,6 +183,7 @@ class AdamW extends BaseOptimizer {
         }
     }
 }
+exports.AdamW = AdamW;
 exports.Optim = {
     BaseOptimizer,
     SGD,

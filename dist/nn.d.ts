@@ -1,11 +1,11 @@
 import { Tensor, TensorValue } from "./core";
-declare class Linear {
+export declare class Linear {
     weight: Tensor;
     bias?: Tensor;
     constructor(inFeatures: number, outFeatures: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue): Tensor;
 }
-declare class RNNCell {
+export declare class RNNCell {
     weightIH: Tensor;
     weightHH: Tensor;
     biasIH?: Tensor;
@@ -13,7 +13,7 @@ declare class RNNCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
 }
-declare class GRUCell {
+export declare class GRUCell {
     weightIR: Tensor;
     weightIZ: Tensor;
     weightIN: Tensor;
@@ -29,7 +29,7 @@ declare class GRUCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
 }
-declare class LSTMCell {
+export declare class LSTMCell {
     weightII: Tensor;
     weightIF: Tensor;
     weightIG: Tensor;
@@ -49,7 +49,7 @@ declare class LSTMCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor];
 }
-declare class LayerNorm {
+export declare class LayerNorm {
     weight?: Tensor;
     bias?: Tensor;
     eps: number;
@@ -57,19 +57,19 @@ declare class LayerNorm {
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, bias?: boolean, device?: string);
     forward(input: Tensor): Tensor;
 }
-declare class RMSNorm {
+export declare class RMSNorm {
     weight?: Tensor;
     eps: number;
     normalizedShape: number[];
     constructor(normalizedShape: number | number[], eps?: number, elementwiseAffine?: boolean, device?: string);
     forward(input: Tensor): Tensor;
 }
-declare class Embedding {
+export declare class Embedding {
     weight: Tensor;
     constructor(numEmbeddings: number, embeddingDim: number, device: string);
     forward(input: Tensor | TensorValue): Tensor;
 }
-declare class MultiheadAttention {
+export declare class MultiheadAttention {
     qProjection: Linear;
     kProjection: Linear;
     vProjection: Linear;
@@ -100,4 +100,3 @@ export declare const nn: {
         loadStateDict(model: any, stateDict: StateDict, prefix?: string, visited?: WeakSet<object>): void;
     };
 };
-export {};
