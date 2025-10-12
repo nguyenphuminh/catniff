@@ -1,6 +1,6 @@
 {
   "name": "catniff",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "A small Torch-like deep learning framework for Javascript",
   "main": "index.js",
   "scripts": {
@@ -31,7 +31,7 @@
     "pytorch"
   ],
   "author": "nguyenphuminh",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/nguyenphuminh/catniff/issues"
   },
