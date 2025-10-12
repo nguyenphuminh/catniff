@@ -289,7 +289,6 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
-                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
                 const selfWithGrad = Tensor.createGraph ? this : this.detach();
                 const otherWithGrad = Tensor.createGraph ? other : other.detach();
@@ -316,7 +315,6 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
-                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
                 const selfWithGrad = Tensor.createGraph ? this : this.detach();
 
@@ -810,6 +808,101 @@ export class Tensor {
         }
 
         return results;
+    }
+
+    // Tensor concatentation
+    cat(other: Tensor | TensorValue, dim = 0): Tensor {
+        other = this.handleOther(other);
+
+        // Handle scalars
+        if (typeof this.value === "number" || typeof other.value === "number") {
+            throw new Error("Can not concatenate scalars");
+        }
+
+        // Handle negative indices
+        if (dim < 0) { dim += this.shape.length }
+
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension does not exist to concatenate");
+        }
+
+        // If shape does not match, throw error
+        if (this.shape.length !== other.shape.length) {
+            throw new Error("Shape does not match to concatenate");
+        }
+
+        const outputShape = new Array(this.shape.length);
+
+        for (let currentDim = 0; currentDim < this.shape.length; currentDim++) {
+            if (currentDim === dim) {
+                outputShape[currentDim] = this.shape[currentDim] + other.shape[currentDim];
+            } else if (this.shape[currentDim] !== other.shape[currentDim]) {
+                throw new Error("Shape does not match to concatenate");
+            } else {
+                outputShape[currentDim] = this.shape[currentDim];
+            }
+        }
+
+        const outputSize = Tensor.shapeToSize(outputShape);
+        const outputStrides = Tensor.getStrides(outputShape);
+        const outputValue = new Array(outputSize);
+
+        for (let outIndex = 0; outIndex < outputSize; outIndex++) {
+            const coords = Tensor.indexToCoords(outIndex, outputStrides);
+            
+            // Check which tensor this output position comes from
+            if (coords[dim] < this.shape[dim]) {
+                // Comes from this tensor
+                const srcIndex = Tensor.coordsToIndex(coords, this.strides);
+                outputValue[outIndex] = this.value[srcIndex + this.offset];
+            } else {
+                // Comes from other tensor - adjust coordinate in concat dimension
+                const otherCoords = [...coords];
+                otherCoords[dim] -= this.shape[dim];
+                const srcIndex = Tensor.coordsToIndex(otherCoords, other.strides);
+                outputValue[outIndex] = other.value[srcIndex + other.offset];
+            }
+        }
+
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides,
+            numel: outputSize
+        });
+
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+        }
+
+        if (other.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(other);
+        }
+
+        if (out.requiresGrad) {
+            out.gradFn = () => {
+                const outGrad = (out.grad as Tensor);
+                const thisRanges = new Array(this.shape.length);
+                const otherRanges = new Array(other.shape.length);
+
+                for (let currentDim = 0; currentDim < this.shape.length; currentDim++) {
+                    if (currentDim === dim) {
+                        thisRanges[currentDim] = [0, this.shape[currentDim], 1];
+                        otherRanges[currentDim] = [this.shape[currentDim], outputShape[currentDim], 1];
+                    } else {
+                        thisRanges[currentDim] = [];
+                        otherRanges[currentDim] = [];
+                    }
+                }
+
+                Tensor.addGrad(this, outGrad.slice(thisRanges));
+                Tensor.addGrad(other, outGrad.slice(otherRanges));
+            };
+        }
+
+        return out;
     }
 
     // Tensor squeeze
@@ -1919,7 +2012,6 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
-                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
                 const selfWithGrad = Tensor.createGraph ? this : this.detach();
                 const otherWithGrad = Tensor.createGraph ? other : other.detach();
@@ -1986,7 +2078,6 @@ export class Tensor {
 
         if (out.requiresGrad) {
             out.gradFn = () => {
-                // Disable gradient collecting of gradients themselves
                 const outGrad = (out.grad as Tensor);
                 const selfWithGrad = Tensor.createGraph ? this : this.detach();
                 const otherWithGrad = Tensor.createGraph ? other : other.detach();

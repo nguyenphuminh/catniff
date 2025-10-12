@@ -161,6 +161,7 @@ All autograd-supported tensor arithmetic methods:
 * `index(indices: Tensor | TensorValue): Tensor`: Returns a new tensor with items indexed from `this` tensor. For example, if `this` has shape `[3,4,5]`, and `indices` is a scalar, the result will have shape `[4,5]`, and if `indices` has shape `[2,3]`, the result will have shape `[2,3,4,5]`. There is also `indexWithArray` but `indices` are only of type `number[]`.
 * `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `chunk(chunks: number, dim = 0): Tensor[]`: Returns a `chunks` number of chunks split from `this`, at dimension `dim`.
+* `cat(other: Tensor | TensorValue, dim = 0): Tensor`: Concatenate `this` tensor with `other` tensor along the specified dimension `dim`. 
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
 * `mm(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other` 2D tensors (matrices). If the two are not 2D, it will throw an error.
 * `mv(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` 2D tensor (matrix) and `other` 1D tensor (vector). Basically if `other` is of size n, it will be reshaped into an nx1 matrix. If `this` is not 2D and `other` is not 1D, it will throw an error.
