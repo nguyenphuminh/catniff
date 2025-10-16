@@ -61,6 +61,7 @@ export declare class Tensor {
     index(indices: Tensor | TensorValue): Tensor;
     slice(ranges: number[][]): Tensor;
     chunk(chunks: number, dim?: number): Tensor[];
+    expand(newShape: number[]): Tensor;
     cat(other: Tensor | TensorValue, dim?: number): Tensor;
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;

@@ -647,6 +647,46 @@ class Tensor {
         }
         return results;
     }
+    // Tensor expansion
+    expand(newShape) {
+        // Handle scalars
+        let self = this;
+        if (typeof this.value === "number") {
+            self = self.unsqueeze(0);
+        }
+        // Pad shapes to same length
+        const ndim = Math.max(self.shape.length, newShape.length);
+        const oldShape = [...Array(ndim - self.shape.length).fill(1), ...self.shape];
+        const oldStrides = [...Array(ndim - self.strides.length).fill(0), ...self.strides];
+        const targetShape = [...Array(ndim - newShape.length).fill(1), ...newShape];
+        const newStrides = new Array(ndim);
+        for (let i = 0; i < ndim; i++) {
+            if (oldShape[i] === targetShape[i]) {
+                newStrides[i] = oldStrides[i];
+            }
+            else if (oldShape[i] === 1) {
+                newStrides[i] = 0;
+            }
+            else {
+                throw new Error(`Cannot expand dimension of size ${oldShape[i]} to ${targetShape[i]}`);
+            }
+        }
+        const out = new Tensor(self.value, {
+            shape: targetShape,
+            strides: newStrides,
+            offset: self.offset,
+            numel: Tensor.shapeToSize(targetShape),
+            device: self.device
+        });
+        if (self.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(self);
+            out.gradFn = () => {
+                Tensor.addGrad(self, out.grad);
+            };
+        }
+        return out;
+    }
     // Tensor concatentation
     cat(other, dim = 0) {
         other = this.handleOther(other);
