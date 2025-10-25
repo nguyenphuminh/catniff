@@ -220,7 +220,7 @@ export declare class Tensor {
     val(): TensorValue;
     detach(): Tensor;
     clone(): Tensor;
-    replace(other: Tensor | TensorValue, allowShapeMismatch?: boolean): Tensor;
+    replace(other: Tensor | TensorValue): Tensor;
     static backends: Map<string, Backend>;
     to(device: string): Tensor;
     to_(device: string): Tensor;

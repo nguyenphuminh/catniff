@@ -2705,19 +2705,24 @@ export class Tensor {
     }
 
     // Returns this tensor with value replaced with the value of another tensor
-    replace(other: Tensor | TensorValue, allowShapeMismatch: boolean = false): Tensor {
+    replace(other: Tensor | TensorValue): Tensor {
         other = this.handleOther(other);
 
         // Verify shape
-        if (!allowShapeMismatch) {
-            for (let index = 0; index < this.shape.length; index++) {
-                if (this.shape[index] !== other.shape[index]) {
-                    throw new Error("Shape mismatch when trying to do tensor value replacement");
-                }
+        if (this.shape.length !== other.shape.length) {
+            throw new Error("Shape mismatch when trying to do tensor value replacement");
+        }
+
+        for (let index = 0; index < this.shape.length; index++) {
+            if (this.shape[index] !== other.shape[index]) {
+                throw new Error("Shape mismatch when trying to do tensor value replacement");
             }
         }
 
+        // Reassign values
         this.value = other.value;
+        this.strides = other.strides;
+        this.offset = other.offset;
 
         return this;
     }

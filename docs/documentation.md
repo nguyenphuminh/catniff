@@ -192,7 +192,7 @@ Here are commonly used utilities:
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and keeps grad connection.
-* `replace(other: Tensor | TensorValue, allowShapeMismatch: boolean = false): Tensor`: Returns this tensor with value replaced with the value of another tensor.
+* `replace(other: Tensor | TensorValue): Tensor`: Returns this tensor with value replaced with the value of another tensor.
 * `to(device: string): Tensor`: Returns a new tensor with the same value as this tensor, but on a different device.
 * `static full(shape: number[], num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor with provided `shape`, filled with `num`, configured with `options`.
 * `static fullLike(tensor: Tensor, num: number, options: TensorOptions = {}): Tensor`: Returns a new tensor of same shape and strides as `tensor`, filled with `num`, configured with `options`.
