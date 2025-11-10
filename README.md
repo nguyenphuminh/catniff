@@ -148,6 +148,18 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 * Code refactoring.
 * Proper tests.
 
+## Cite Catniff
+
+```bibtex
+@misc{catniff,
+  author = {Phu Minh Nguyen},
+  title = {Catniff: Torch-like deep learning framework for Javascript},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/nguyenphuminh/catniff}
+}
+```
+
 ## Copyrights and License
 
 Copyrights © 2025 Nguyen Phu Minh.
