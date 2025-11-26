@@ -195,11 +195,11 @@ class Tensor {
         }
         // First tensor is scalar
         if (tA.shape.length === 0) {
-            return Tensor.elementWiseSelf(tB, (a) => op(a, tA.value[0]));
+            return Tensor.elementWiseSelf(tB.cast(outputDtype), (a) => op(a, tA.value[0]));
         }
         // Second tensor is scalar
         if (tB.shape.length === 0) {
-            return Tensor.elementWiseSelf(tA, (a) => op(a, tB.value[0]));
+            return Tensor.elementWiseSelf(tA.cast(outputDtype), (a) => op(a, tB.value[0]));
         }
         // Pad + broadcast shape
         const [paddedAStrides, paddedBStrides, paddedAShape, paddedBShape] = Tensor.padShape(tA.strides, tB.strides, tA.shape, tB.shape);
@@ -2055,7 +2055,8 @@ class Tensor {
         return new Tensor(outputValue, {
             shape,
             offset: 0,
-            numel: outputSize, ...options
+            numel: outputSize,
+            ...options
         });
     }
     // Utility to create an 1D tensor from a range incrementing with "step"

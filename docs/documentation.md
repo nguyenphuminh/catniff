@@ -191,6 +191,7 @@ All autograd-supported tensor arithmetic methods:
 Here are commonly used utilities:
 
 * `backward(options: { zeroGrad?: boolean } = {})`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation if not explicitly specified in `options.zeroGrad`.
+* `cast(dtype: dtype): Tensor`: Return a new tensor casted to `dtype`.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and keeps grad connection.
@@ -218,7 +219,7 @@ Here are commonly used utilities:
 
 Here are utilities (that might be deleted in the future) that you probably won't have to use but they might come in handy:
 
-* `static flattenValue(tensor: TensorValue): number[] | number`: Used to flatten an n-D array to 1D. If argument is a number, it would return the number.
+* `static flattenValue(tensorValue: TensorValue): ArrayLike<number>`: Used to flatten an n-D array to 1D, numbers will be converted into size-1 arrays.
 * `static getShape(tensor: TensorValue): number[]`: Used to get shape (size of each dimension) of an n-D array as a number array.
 * `static getStrides(shape: number[]): number[]`: Used to get strides of tensor from its shape. Strides are needed internally because they are steps taken to get a value at each dimension now that the tensor has been flatten to 1D.
 * `static padShape`: Used to pad shape and strides of two tensors to be of same number of dimensions.
@@ -367,7 +368,8 @@ constructor(
     inFeatures: number,
     outFeatures: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -389,7 +391,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -413,7 +416,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -445,7 +449,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -482,7 +487,8 @@ constructor(
     eps: number = 1e-5,
     elementwiseAffine: boolean = true,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -506,7 +512,8 @@ constructor(
     normalizedShape: number | number[],
     eps: number = 1e-5,
     elementwiseAffine: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -528,7 +535,8 @@ constructor(
 constructor(
     numEmbeddings: number,
     embeddingDim: number,
-    device: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -550,7 +558,8 @@ constructor(
     numHeads: number,
     dropout = 0,
     bias = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
