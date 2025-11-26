@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tensor = void 0;
+const dtype_1 = require("./dtype");
 const utils_1 = require("./utils");
 class Tensor {
     value;
@@ -13,12 +14,16 @@ class Tensor {
     gradFn;
     children;
     device;
+    dtype;
     static training = false;
     static noGrad = false;
     static createGraph = false;
     constructor(value, options = {}) {
-        // Storage
-        this.value = Tensor.flattenValue(value);
+        // Memory buffer
+        this.dtype = options.dtype || "float32";
+        const flatValue = Tensor.flattenValue(value);
+        const TypedArrayConstructor = dtype_1.TypedArray[this.dtype];
+        this.value = flatValue instanceof TypedArrayConstructor ? flatValue : TypedArrayConstructor.from(flatValue);
         // Tensor metadata
         this.shape = options.shape || Tensor.getShape(value);
         this.strides = options.strides || Tensor.getStrides(this.shape);
@@ -34,31 +39,34 @@ class Tensor {
         this.to_(this.device);
     }
     // Utility to flatten an nD array to be 1D
-    static flattenValue(tensor) {
+    static flattenValue(tensorValue) {
         // Handle scalar tensors
-        if (typeof tensor === "number")
-            return tensor;
+        if (typeof tensorValue === "number")
+            return [tensorValue];
         // If value is already 1D, we just need to return the value ('s reference)
-        if (typeof tensor[0] === "number")
-            return tensor;
+        if (typeof tensorValue[0] === "number")
+            return tensorValue;
         // Or else recursively traverse through the nD array to flatten
         const result = [];
         function traverse(arr) {
             if (typeof arr === "number") {
                 result.push(arr);
+                // Assume if we can index a value, it is an ArrayLike
             }
-            else if (Array.isArray(arr)) {
-                arr.forEach(traverse);
+            else if (typeof arr[0] !== "undefined") {
+                for (let index = 0; index < arr.length; index++) {
+                    traverse(arr[index]);
+                }
             }
         }
-        traverse(tensor);
+        traverse(tensorValue);
         return result;
     }
     // Utility to get shape from tensor *value*
-    static getShape(tensor) {
+    static getShape(tensorValue) {
         const shape = [];
-        let subA = tensor;
-        while (Array.isArray(subA)) {
+        let subA = tensorValue;
+        while (typeof subA !== "number") {
             shape.push(subA.length);
             subA = subA[0];
         }
@@ -146,17 +154,52 @@ class Tensor {
         }
         return prod;
     }
-    ;
+    // Utility to get best possible result type if type conflicts happen:
+    static getResultDtype(type1, type2) {
+        if (type1 === type2)
+            return type1;
+        const type1Ranking = dtype_1.dtypeHiearchy[type1];
+        const type2Ranking = dtype_1.dtypeHiearchy[type2];
+        if (type1Ranking > type2Ranking) {
+            return type1;
+        }
+        return type2;
+    }
+    // Utility to handle other tensor if an op needs a second operand
+    handleOther(other) {
+        if (other instanceof Tensor) {
+            if (this.device !== other.device) {
+                throw new Error("Can not operate on tensors that are not on the same device");
+            }
+            return other;
+        }
+        return new Tensor(other, {
+            offset: 0,
+            device: this.device,
+            dtype: this.dtype
+        });
+    }
     // Utility for binary (two operators involved) element-wise ops
     static elementWiseAB(tA, tB, op) {
-        if (typeof tA.value === "number" && typeof tB.value === "number") {
-            return new Tensor(op(tA.value, tB.value));
+        const outputDtype = Tensor.getResultDtype(tA.dtype, tB.dtype);
+        // Both are scalars
+        if (tA.shape.length === 0 && tB.shape.length === 0) {
+            return new Tensor(op(tA.value[0], tB.value[0]), {
+                shape: [],
+                strides: [],
+                offset: 0,
+                numel: 1,
+                device: tA.device,
+                dtype: outputDtype
+            });
         }
-        if (typeof tA.value === "number") {
-            return Tensor.elementWiseSelf(tB, (a) => op(a, tA.value));
+        // First tensor is scalar
+        if (tA.shape.length === 0) {
+            return Tensor.elementWiseSelf(tB, (a) => op(a, tA.value[0]));
         }
-        if (typeof tB.value === "number") {
-            return Tensor.elementWiseSelf(tA, (a) => op(a, tB.value));
+        // Second tensor is scalar
+        if (tB.shape.length === 0) {
+            return Tensor.elementWiseSelf(tA, (a) => op(a, tB.value[0]));
         }
         // Pad + broadcast shape
         const [paddedAStrides, paddedBStrides, paddedAShape, paddedBShape] = Tensor.padShape(tA.strides, tB.strides, tA.shape, tB.shape);
@@ -164,7 +207,7 @@ class Tensor {
         // Get other output info
         const outputStrides = Tensor.getStrides(outputShape);
         const outputSize = Tensor.shapeToSize(outputShape);
-        const outputValue = new Array(outputSize);
+        const outputValue = new dtype_1.TypedArray[outputDtype](outputSize);
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
             const coordsOutput = Tensor.indexToCoords(i, outputStrides);
@@ -178,18 +221,29 @@ class Tensor {
         return new Tensor(outputValue, {
             shape: outputShape,
             strides: outputStrides,
-            numel: outputSize
+            offset: 0,
+            numel: outputSize,
+            device: tA.device,
+            dtype: outputDtype
         });
     }
     // Utility for self-inflicting element-wise ops
     static elementWiseSelf(tA, op) {
-        if (typeof tA.value === "number")
-            return new Tensor(op(tA.value));
+        // Handle scalar case
+        if (tA.shape.length === 0)
+            return new Tensor(op(tA.value[0]), {
+                shape: [],
+                strides: [],
+                offset: 0,
+                numel: 1,
+                device: tA.device,
+                dtype: tA.dtype
+            });
         const contiguous = tA.isContiguous();
         const outputShape = tA.shape;
         const outputStrides = contiguous ? tA.strides : Tensor.getStrides(outputShape);
         const outputSize = tA.numel;
-        const outputValue = new Array(outputSize);
+        const outputValue = new dtype_1.TypedArray[tA.dtype](outputSize);
         if (contiguous) {
             for (let index = 0; index < outputSize; index++) {
                 outputValue[index] = op(tA.value[index + tA.offset]);
@@ -202,7 +256,14 @@ class Tensor {
                 outputValue[index] = op(tA.value[originalIndex]);
             }
         }
-        return new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: tA.numel });
+        return new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides,
+            offset: 0,
+            numel: tA.numel,
+            device: tA.device,
+            dtype: tA.dtype
+        });
     }
     // Utility to do element-wise operation and build a dag node with another tensor
     elementWiseABDAG(other, op, thisGrad = () => new Tensor(0), otherGrad = () => new Tensor(0)) {
@@ -246,16 +307,6 @@ class Tensor {
         }
         return out;
     }
-    // Utility to handle other tensor if an op needs a second operand
-    handleOther(other) {
-        if (other instanceof Tensor) {
-            if (this.device !== other.device) {
-                throw new Error("Can not operate on tensors that are not on the same device");
-            }
-            return other;
-        }
-        return new Tensor(other, { device: this.device });
-    }
     // Utility to add to gradient of tensor
     static addGrad(tensor, accumGrad) {
         const axesToSqueeze = [];
@@ -278,7 +329,7 @@ class Tensor {
             tensor.grad = squeezedGrad;
         }
         else {
-            tensor.grad = tensor.grad.add(squeezedGrad);
+            tensor.grad = tensor.grad.add(squeezedGrad.cast(tensor.dtype));
         }
     }
     static normalizeDims(dims, numDims) {
@@ -306,20 +357,27 @@ class Tensor {
     }
     contiguous() {
         // Check if scalar
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         // Check if already contiguous
         if (this.isContiguous())
             return this;
         const outputStrides = Tensor.getStrides(this.shape);
         const outputSize = this.numel;
-        const outputValue = new Array(outputSize);
+        const outputValue = new dtype_1.TypedArray[this.dtype](outputSize);
         for (let index = 0; index < outputSize; index++) {
             const outputCoords = Tensor.indexToCoords(index, outputStrides);
             const originalIndex = Tensor.coordsToIndex(outputCoords, this.strides);
             outputValue[index] = this.value[this.offset + originalIndex];
         }
-        const out = new Tensor(outputValue, { shape: this.shape, strides: outputStrides, numel: outputSize });
+        const out = new Tensor(outputValue, {
+            shape: this.shape,
+            strides: outputStrides,
+            offset: 0,
+            numel: outputSize,
+            device: this.device,
+            dtype: this.dtype
+        });
         // Gradient flow back to the original tensor
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -334,7 +392,7 @@ class Tensor {
         // Verify shape size
         const originalSize = this.numel;
         const outputSize = Tensor.shapeToSize(newShape);
-        if (originalSize !== outputSize || typeof this.value === "number") {
+        if (originalSize !== outputSize) {
             throw new Error("Can not create view: incompatible sizes");
         }
         // Verify compatibility (only contiguity for now)
@@ -347,7 +405,8 @@ class Tensor {
             strides: outputStrides,
             offset: this.offset,
             numel: outputSize,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         // Gradient reshaped and flow back to the original tensor
         if (this.requiresGrad) {
@@ -423,7 +482,8 @@ class Tensor {
             strides: newStrides,
             offset: this.offset,
             numel: this.numel,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         out.requiresGrad = this.requiresGrad;
         // Handle gradient if needed
@@ -464,7 +524,8 @@ class Tensor {
             strides: newStrides,
             offset: this.offset,
             numel: this.numel,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -484,7 +545,7 @@ class Tensor {
     }
     // Utility for indexing with array of indices
     indexWithArray(indices) {
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         indices = Tensor.normalizeDims(indices, this.shape[0]);
         // Init necessary stuff for indexing
@@ -494,7 +555,7 @@ class Tensor {
         // Init output data
         const outputShape = [indices.length, ...reducedShape];
         const outputSize = Tensor.shapeToSize(outputShape);
-        const outputValue = new Array(outputSize);
+        const outputValue = new dtype_1.TypedArray[this.dtype](outputSize);
         for (let i = 0; i < indices.length; i++) {
             const sourceRowIndex = indices[i];
             const targetStart = i * elementsPerIndex;
@@ -507,7 +568,10 @@ class Tensor {
         }
         const out = new Tensor(outputValue, {
             shape: outputShape,
-            numel: outputSize
+            offset: 0,
+            numel: outputSize,
+            device: this.device,
+            dtype: this.dtype
         });
         // Handle gradient
         if (this.requiresGrad) {
@@ -536,13 +600,13 @@ class Tensor {
     // Tensor indexing
     index(indices) {
         const tensorIndices = this.handleOther(indices).clone();
-        if (typeof tensorIndices.value === "number") {
-            return this.indexWithArray([tensorIndices.value]).squeeze(0);
+        if (tensorIndices.shape.length === 0) {
+            return this.indexWithArray([tensorIndices.value[0]]).squeeze(0);
         }
         else {
             const originalShape = tensorIndices.shape;
             const flatIndices = tensorIndices.value;
-            const result = this.indexWithArray(flatIndices);
+            const result = this.indexWithArray(Array.from(flatIndices));
             // Reshape to preserve input shape
             const outputShape = [...originalShape, ...this.shape.slice(1)];
             return result.reshape(outputShape);
@@ -551,7 +615,7 @@ class Tensor {
     // Tensor slicing
     slice(ranges) {
         // Handle scalars
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         const newShape = [];
         const newStrides = [];
@@ -589,7 +653,8 @@ class Tensor {
             shape: newShape,
             strides: newStrides,
             offset: newOffset,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -651,7 +716,7 @@ class Tensor {
     expand(newShape) {
         // Handle scalars
         let self = this;
-        if (typeof this.value === "number") {
+        if (this.shape.length === 0) {
             self = self.unsqueeze(0);
         }
         // Pad shapes to same length
@@ -675,8 +740,8 @@ class Tensor {
             shape: targetShape,
             strides: newStrides,
             offset: self.offset,
-            numel: Tensor.shapeToSize(targetShape),
-            device: self.device
+            device: self.device,
+            dtype: self.dtype
         });
         if (self.requiresGrad) {
             out.requiresGrad = true;
@@ -691,7 +756,7 @@ class Tensor {
     cat(other, dim = 0) {
         other = this.handleOther(other);
         // Handle scalars
-        if (typeof this.value === "number" || typeof other.value === "number") {
+        if (this.shape.length === 0 || other.shape.length === 0) {
             throw new Error("Can not concatenate scalars");
         }
         // Handle negative indices
@@ -720,7 +785,8 @@ class Tensor {
         }
         const outputSize = Tensor.shapeToSize(outputShape);
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputValue = new Array(outputSize);
+        const outputDtype = Tensor.getResultDtype(this.dtype, other.dtype);
+        const outputValue = new dtype_1.TypedArray[outputDtype](outputSize);
         for (let outIndex = 0; outIndex < outputSize; outIndex++) {
             const coords = Tensor.indexToCoords(outIndex, outputStrides);
             // Check which tensor this output position comes from
@@ -740,7 +806,10 @@ class Tensor {
         const out = new Tensor(outputValue, {
             shape: outputShape,
             strides: outputStrides,
-            numel: outputSize
+            offset: 0,
+            numel: outputSize,
+            device: this.device,
+            dtype: this.dtype
         });
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -773,7 +842,7 @@ class Tensor {
     }
     // Tensor squeeze
     squeeze(dims) {
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         if (typeof dims === "number") {
             dims = [dims];
@@ -807,7 +876,9 @@ class Tensor {
             shape: outShape,
             strides: outStrides,
             offset: this.offset,
-            device: this.device
+            numel: this.numel,
+            device: this.device,
+            dtype: this.dtype
         });
         // Set up gradient if needed
         if (this.requiresGrad) {
@@ -830,9 +901,6 @@ class Tensor {
             dim += this.shape.length;
         }
         let thisValue = this.value;
-        if (typeof thisValue === "number") {
-            thisValue = [thisValue];
-        }
         // Insert size-1 dimension at specified position
         const newShape = [...this.shape];
         newShape.splice(dim, 0, 1);
@@ -852,7 +920,9 @@ class Tensor {
             shape: newShape,
             strides: newStrides,
             offset: this.offset,
-            device: this.device
+            numel: this.numel,
+            device: this.device,
+            dtype: this.dtype
         });
         // Set up gradient if needed
         if (this.requiresGrad) {
@@ -866,10 +936,13 @@ class Tensor {
     }
     // Generic reduction operation handler
     static reduce(tensor, dims, keepDims, config) {
-        if (typeof tensor.value === "number")
+        if (tensor.shape.length === 0)
             return tensor;
         if (typeof dims === "undefined") {
-            dims = Array.from({ length: tensor.shape.length }, (_, index) => index);
+            dims = new Array(tensor.shape.length);
+            for (let index = 0; index < dims.length; index++) {
+                dims[index] = index;
+            }
         }
         if (Array.isArray(dims)) {
             dims = Tensor.normalizeDims(dims, tensor.shape.length);
@@ -883,8 +956,8 @@ class Tensor {
         const outputShape = tensor.shape.map((dim, i) => dims === i ? 1 : dim);
         const outputStrides = Tensor.getStrides(outputShape);
         const outputSize = Tensor.shapeToSize(outputShape);
-        const outputValue = new Array(outputSize).fill(config.identity);
-        const outputCounters = config.needsCounters ? new Array(outputSize).fill(0) : [];
+        const outputValue = new dtype_1.TypedArray[tensor.dtype](outputSize).fill(config.identity);
+        const outputCounters = config.needsCounters ? new dtype_1.TypedArray[tensor.dtype](outputSize).fill(0) : new dtype_1.TypedArray[tensor.dtype]();
         const originalSize = tensor.numel;
         const originalValue = tensor.value;
         const linearStrides = Tensor.getStrides(tensor.shape);
@@ -908,15 +981,22 @@ class Tensor {
         if (config.postProcess) {
             config.postProcess({ values: outputValue, counters: outputCounters });
         }
-        const out = new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: outputSize });
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides,
+            offset: 0,
+            numel: outputSize,
+            device: tensor.device,
+            dtype: tensor.dtype
+        });
         // Gradient setup
         if (tensor.requiresGrad) {
             out.requiresGrad = true;
             out.children.push(tensor);
             out.gradFn = () => {
-                let shareCounts = [];
+                let shareCounts = new dtype_1.TypedArray[tensor.dtype]();
                 if (config.needsShareCounts) {
-                    shareCounts = new Array(outputSize).fill(0);
+                    shareCounts = new dtype_1.TypedArray[tensor.dtype](outputSize).fill(0);
                     for (let flatIndex = 0; flatIndex < originalSize; flatIndex++) {
                         // Convert linear index to coordinates using contiguous strides
                         const coords = Tensor.indexToCoords(flatIndex, linearStrides);
@@ -929,7 +1009,7 @@ class Tensor {
                         shareCounts[outFlatIndex] += outputValue[outFlatIndex] === originalValue[realFlatIndex] ? 1 : 0;
                     }
                 }
-                const gradValue = new Array(originalSize);
+                const gradValue = new dtype_1.TypedArray[tensor.dtype](originalSize);
                 for (let flatIndex = 0; flatIndex < originalSize; flatIndex++) {
                     // Convert linear index to coordinates using contiguous strides
                     const coords = Tensor.indexToCoords(flatIndex, linearStrides);
@@ -947,7 +1027,13 @@ class Tensor {
                         outIndex: outFlatIndex
                     });
                 }
-                const localGrad = new Tensor(gradValue, { shape: tensor.shape, numel: tensor.numel });
+                const localGrad = new Tensor(gradValue, {
+                    shape: tensor.shape,
+                    offset: 0,
+                    numel: tensor.numel,
+                    device: tensor.device,
+                    dtype: tensor.dtype
+                });
                 Tensor.addGrad(tensor, out.grad.mul(localGrad));
             };
         }
@@ -1017,7 +1103,7 @@ class Tensor {
     }
     // Tensor softmax
     softmax(dim = -1) {
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         // Handle negative indexing
         if (dim < 0) {
@@ -1035,7 +1121,7 @@ class Tensor {
     }
     // Tensor softmin
     softmin(dim = -1) {
-        if (typeof this.value === "number")
+        if (this.shape.length === 0)
             return this;
         // Handle negative indexing
         if (dim < 0) {
@@ -1435,10 +1521,11 @@ class Tensor {
         const matBCols = other.shape[1];
         if (matACols !== matBRows)
             throw new Error("Invalid matrices shape for multiplication");
+        const matCDtype = Tensor.getResultDtype(this.dtype, other.dtype);
         const matCShape = [matARows, matBCols];
         const matCStrides = Tensor.getStrides(matCShape);
         const matCSize = Tensor.shapeToSize(matCShape);
-        const matC = new Array(matCSize).fill(0);
+        const matC = new dtype_1.TypedArray[matCDtype](matCSize).fill(0);
         for (let i = 0; i < matARows; i++) {
             for (let j = 0; j < matBCols; j++) {
                 for (let k = 0; k < matACols; k++) {
@@ -1449,7 +1536,14 @@ class Tensor {
                 }
             }
         }
-        const out = new Tensor(matC, { shape: matCShape, strides: matCStrides, numel: matCSize });
+        const out = new Tensor(matC, {
+            shape: matCShape,
+            strides: matCStrides,
+            offset: 0,
+            numel: matCSize,
+            device: this.device,
+            dtype: matCDtype
+        });
         if (this.requiresGrad) {
             out.requiresGrad = true;
             out.children.push(this);
@@ -1490,10 +1584,11 @@ class Tensor {
         const batchBCols = other.shape[2];
         if (batchACols !== batchBRows)
             throw new Error("Invalid matrices shape for multiplication");
+        const batchCDtype = Tensor.getResultDtype(this.dtype, other.dtype);
         const batchCShape = [batchSize, batchARows, batchBCols];
         const batchCStrides = Tensor.getStrides(batchCShape);
         const batchCSize = Tensor.shapeToSize(batchCShape);
-        const batchC = new Array(batchCSize).fill(0);
+        const batchC = new dtype_1.TypedArray[batchCDtype](batchCSize).fill(0);
         for (let q = 0; q < batchSize; q++) {
             for (let i = 0; i < batchARows; i++) {
                 for (let j = 0; j < batchBCols; j++) {
@@ -1506,7 +1601,14 @@ class Tensor {
                 }
             }
         }
-        const out = new Tensor(batchC, { shape: batchCShape, strides: batchCStrides, numel: batchCSize });
+        const out = new Tensor(batchC, {
+            shape: batchCShape,
+            strides: batchCStrides,
+            offset: 0,
+            numel: batchCSize,
+            device: this.device,
+            dtype: batchCDtype
+        });
         if (this.requiresGrad) {
             out.requiresGrad = true;
             out.children.push(this);
@@ -1583,10 +1685,11 @@ class Tensor {
             const offsetSize = Tensor.shapeToSize(offsetShape);
             const offsetStrides = Tensor.getStrides(offsetShape);
             // Output shape, strides, size, value
+            const outputDtype = Tensor.getResultDtype(this.dtype, other.dtype);
             const outputShape = [...offsetShape, batchARows, batchBCols];
             const outputStrides = Tensor.getStrides(outputShape);
             const outputSize = Tensor.shapeToSize(outputShape);
-            const outputValue = new Array(outputSize).fill(0);
+            const outputValue = new dtype_1.TypedArray[outputDtype](outputSize).fill(0);
             const outputOffsetStrides = outputStrides.slice(0, -2);
             // Loop through outer dims and do matmul on two outer-most dims
             for (let index = 0; index < offsetSize; index++) {
@@ -1605,7 +1708,14 @@ class Tensor {
                     }
                 }
             }
-            const out = new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: outputSize });
+            const out = new Tensor(outputValue, {
+                shape: outputShape,
+                strides: outputStrides,
+                offset: 0,
+                numel: outputSize,
+                device: this.device,
+                dtype: outputDtype
+            });
             if (this.requiresGrad) {
                 out.requiresGrad = true;
                 out.children.push(this);
@@ -1647,7 +1757,7 @@ class Tensor {
         const maskShape = this.shape.slice(-2);
         const maskStrides = Tensor.getStrides(maskShape);
         const maskSize = Tensor.shapeToSize(maskShape);
-        const maskValue = new Array(maskSize).fill(1);
+        const maskValue = new dtype_1.TypedArray[this.dtype](maskSize).fill(1);
         const [rows, cols] = maskShape;
         for (let i = 0; i < rows; i++) {
             const maxJ = Math.min(cols, i + diagonal);
@@ -1658,8 +1768,10 @@ class Tensor {
         const mask = new Tensor(maskValue, {
             shape: maskShape,
             strides: maskStrides,
+            offset: 0,
             numel: maskSize,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         return this.mul(mask);
     }
@@ -1671,7 +1783,7 @@ class Tensor {
         const maskShape = this.shape.slice(-2);
         const maskStrides = Tensor.getStrides(maskShape);
         const maskSize = Tensor.shapeToSize(maskShape);
-        const maskValue = new Array(maskSize).fill(0);
+        const maskValue = new dtype_1.TypedArray[this.dtype](maskSize).fill(0);
         const [rows, cols] = maskShape;
         for (let i = 0; i < rows; i++) {
             const maxJ = Math.min(cols, i + diagonal + 1);
@@ -1682,8 +1794,10 @@ class Tensor {
         const mask = new Tensor(maskValue, {
             shape: maskShape,
             strides: maskStrides,
+            offset: 0,
             numel: maskSize,
-            device: this.device
+            device: this.device,
+            dtype: this.dtype
         });
         return this.mul(mask);
     }
@@ -1698,16 +1812,28 @@ class Tensor {
             return new Tensor(num, options);
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(num);
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with a number
     static fullLike(tensor, num, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor(num, options);
+        if (tensor.shape.length === 0)
+            return new Tensor(num, {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         return new Tensor(new Array(tensor.numel).fill(num), {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1717,16 +1843,28 @@ class Tensor {
             return new Tensor(1, options);
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(1);
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with 1
     static onesLike(tensor, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor(1, options);
+        if (tensor.shape.length === 0)
+            return new Tensor(1, {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         return new Tensor(new Array(tensor.numel).fill(1), {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1736,16 +1874,28 @@ class Tensor {
             return new Tensor(0, options);
         const outputSize = Tensor.shapeToSize(shape);
         const outputValue = new Array(outputSize).fill(0);
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with 0
     static zerosLike(tensor, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor(0, options);
+        if (tensor.shape.length === 0)
+            return new Tensor(0, {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         return new Tensor(new Array(tensor.numel).fill(0), {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1758,20 +1908,32 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randUniform)();
         }
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with a random number with uniform distribution from 0 to 1
     static randLike(tensor, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor((0, utils_1.randUniform)(), options);
+        if (tensor.shape.length === 0)
+            return new Tensor((0, utils_1.randUniform)(), {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         const outputValue = new Array(tensor.numel);
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randUniform)();
         }
         return new Tensor(outputValue, {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1784,20 +1946,32 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randNormal)();
         }
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with a random number with normal distribution of mean=0 and stddev=1
     static randnLike(tensor, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor((0, utils_1.randNormal)(), options);
+        if (tensor.shape.length === 0)
+            return new Tensor((0, utils_1.randNormal)(), {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         const outputValue = new Array(tensor.numel);
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randNormal)();
         }
         return new Tensor(outputValue, {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1810,20 +1984,32 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randInt)(low, high);
         }
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor with shape of another tensor, filled with a random integer between low and high
     static randintLike(tensor, low, high, options = {}) {
-        if (typeof tensor.value === "number")
-            return new Tensor((0, utils_1.randInt)(low, high), options);
+        if (tensor.shape.length === 0)
+            return new Tensor((0, utils_1.randInt)(low, high), {
+                offset: 0,
+                device: tensor.device,
+                dtype: tensor.dtype,
+                ...options
+            });
         const outputValue = new Array(tensor.numel);
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randInt)(low, high);
         }
         return new Tensor(outputValue, {
             shape: tensor.shape,
+            offset: 0,
             numel: tensor.numel,
             device: tensor.device,
+            dtype: tensor.dtype,
             ...options
         });
     }
@@ -1834,7 +2020,12 @@ class Tensor {
             outputValue[i] = i;
         }
         (0, utils_1.fyShuffle)(outputValue);
-        return new Tensor(outputValue, { shape: [n], numel: n, ...options });
+        return new Tensor(outputValue, {
+            shape: [n],
+            offset: 0,
+            numel: n,
+            ...options
+        });
     }
     // Utility to create a new tensor filled with a random number with normal distribution of custom mean and stddev
     static normal(shape, mean, stdDev, options = {}) {
@@ -1845,7 +2036,12 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randNormal)(mean, stdDev);
         }
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create a new tensor filled with a random number with uniform distribution from low to high
     static uniform(shape, low, high, options = {}) {
@@ -1856,7 +2052,11 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = (0, utils_1.randUniform)(low, high);
         }
-        return new Tensor(outputValue, { shape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape,
+            offset: 0,
+            numel: outputSize, ...options
+        });
     }
     // Utility to create an 1D tensor from a range incrementing with "step"
     static arange(start, stop, step = 1, options = {}) {
@@ -1870,7 +2070,12 @@ class Tensor {
         for (let index = 0; index < outputValue.length; index++) {
             outputValue[index] = start + step * index;
         }
-        return new Tensor(outputValue, { shape: outputShape, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape: outputShape,
+            offset: 0,
+            numel: outputSize,
+            ...options
+        });
     }
     // Utility to create an 1D tensor from a range evenly spaced out with a given amount of steps
     static linspace(start, stop, steps, options = {}) {
@@ -1886,7 +2091,12 @@ class Tensor {
         }
         // Ensure we hit the endpoint exactly (avoids floating point errors)
         outputValue[steps - 1] = stop;
-        return new Tensor(outputValue, { shape: [steps], numel: steps, ...options });
+        return new Tensor(outputValue, {
+            shape: [steps],
+            offset: 0,
+            numel: steps,
+            ...options
+        });
     }
     // Utility to create a 2D tensor with its main diagonal filled with 1s and others with 0s
     static eye(n, m = n, options = {}) {
@@ -1897,7 +2107,13 @@ class Tensor {
         for (let i = 0; i < Math.min(n, m); i++) {
             outputValue[i * outputStrides[0] + i * outputStrides[1]] = 1;
         }
-        return new Tensor(outputValue, { shape: outputShape, strides: outputStrides, numel: outputSize, ...options });
+        return new Tensor(outputValue, {
+            shape: outputShape,
+            offset: 0,
+            strides: outputStrides,
+            numel: outputSize,
+            ...options
+        });
     }
     // Reverse-mode autodiff call
     backward(options = {}) {
@@ -1928,8 +2144,8 @@ class Tensor {
     }
     // Returns the raw number/nD array form of tensor
     val() {
-        if (typeof this.value === "number")
-            return this.value;
+        if (this.shape.length === 0)
+            return this.value[0];
         function buildNested(data, shape, strides, baseIndex = 0, dim = 0) {
             if (dim === shape.length - 1) {
                 // Last dimension: extract elements using actual stride
@@ -1956,20 +2172,28 @@ class Tensor {
             offset: this.offset,
             numel: this.numel,
             device: this.device,
+            dtype: this.dtype,
             requiresGrad: false
         });
     }
     // Returns a copy of the tensor (with new data allocation) and keeps grad connection
     clone() {
         let out;
-        if (typeof this.value === "number") {
-            out = new Tensor(this.value);
+        if (this.shape.length === 0) {
+            out = new Tensor(this.value, {
+                shape: [],
+                strides: [],
+                offset: 0,
+                numel: 1,
+                device: this.device,
+                dtype: this.dtype
+            });
         }
         else {
             const contiguous = this.isContiguous();
             const outputStrides = contiguous ? this.strides : Tensor.getStrides(this.shape);
             const outputSize = this.numel;
-            const outputValue = new Array(outputSize);
+            const outputValue = new dtype_1.TypedArray[this.dtype](outputSize);
             if (contiguous) {
                 for (let index = 0; index < outputSize; index++) {
                     outputValue[index] = this.value[this.offset + index];
@@ -1982,7 +2206,14 @@ class Tensor {
                     outputValue[index] = this.value[this.offset + originalIndex];
                 }
             }
-            out = new Tensor(outputValue, { shape: this.shape, strides: outputStrides, numel: outputSize });
+            out = new Tensor(outputValue, {
+                shape: this.shape,
+                strides: outputStrides,
+                offset: 0,
+                numel: outputSize,
+                device: this.device,
+                dtype: this.dtype
+            });
         }
         if (this.requiresGrad) {
             out.requiresGrad = true;
@@ -2009,7 +2240,22 @@ class Tensor {
         this.value = other.value;
         this.strides = other.strides;
         this.offset = other.offset;
+        this.device = other.device;
+        this.dtype = other.dtype;
         return this;
+    }
+    // Op to return a new tensor casted to another dtype
+    cast(dtype) {
+        if (this.dtype === dtype)
+            return this;
+        return new Tensor(this.value, {
+            shape: this.shape,
+            strides: this.strides,
+            offset: this.offset,
+            numel: this.numel,
+            device: this.device,
+            dtype: dtype
+        });
     }
     // Holds all available backends
     static backends = new Map();

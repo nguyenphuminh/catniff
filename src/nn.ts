@@ -1,4 +1,5 @@
 import { Tensor, TensorValue } from "./core";
+import { dtype } from "./dtype";
 
 function linearTransform(input: Tensor, weight: Tensor, bias?: Tensor): Tensor {
     let output = input.matmul(weight.t());
@@ -18,13 +19,14 @@ export class Linear {
         inFeatures: number,
         outFeatures: number,
         bias: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         const bound = 1 / Math.sqrt(inFeatures);
-        this.weight = Tensor.uniform([outFeatures, inFeatures], -bound, bound, { requiresGrad: true, device });
+        this.weight = Tensor.uniform([outFeatures, inFeatures], -bound, bound, { requiresGrad: true, device, dtype });
 
         if (bias) {
-            this.bias = Tensor.uniform([outFeatures], -bound, bound, { requiresGrad: true, device });
+            this.bias = Tensor.uniform([outFeatures], -bound, bound, { requiresGrad: true, device, dtype });
         }
     }
 
@@ -66,15 +68,16 @@ export class RNNCell {
         inputSize: number,
         hiddenSize: number,
         bias: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         const bound = 1 / Math.sqrt(hiddenSize);
-        this.weightIH = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHH = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
+        this.weightIH = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHH = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
 
         if (bias) {
-            this.biasIH = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHH = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
+            this.biasIH = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHH = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
         }
     }
 
@@ -104,23 +107,24 @@ export class GRUCell {
         inputSize: number,
         hiddenSize: number,
         bias: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         const bound = 1 / Math.sqrt(hiddenSize);
-        this.weightIR = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightIZ = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightIN = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHR = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHZ = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHN = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
+        this.weightIR = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightIZ = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightIN = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHR = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHZ = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHN = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
 
         if (bias) {
-            this.biasIR = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasIZ = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasIN = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHR = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHZ = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHN = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
+            this.biasIR = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasIZ = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasIN = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHR = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHZ = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHN = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
         }
     }
 
@@ -158,27 +162,28 @@ export class LSTMCell {
         inputSize: number,
         hiddenSize: number,
         bias: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         const bound = 1 / Math.sqrt(hiddenSize);
-        this.weightII = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightIF = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightIG = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightIO = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHI = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHF = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHG = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
-        this.weightHO = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device });
+        this.weightII = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightIF = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightIG = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightIO = Tensor.uniform([hiddenSize, inputSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHI = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHF = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHG = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+        this.weightHO = Tensor.uniform([hiddenSize, hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
 
         if (bias) {
-            this.biasII = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasIF = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasIG = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasIO = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHI = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHF = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHG = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
-            this.biasHO = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device });
+            this.biasII = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasIF = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasIG = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasIO = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHI = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHF = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHG = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
+            this.biasHO = Tensor.uniform([hiddenSize], -bound, bound, { requiresGrad: true, device, dtype });
         }
     }
 
@@ -213,7 +218,8 @@ export class LayerNorm {
         eps: number = 1e-5,
         elementwiseAffine: boolean = true,
         bias: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         this.eps = eps;
         this.normalizedShape = Array.isArray(normalizedShape) ? normalizedShape : [normalizedShape];
@@ -223,10 +229,10 @@ export class LayerNorm {
         }
 
         if (elementwiseAffine) {
-            this.weight = Tensor.ones(this.normalizedShape, { requiresGrad: true, device });
+            this.weight = Tensor.ones(this.normalizedShape, { requiresGrad: true, device, dtype });
 
             if (bias) {
-                this.bias = Tensor.zeros(this.normalizedShape, { requiresGrad: true, device });
+                this.bias = Tensor.zeros(this.normalizedShape, { requiresGrad: true, device, dtype });
             }
         }
     }
@@ -275,7 +281,8 @@ export class RMSNorm {
         normalizedShape: number | number[],
         eps: number = 1e-5,
         elementwiseAffine: boolean = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
         this.eps = eps;
         this.normalizedShape = Array.isArray(normalizedShape) ? normalizedShape : [normalizedShape];
@@ -285,7 +292,7 @@ export class RMSNorm {
         }
 
         if (elementwiseAffine) {
-            this.weight = Tensor.ones(this.normalizedShape, { requiresGrad: true, device });
+            this.weight = Tensor.ones(this.normalizedShape, { requiresGrad: true, device, dtype });
         }
     }
 
@@ -322,8 +329,8 @@ export class RMSNorm {
 export class Embedding {
     public weight: Tensor;
 
-    constructor(numEmbeddings: number, embeddingDim: number, device: string) {
-        this.weight = Tensor.randn([numEmbeddings, embeddingDim], { requiresGrad: true, device });
+    constructor(numEmbeddings: number, embeddingDim: number, device?: string, dtype?: dtype) {
+        this.weight = Tensor.randn([numEmbeddings, embeddingDim], { requiresGrad: true, device, dtype });
     }
 
     forward(input: Tensor | TensorValue): Tensor {
@@ -347,12 +354,13 @@ export class MultiheadAttention {
         numHeads: number,
         dropout = 0,
         bias = true,
-        device?: string
+        device?: string,
+        dtype?: dtype
     ) {
-        this.qProjection = new Linear(embedDim, embedDim, bias, device);
-        this.kProjection = new Linear(embedDim, embedDim, bias, device);
-        this.vProjection = new Linear(embedDim, embedDim, bias, device);
-        this.oProjection = new Linear(embedDim, embedDim, bias, device);
+        this.qProjection = new Linear(embedDim, embedDim, bias, device, dtype);
+        this.kProjection = new Linear(embedDim, embedDim, bias, device, dtype);
+        this.vProjection = new Linear(embedDim, embedDim, bias, device, dtype);
+        this.oProjection = new Linear(embedDim, embedDim, bias, device, dtype);
 
         this.embedDim = embedDim;
         this.numHeads = numHeads;

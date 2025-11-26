@@ -2,6 +2,14 @@
 
 Below is the specification for Catniff APIs. Note that undocumented APIs in the codebase are either unsafe or not ready for use other than internal.
 
+## dtype
+
+A value of type `dtype` is a string and can be `float64`, `float32`, `float16`, `float64`, `int32`, `int16`, `int8`, `uint32`, `uint16`, or `uint8`.
+
+## MemoryBuffer
+
+A value of type `MemoryBuffer` can be `Float64Array`, `Float32Array`, `Float16Array`, `Int32Array`, `Int16Array`, `Int8Array`, `Uint32Array`, `Uint16Array`, or `Uint8Array`.
+
 ## TensorValue
 
 Type `TensorValue` is either `number` or `TensorValue[]`, which means it represents either numbers or n-D number arrays.
@@ -19,6 +27,7 @@ Type `TensorValue` is either `number` or `TensorValue[]`, which means it represe
 * `gradFn?: Function`
 * `children?: Tensor[]`
 * `device?: string;`
+* `dtype?: dtype;`
 
 ## Tensor
 
@@ -30,7 +39,7 @@ constructor(value: TensorValue, options: TensorOptions = {})
 
 ### Properties
 
-* `public value: number[] | number`: Holds the tensor value as either a flat number array or a number, it is `Tensor.flatten(value)` behind the scenes.
+* `public value: MemoryBuffer`: Holds the tensor value/data as a `MemoryBuffer`, initialized by the `value` parameter but flattened and converted into a typed array with type specified in the `dtype` prop. If `value` is already of type `dtype`, it will use the value directly rather than copying.
 * `public shape: number[]`: Holds the tensor shape, uses `options.shape` if provided, `Tensor.getShape(value)` otherwise.
 * `public strides: number[]`: Holds the tensor strides, uses `options.strides` if provided, `Tensor.getStrides(this.shape)` otherwise.
 * `public offset: number`: Holds the tensor storage offset, uses `options.offset` if provided, 0 otherwise.
@@ -39,19 +48,12 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public requiresGrad: boolean`: Choose whether to do gradient-related operations behind the scenes, uses `options.requiresGrad` if provided, `false` otherwise.
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
 * `public children: Tensor[]`: Holds its child tensors, will be used when computing gradient, uses `options.children` if provided, `[]` otherwise.
+* `public device: string`: Holds the device the tensor is on, uses `options.device` if provided, `cpu` otherwise.
+* `public dtype: dtype`: Holds the tensor's data type, uses `options.dtype` if provided, `float32` otherwise.
 * `static training: boolean = false;`: Holds training flag, set to `true` while training to enable features like dropout, set to `false` while not to prevent unexpected behaviors.
 * `static noGrad: boolean = false;`: Set to `true` to disable grad accumulation.
 * `static createGraph: boolean = false;`: Preserves graph, set to `true` when computing nth-order derivative.
 * `static backends: Map<string, Backend>`: Holds backends, scroll way down below to see what to do with this.
-
-Note: A good rule of thumb when using Catniff is to not mutate values passed into functions/methods. For example, this might introduce some unexpected behaviors:
-```ts
-const tensorVal = [1,2,3];
-const tensor = new Tensor(tensorVal);
-tensorVal[0] = 4; // This would change tensorVal.value too
-```
-
-because Catniff try not to allocate new arrays and use the argument if possible to save memory and performance.
 
 ### Methods
 

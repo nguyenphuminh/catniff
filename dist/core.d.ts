@@ -1,5 +1,6 @@
 import { Backend } from "./backend";
-export type TensorValue = number | TensorValue[];
+import { dtype, MemoryBuffer } from "./dtype";
+export type TensorValue = number | ArrayLike<TensorValue>;
 export interface TensorOptions {
     shape?: number[];
     strides?: number[];
@@ -10,9 +11,10 @@ export interface TensorOptions {
     gradFn?: Function;
     children?: Tensor[];
     device?: string;
+    dtype?: dtype;
 }
 export declare class Tensor {
-    value: number[] | number;
+    value: MemoryBuffer;
     shape: number[];
     strides: number[];
     offset: number;
@@ -22,12 +24,13 @@ export declare class Tensor {
     gradFn: Function;
     children: Tensor[];
     device: string;
+    dtype: dtype;
     static training: boolean;
     static noGrad: boolean;
     static createGraph: boolean;
     constructor(value: TensorValue, options?: TensorOptions);
-    static flattenValue(tensor: TensorValue): number[] | number;
-    static getShape(tensor: TensorValue): number[];
+    static flattenValue(tensorValue: TensorValue): ArrayLike<number>;
+    static getShape(tensorValue: TensorValue): number[];
     static getStrides(shape: number[]): number[];
     static padShape(stridesA: number[], stridesB: number[], shapeA: number[], shapeB: number[]): [
         number[],
@@ -40,11 +43,12 @@ export declare class Tensor {
     static coordsToUnbroadcastedIndex(coords: number[], shape: number[], strides: number[]): number;
     static coordsToIndex(coords: number[], strides: number[]): number;
     static shapeToSize(shape: number[]): number;
+    static getResultDtype(type1: dtype, type2: dtype): dtype;
+    handleOther(other: Tensor | TensorValue): Tensor;
     static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor;
     static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor;
     elementWiseABDAG(other: TensorValue | Tensor, op: (a: number, b: number) => number, thisGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor, otherGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor): Tensor;
     elementWiseSelfDAG(op: (a: number) => number, thisGrad?: (self: Tensor, outGrad: Tensor) => Tensor): Tensor;
-    handleOther(other: Tensor | TensorValue): Tensor;
     static addGrad(tensor: Tensor, accumGrad: Tensor): void;
     static normalizeDims(dims: number[], numDims: number): number[];
     isContiguous(): boolean;
@@ -70,15 +74,15 @@ export declare class Tensor {
         operation: (accumulator: number, value: number) => number;
         needsCounters?: boolean;
         postProcess?: (options: {
-            values: number[];
-            counters?: number[];
+            values: MemoryBuffer;
+            counters?: MemoryBuffer;
         }) => void;
         needsShareCounts?: boolean;
         gradientFn: (options: {
-            outputValue: number[];
-            originalValue: number[];
-            counters: number[];
-            shareCounts: number[];
+            outputValue: MemoryBuffer;
+            originalValue: MemoryBuffer;
+            counters: MemoryBuffer;
+            shareCounts: MemoryBuffer;
             realIndex: number;
             outIndex: number;
         }) => number;
@@ -221,6 +225,7 @@ export declare class Tensor {
     detach(): Tensor;
     clone(): Tensor;
     replace(other: Tensor | TensorValue): Tensor;
+    cast(dtype: dtype): Tensor;
     static backends: Map<string, Backend>;
     to(device: string): Tensor;
     to_(device: string): Tensor;
