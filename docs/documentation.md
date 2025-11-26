@@ -2,6 +2,14 @@
 
 Below is the specification for Catniff APIs. Note that undocumented APIs in the codebase are either unsafe or not ready for use other than internal.
 
+## dtype
+
+A value of type `dtype` is a string and can be `float64`, `float32`, `float16`, `float64`, `int32`, `int16`, `int8`, `uint32`, `uint16`, or `uint8`.
+
+## MemoryBuffer
+
+A value of type `MemoryBuffer` can be `Float64Array`, `Float32Array`, `Float16Array`, `Int32Array`, `Int16Array`, `Int8Array`, `Uint32Array`, `Uint16Array`, or `Uint8Array`.
+
 ## TensorValue
 
 Type `TensorValue` is either `number` or `TensorValue[]`, which means it represents either numbers or n-D number arrays.
@@ -19,6 +27,7 @@ Type `TensorValue` is either `number` or `TensorValue[]`, which means it represe
 * `gradFn?: Function`
 * `children?: Tensor[]`
 * `device?: string;`
+* `dtype?: dtype;`
 
 ## Tensor
 
@@ -30,7 +39,7 @@ constructor(value: TensorValue, options: TensorOptions = {})
 
 ### Properties
 
-* `public value: number[] | number`: Holds the tensor value as either a flat number array or a number, it is `Tensor.flatten(value)` behind the scenes.
+* `public value: MemoryBuffer`: Holds the tensor value/data as a `MemoryBuffer`, initialized by the `value` parameter but flattened and converted into a typed array with type specified in the `dtype` prop. If `value` is already of type `dtype`, it will use the value directly rather than copying.
 * `public shape: number[]`: Holds the tensor shape, uses `options.shape` if provided, `Tensor.getShape(value)` otherwise.
 * `public strides: number[]`: Holds the tensor strides, uses `options.strides` if provided, `Tensor.getStrides(this.shape)` otherwise.
 * `public offset: number`: Holds the tensor storage offset, uses `options.offset` if provided, 0 otherwise.
@@ -39,19 +48,12 @@ constructor(value: TensorValue, options: TensorOptions = {})
 * `public requiresGrad: boolean`: Choose whether to do gradient-related operations behind the scenes, uses `options.requiresGrad` if provided, `false` otherwise.
 * `public gradFn: Function`: Called when computing gradient all over the DAG, used to feed gradient to its child tensors, uses `options.gradFn` if provided, `() => {}` otherwise.
 * `public children: Tensor[]`: Holds its child tensors, will be used when computing gradient, uses `options.children` if provided, `[]` otherwise.
+* `public device: string`: Holds the device the tensor is on, uses `options.device` if provided, `cpu` otherwise.
+* `public dtype: dtype`: Holds the tensor's data type, uses `options.dtype` if provided, `float32` otherwise.
 * `static training: boolean = false;`: Holds training flag, set to `true` while training to enable features like dropout, set to `false` while not to prevent unexpected behaviors.
 * `static noGrad: boolean = false;`: Set to `true` to disable grad accumulation.
 * `static createGraph: boolean = false;`: Preserves graph, set to `true` when computing nth-order derivative.
 * `static backends: Map<string, Backend>`: Holds backends, scroll way down below to see what to do with this.
-
-Note: A good rule of thumb when using Catniff is to not mutate values passed into functions/methods. For example, this might introduce some unexpected behaviors:
-```ts
-const tensorVal = [1,2,3];
-const tensor = new Tensor(tensorVal);
-tensorVal[0] = 4; // This would change tensorVal.value too
-```
-
-because Catniff try not to allocate new arrays and use the argument if possible to save memory and performance.
 
 ### Methods
 
@@ -189,6 +191,7 @@ All autograd-supported tensor arithmetic methods:
 Here are commonly used utilities:
 
 * `backward(options: { zeroGrad?: boolean } = {})`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation if not explicitly specified in `options.zeroGrad`.
+* `cast(dtype: dtype): Tensor`: Return a new tensor casted to `dtype`.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and keeps grad connection.
@@ -216,7 +219,7 @@ Here are commonly used utilities:
 
 Here are utilities (that might be deleted in the future) that you probably won't have to use but they might come in handy:
 
-* `static flattenValue(tensor: TensorValue): number[] | number`: Used to flatten an n-D array to 1D. If argument is a number, it would return the number.
+* `static flattenValue(tensorValue: TensorValue): ArrayLike<number>`: Used to flatten an n-D array to 1D, numbers will be converted into size-1 arrays.
 * `static getShape(tensor: TensorValue): number[]`: Used to get shape (size of each dimension) of an n-D array as a number array.
 * `static getStrides(shape: number[]): number[]`: Used to get strides of tensor from its shape. Strides are needed internally because they are steps taken to get a value at each dimension now that the tensor has been flatten to 1D.
 * `static padShape`: Used to pad shape and strides of two tensors to be of same number of dimensions.
@@ -365,7 +368,8 @@ constructor(
     inFeatures: number,
     outFeatures: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -387,7 +391,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -411,7 +416,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -443,7 +449,8 @@ constructor(
     inputSize: number,
     hiddenSize: number,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -480,7 +487,8 @@ constructor(
     eps: number = 1e-5,
     elementwiseAffine: boolean = true,
     bias: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -504,7 +512,8 @@ constructor(
     normalizedShape: number | number[],
     eps: number = 1e-5,
     elementwiseAffine: boolean = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -526,7 +535,8 @@ constructor(
 constructor(
     numEmbeddings: number,
     embeddingDim: number,
-    device: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 
@@ -548,7 +558,8 @@ constructor(
     numHeads: number,
     dropout = 0,
     bias = true,
-    device?: string
+    device?: string,
+    dtype?: dtype
 )
 ```
 

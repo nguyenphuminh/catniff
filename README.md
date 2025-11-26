@@ -9,6 +9,8 @@ Install through npm:
 npm install catniff
 ```
 
+Ensure you have Node v24 as well for things like float16 to work.
+
 ## Tensors
 
 Tensors in Catniff can be created by passing in a number or an nD array, and there are built-in methods that can be used to perform tensor arithmetic:
