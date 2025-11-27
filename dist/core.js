@@ -1327,6 +1327,10 @@ class Tensor {
     rsqrt() {
         return this.elementWiseSelfDAG((a) => 1 / Math.sqrt(a), (self, outGrad) => outGrad.mul(self.pow(-1.5).mul(-0.5)));
     }
+    // Tensor element-wise cube root
+    cbrt() {
+        return this.elementWiseSelfDAG((a) => Math.cbrt(a),(self, outGrad) => outGrad.mul(self.pow(-2/3).mul(1/3)));
+    }
     // Tensor element-wise e^x
     exp() {
         return this.elementWiseSelfDAG((a) => Math.exp(a), (self, outGrad) => outGrad.mul(self.exp()));
