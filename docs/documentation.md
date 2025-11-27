@@ -120,6 +120,7 @@ All autograd-supported tensor arithmetic methods:
 * `rad2deg(): Tensor`: Convert `this` radian to degree element-wise.
 * `sqrt(): Tensor`: Returns square root of `this` element-wise.
 * `rsqrt(): Tensor`: Returns reciprocal of square root of `this` element-wise.
+* `cbrt(): Tensor`: Returns cube root of `this` element-wise.
 * `exp(): Tensor`: Returns e raised to the power of `this` element-wise.
 * `exp2(): Tensor`: Returns 2 raised to the power of `this` element-wise.
 * `expm1(): Tensor`: Returns e raised to the power of `this` minus 1 element-wise.
@@ -701,4 +702,5 @@ const backend = {
     }
 }
 ```
+
 
