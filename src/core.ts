@@ -730,7 +730,7 @@ export class Tensor {
                         fullCoords.unshift(originalRowIndex);
                         const targetIndex = Tensor.coordsToIndex(fullCoords, this.strides);
 
-                        (grad.value as MemoryBuffer)[targetIndex] += (outGrad.value as MemoryBuffer)[sourceStart + j];
+                        grad.value[targetIndex] += outGrad.value[sourceStart + j];
                     }
                 }
 
@@ -843,7 +843,7 @@ export class Tensor {
                     const targetIndex = Tensor.coordsToIndex(originalCoords, grad.strides) + grad.offset;
 
                     // Accumulate gradient
-                    (grad.value as MemoryBuffer)[targetIndex] += (outGrad.value as MemoryBuffer)[srcIndex];
+                    grad.value[targetIndex] += outGrad.value[srcIndex];
                 }
 
                 Tensor.addGrad(this, grad);
@@ -1138,13 +1138,12 @@ export class Tensor {
         config: {
             identity: number;
             operation: (accumulator: number, value: number) => number;
-            needsCounters?: boolean;
-            postProcess?: (options: { values: MemoryBuffer, counters?: MemoryBuffer }) => void;
+            postProcess?: (options: { values: MemoryBuffer, dimSize: number }) => void;
             needsShareCounts?: boolean;
             gradientFn: (options: {
                 outputValue: MemoryBuffer,
                 originalValue: MemoryBuffer,
-                counters: MemoryBuffer,
+                dimSize: number,
                 shareCounts: MemoryBuffer,
                 realIndex: number,
                 outIndex: number
@@ -1174,11 +1173,11 @@ export class Tensor {
             return keepDims ? reducedThis : reducedThis.squeeze(dims);
         }
 
+        const dimSize = tensor.shape[dims];
         const outputShape = tensor.shape.map((dim, i) => dims === i ? 1 : dim);
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = Tensor.shapeToSize(outputShape);
+        const outputSize = tensor.numel / dimSize;
         const outputValue = new TypedArray[tensor.dtype](outputSize).fill(config.identity);
-        const outputCounters = config.needsCounters ? new TypedArray[tensor.dtype](outputSize).fill(0) : new TypedArray[tensor.dtype]();
         const originalSize = tensor.numel;
         const originalValue = tensor.value;
         const linearStrides = Tensor.getStrides(tensor.shape);
@@ -1197,16 +1196,11 @@ export class Tensor {
 
             // Apply op
             outputValue[outFlatIndex] = config.operation(outputValue[outFlatIndex], originalValue[realFlatIndex]);
-
-            // Count el if needed
-            if (config.needsCounters) {
-                outputCounters[outFlatIndex]++;
-            }
         }
 
         // Post-process if needed (e.g., divide by count for mean)
         if (config.postProcess) {
-            config.postProcess({ values: outputValue, counters: outputCounters });
+            config.postProcess({ values: outputValue, dimSize });
         }
 
         const out = new Tensor(outputValue, {
@@ -1259,8 +1253,8 @@ export class Tensor {
 
                     gradValue[flatIndex] = config.gradientFn({
                         outputValue,
-                        originalValue: tensor.value as MemoryBuffer,
-                        counters: outputCounters,
+                        originalValue: tensor.value,
+                        dimSize,
                         shareCounts,
                         realIndex: realFlatIndex,
                         outIndex: outFlatIndex
@@ -1303,13 +1297,12 @@ export class Tensor {
         return Tensor.reduce(this, dims, keepDims, {
             identity: 0,
             operation: (a, b) => a + b,
-            needsCounters: true,
-            postProcess: ({ values, counters }) => {
+            postProcess: ({ values, dimSize }) => {
                 for (let i = 0; i < values.length; i++) {
-                    values[i] /= counters![i];
+                    values[i] /= dimSize;
                 }
             },
-            gradientFn: ({ counters, outIndex }) => 1 / counters[outIndex]
+            gradientFn: ({ dimSize }) => 1 / dimSize
         });
     }
 

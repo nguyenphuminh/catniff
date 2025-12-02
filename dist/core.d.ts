@@ -72,16 +72,15 @@ export declare class Tensor {
     static reduce(tensor: Tensor, dims: number[] | number | undefined, keepDims: boolean, config: {
         identity: number;
         operation: (accumulator: number, value: number) => number;
-        needsCounters?: boolean;
         postProcess?: (options: {
             values: MemoryBuffer;
-            counters?: MemoryBuffer;
+            dimSize: number;
         }) => void;
         needsShareCounts?: boolean;
         gradientFn: (options: {
             outputValue: MemoryBuffer;
             originalValue: MemoryBuffer;
-            counters: MemoryBuffer;
+            dimSize: number;
             shareCounts: MemoryBuffer;
             realIndex: number;
             outIndex: number;

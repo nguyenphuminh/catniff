@@ -953,11 +953,11 @@ class Tensor {
             }
             return keepDims ? reducedThis : reducedThis.squeeze(dims);
         }
+        const dimSize = tensor.shape[dims];
         const outputShape = tensor.shape.map((dim, i) => dims === i ? 1 : dim);
         const outputStrides = Tensor.getStrides(outputShape);
-        const outputSize = Tensor.shapeToSize(outputShape);
+        const outputSize = tensor.numel / dimSize;
         const outputValue = new dtype_1.TypedArray[tensor.dtype](outputSize).fill(config.identity);
-        const outputCounters = config.needsCounters ? new dtype_1.TypedArray[tensor.dtype](outputSize).fill(0) : new dtype_1.TypedArray[tensor.dtype]();
         const originalSize = tensor.numel;
         const originalValue = tensor.value;
         const linearStrides = Tensor.getStrides(tensor.shape);
@@ -972,14 +972,10 @@ class Tensor {
             const outFlatIndex = Tensor.coordsToIndex(coords, outputStrides);
             // Apply op
             outputValue[outFlatIndex] = config.operation(outputValue[outFlatIndex], originalValue[realFlatIndex]);
-            // Count el if needed
-            if (config.needsCounters) {
-                outputCounters[outFlatIndex]++;
-            }
         }
         // Post-process if needed (e.g., divide by count for mean)
         if (config.postProcess) {
-            config.postProcess({ values: outputValue, counters: outputCounters });
+            config.postProcess({ values: outputValue, dimSize });
         }
         const out = new Tensor(outputValue, {
             shape: outputShape,
@@ -1021,7 +1017,7 @@ class Tensor {
                     gradValue[flatIndex] = config.gradientFn({
                         outputValue,
                         originalValue: tensor.value,
-                        counters: outputCounters,
+                        dimSize,
                         shareCounts,
                         realIndex: realFlatIndex,
                         outIndex: outFlatIndex
@@ -1058,13 +1054,12 @@ class Tensor {
         return Tensor.reduce(this, dims, keepDims, {
             identity: 0,
             operation: (a, b) => a + b,
-            needsCounters: true,
-            postProcess: ({ values, counters }) => {
+            postProcess: ({ values, dimSize }) => {
                 for (let i = 0; i < values.length; i++) {
-                    values[i] /= counters[i];
+                    values[i] /= dimSize;
                 }
             },
-            gradientFn: ({ counters, outIndex }) => 1 / counters[outIndex]
+            gradientFn: ({ dimSize }) => 1 / dimSize
         });
     }
     max(dims, keepDims = false) {
