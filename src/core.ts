@@ -787,7 +787,7 @@ export class Tensor {
             let end = range[1] ?? dimSize;
             let step = range[2] ?? 1;
 
-            // Handle negative indicesoutGrad
+            // Handle negative indices
             if (start < 0) start += dimSize;
             if (end < 0) end += dimSize;
 
