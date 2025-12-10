@@ -69,6 +69,8 @@ export declare class Tensor {
     cat(other: Tensor | TensorValue, dim?: number): Tensor;
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;
+    sort(dim?: number, descending?: boolean): Tensor;
+    topk(k: number, dim?: number, largest?: boolean): Tensor;
     static reduce(tensor: Tensor, dims: number[] | number | undefined, keepDims: boolean, config: {
         identity: number;
         operation: (accumulator: number, value: number) => number;

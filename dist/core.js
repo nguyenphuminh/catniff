@@ -208,13 +208,16 @@ class Tensor {
         const outputStrides = Tensor.getStrides(outputShape);
         const outputSize = Tensor.shapeToSize(outputShape);
         const outputValue = new dtype_1.TypedArray[outputDtype](outputSize);
+        // Check fast path conditions of two tensors
+        const aFastPath = tA.isContiguous() && tA.numel === outputSize;
+        const bFastPath = tB.isContiguous() && tB.numel === outputSize;
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
-            const coordsOutput = Tensor.indexToCoords(i, outputStrides);
+            const coordsOutput = aFastPath && bFastPath ? [] : Tensor.indexToCoords(i, outputStrides);
             // Convert the coordinates to 1D index of flattened A with respect to A's shape
-            const indexA = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
+            const indexA = aFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
             // Convert the coordinates to 1D index of flattened B with respect to B's shape
-            const indexB = Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
+            const indexB = bFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
             // Calculate with op
             outputValue[i] = op(tA.value[indexA + tA.offset], tB.value[indexB + tB.offset]);
         }
@@ -633,7 +636,7 @@ class Tensor {
             let start = range[0] ?? 0;
             let end = range[1] ?? dimSize;
             let step = range[2] ?? 1;
-            // Handle negative indices
+            // Handle negative indicesoutGrad
             if (start < 0)
                 start += dimSize;
             if (end < 0)
@@ -933,6 +936,114 @@ class Tensor {
             };
         }
         return out;
+    }
+    // Tensor sort
+    sort(dim = -1, descending = false) {
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to sort");
+        }
+        // Copy if not contiguous
+        const outputSize = this.numel;
+        const outputShape = this.shape;
+        let outputValue, outputStrides;
+        if (this.isContiguous()) {
+            outputValue = [...this.value];
+            outputStrides = this.strides;
+        }
+        else {
+            outputValue = new dtype_1.TypedArray[this.dtype](outputSize);
+            outputStrides = Tensor.getStrides(outputShape);
+            for (let flatIndex = 0; flatIndex < outputSize; flatIndex++) {
+                const coords = Tensor.indexToCoords(flatIndex, outputStrides);
+                const originalIndex = Tensor.coordsToIndex(coords, this.strides);
+                outputValue[flatIndex] = this.value[originalIndex + this.offset];
+            }
+        }
+        // Calculate dimensions for gather-scatter
+        const dimSize = outputShape[dim];
+        const outerSize = outputShape.slice(0, dim).reduce((a, b) => a * b, 1);
+        const innerSize = outputShape.slice(dim + 1).reduce((a, b) => a * b, 1);
+        // Store permutation indices for gradient
+        const permutation = new Array(outputSize);
+        // Sort each group independently
+        for (let outer = 0; outer < outerSize; outer++) {
+            for (let inner = 0; inner < innerSize; inner++) {
+                const group = [];
+                for (let i = 0; i < dimSize; i++) {
+                    const flatIdx = outer * (dimSize * innerSize) + i * innerSize + inner;
+                    group.push({
+                        value: outputValue[flatIdx],
+                        dimIdx: i
+                    });
+                }
+                // Sort this group by value
+                group.sort((a, b) => descending ? b.value - a.value : a.value - b.value);
+                // Scatter: write back sorted values and record permutation
+                for (let i = 0; i < dimSize; i++) {
+                    const flatIdx = outer * (dimSize * innerSize) + i * innerSize + inner;
+                    outputValue[flatIdx] = group[i].value;
+                    // Record where this element came from (for gradient)
+                    const originalFlatIdx = outer * (dimSize * innerSize) + group[i].dimIdx * innerSize + inner;
+                    permutation[flatIdx] = originalFlatIdx;
+                }
+            }
+        }
+        const out = new Tensor(outputValue, {
+            shape: outputShape,
+            strides: outputStrides,
+            offset: 0,
+            numel: outputSize,
+            device: this.device,
+            dtype: this.dtype
+        });
+        // Gradient setup
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const outGrad = out.grad;
+                // Scatter output gradients back to original positions
+                const inputGradValue = new dtype_1.TypedArray[this.dtype](outputSize);
+                for (let sortedIdx = 0; sortedIdx < outputSize; sortedIdx++) {
+                    const originalIdx = permutation[sortedIdx];
+                    inputGradValue[originalIdx] = outGrad.value[sortedIdx];
+                }
+                const inputGrad = new Tensor(inputGradValue, {
+                    shape: outputShape,
+                    strides: outputStrides,
+                    offset: 0,
+                    numel: outputSize,
+                    device: this.device,
+                    dtype: this.dtype
+                });
+                Tensor.addGrad(this, inputGrad);
+            };
+        }
+        return out;
+    }
+    // Top-k sampling
+    topk(k, dim = -1, largest = true) {
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension do not exist to get topk");
+        }
+        const dimRanges = new Array(this.shape.length);
+        for (let index = 0; index < dimRanges.length; index++) {
+            if (index === dim) {
+                dimRanges[index] = [0, k];
+            }
+            else {
+                dimRanges[index] = [];
+            }
+        }
+        return this.sort(dim, largest).slice(dimRanges);
     }
     // Generic reduction operation handler
     static reduce(tensor, dims, keepDims, config) {

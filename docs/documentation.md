@@ -183,6 +183,8 @@ All autograd-supported tensor arithmetic methods:
 * `std(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their standard deviations.
 * `softmax(dim: number = -1): Tensor`: Apply numerically stable softmax on the specified dimension.
 * `softmin(dim: number = -1): Tensor`: Apply numerically stable softmin on the specified dimension.
+* `sort(dim = -1, descending = false): Tensor`: Sort the specified dimension.
+* `topk(k: number, dim = -1, largest = true): Tensor`: Get top k elements of the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 * `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
 * `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
