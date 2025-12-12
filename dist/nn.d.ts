@@ -70,6 +70,7 @@ export declare class Embedding {
     constructor(numEmbeddings: number, embeddingDim: number, device?: string, dtype?: dtype);
     forward(input: Tensor | TensorValue): Tensor;
 }
+export declare function scaledDotProductAttention(query: Tensor, key: Tensor, value: Tensor, attnMask?: Tensor, dropout?: number, isCausal?: boolean, scale?: number): Tensor;
 export declare class MultiheadAttention {
     qProjection: Linear;
     kProjection: Linear;
@@ -80,7 +81,7 @@ export declare class MultiheadAttention {
     headDim: number;
     dropout: number;
     constructor(embedDim: number, numHeads: number, dropout?: number, bias?: boolean, device?: string, dtype?: dtype);
-    forward(query: Tensor, key: Tensor, value: Tensor, needWeights?: boolean, attnMask?: Tensor, averageAttnWeights?: boolean): [Tensor, Tensor | undefined];
+    forward(query: Tensor, key: Tensor, value: Tensor, needWeights?: boolean, attnMask?: Tensor, averageAttnWeights?: boolean, isCausal?: boolean): [Tensor, Tensor | undefined];
 }
 export interface StateDict {
     [key: string]: any;
@@ -93,6 +94,7 @@ export declare const nn: {
     LayerNorm: typeof LayerNorm;
     RMSNorm: typeof RMSNorm;
     Embedding: typeof Embedding;
+    scaledDotProductAttention: typeof scaledDotProductAttention;
     MultiheadAttention: typeof MultiheadAttention;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
+exports.scaledDotProductAttention = scaledDotProductAttention;
 const core_1 = require("./core");
 function linearTransform(input, weight, bias) {
     let output = input.matmul(weight.t());
@@ -240,6 +241,25 @@ class Embedding {
     }
 }
 exports.Embedding = Embedding;
+function scaledDotProductAttention(query, key, value, attnMask, dropout = 0, isCausal = false, scale) {
+    const targetLen = query.shape[query.shape.length - 2];
+    const sourceLen = key.shape[key.shape.length - 2];
+    const dimSize = query.shape[query.shape.length - 1];
+    // Attention scores
+    let scores = query.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
+    // Set attention mask to causal mask if specified
+    if (isCausal) {
+        attnMask = core_1.Tensor.ones([targetLen, sourceLen], { device: query.device }).triu(1);
+    }
+    // Apply attention mask if specified
+    if (attnMask) {
+        scores = scores.maskedFill(attnMask, -Infinity);
+    }
+    // Calculate attention weights
+    let attnWeights = scores.softmax().dropout(dropout);
+    // Apply attention to values
+    return attnWeights.matmul(value);
+}
 class MultiheadAttention {
     qProjection;
     kProjection;
@@ -259,7 +279,7 @@ class MultiheadAttention {
         this.headDim = Math.floor(embedDim / numHeads);
         this.dropout = dropout;
     }
-    forward(query, key, value, needWeights = true, attnMask, averageAttnWeights = true) {
+    forward(query, key, value, needWeights = true, attnMask, averageAttnWeights = true, isCausal = false) {
         // Batch-first
         const [batchSize, targetLen, embedDim] = query.shape;
         const sourceLen = key.shape[1];
@@ -272,6 +292,10 @@ class MultiheadAttention {
         V = V.reshape([batchSize, sourceLen, this.numHeads, this.headDim]).transpose(1, 2);
         // Attention scores
         let scores = Q.matmul(K.transpose(-2, -1)).div(Math.sqrt(this.headDim));
+        // Set attention mask to causal mask if specified
+        if (isCausal) {
+            attnMask = core_1.Tensor.ones([targetLen, sourceLen], { device: this.qProjection.weight.device }).triu(1);
+        }
         // Apply attention mask if specified
         if (attnMask) {
             scores = scores.maskedFill(attnMask, -Infinity);
@@ -362,6 +386,7 @@ exports.nn = {
     LayerNorm,
     RMSNorm,
     Embedding,
+    scaledDotProductAttention,
     MultiheadAttention,
     state
 };

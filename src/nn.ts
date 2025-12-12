@@ -338,6 +338,39 @@ export class Embedding {
     }
 }
 
+export function scaledDotProductAttention(
+    query: Tensor,
+    key: Tensor,
+    value: Tensor,
+    attnMask?: Tensor,
+    dropout = 0,
+    isCausal = false,
+    scale?: number
+) {
+    const targetLen = query.shape[query.shape.length-2];
+    const sourceLen = key.shape[key.shape.length-2];
+    const dimSize = query.shape[query.shape.length-1];
+
+    // Attention scores
+    let scores = query.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
+
+    // Set attention mask to causal mask if specified
+    if (isCausal) {
+        attnMask = Tensor.ones([targetLen, sourceLen], { device: query.device }).triu(1);
+    }
+
+    // Apply attention mask if specified
+    if (attnMask) {
+        scores = scores.maskedFill(attnMask, -Infinity);
+    }
+
+    // Calculate attention weights
+    let attnWeights = scores.softmax().dropout(dropout);
+
+    // Apply attention to values
+    return attnWeights.matmul(value); 
+}
+
 export class MultiheadAttention {
     public qProjection: Linear;
     public kProjection: Linear;
@@ -374,7 +407,8 @@ export class MultiheadAttention {
         value: Tensor,
         needWeights = true,
         attnMask?: Tensor,
-        averageAttnWeights = true
+        averageAttnWeights = true,
+        isCausal = false
     ): [Tensor, Tensor | undefined] {
         // Batch-first
         const [batchSize, targetLen, embedDim] = query.shape;
@@ -391,6 +425,11 @@ export class MultiheadAttention {
 
         // Attention scores
         let scores = Q.matmul(K.transpose(-2, -1)).div(Math.sqrt(this.headDim));
+
+        // Set attention mask to causal mask if specified
+        if (isCausal) {
+            attnMask = Tensor.ones([targetLen, sourceLen], { device: this.qProjection.weight.device }).triu(1);
+        }
 
         // Apply attention mask if specified
         if (attnMask) {
@@ -503,6 +542,7 @@ export const nn = {
     LayerNorm,
     RMSNorm,
     Embedding,
+    scaledDotProductAttention,
     MultiheadAttention,
     state
 }

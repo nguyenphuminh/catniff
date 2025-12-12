@@ -550,6 +550,20 @@ constructor(
 
 * `forward(input: Tensor | TensorValue): Tensor`: Perform a lookup from the weight.
 
+## nn.scaledDotProductAttention / scaledDotProductAttention
+
+```ts
+function scaledDotProductAttention(
+    query: Tensor,
+    key: Tensor,
+    value: Tensor,
+    attnMask?: Tensor,
+    dropout = 0,
+    isCausal = false,
+    scale?: number
+)
+```
+
 ## nn.MultiheadAttention / MultiHeadAttention
 
 ### Constructor
@@ -586,7 +600,8 @@ forward(
     value: Tensor,
     needWeights = true,
     attnMask?: Tensor,
-    averageAttnWeights = true
+    averageAttnWeights = true,
+    isCausal = false
 ): [Tensor, Tensor | undefined]
 ```
 
