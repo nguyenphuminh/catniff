@@ -186,6 +186,7 @@ All autograd-supported tensor arithmetic methods:
 * `sort(dim = -1, descending = false): Tensor`: Sort the specified dimension.
 * `topk(k: number, dim = -1, largest = true): Tensor`: Get top k elements of the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
+* `multinomial(numSamples: number, replacement = false): Tensor`: Apply multinomial sampling.
 * `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
 * `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
 * `maskedFill(mask: Tensor | TensorValue, value: number): Tensor`: Fill specific positions of this tensor with a `value` through a `mask` (1 for fill, 0 for unchanged).

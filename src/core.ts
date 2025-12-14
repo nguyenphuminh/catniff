@@ -1145,19 +1145,17 @@ export class Tensor {
         // Copy if not contiguous
         const outputSize = this.numel;
         const outputShape = this.shape;
-        let outputValue, outputStrides;
+        const outputValue = new TypedArray[this.dtype](outputSize);
+        const outputStrides = Tensor.getStrides(outputShape);
 
         if (this.isContiguous()) {
-            outputValue = [...this.value];
-            outputStrides = this.strides;
+            // Fast path: direct copy
+            outputValue.set(this.value.subarray(this.offset, this.offset + outputSize));
         } else {
-            outputValue = new TypedArray[this.dtype](outputSize);
-            outputStrides = Tensor.getStrides(outputShape);
-
+            // Slow path: coordinate conversion
             for (let flatIndex = 0; flatIndex < outputSize; flatIndex++) {
                 const coords = Tensor.indexToCoords(flatIndex, outputStrides);
                 const originalIndex = Tensor.coordsToIndex(coords, this.strides);
-
                 outputValue[flatIndex] = this.value[originalIndex + this.offset];
             }
         }
@@ -1176,7 +1174,7 @@ export class Tensor {
                 // Gather: collect elements along the sort dimension
                 type Element = { value: number, dimIdx: number };
                 const group: Element[] = [];
-                
+
                 for (let i = 0; i < dimSize; i++) {
                     const flatIdx = outer * (dimSize * innerSize) + i * innerSize + inner;
                     group.push({
@@ -1192,7 +1190,7 @@ export class Tensor {
                 for (let i = 0; i < dimSize; i++) {
                     const flatIdx = outer * (dimSize * innerSize) + i * innerSize + inner;
                     outputValue[flatIdx] = group[i].value;
-                    
+
                     // Record where this element came from (for gradient)
                     const originalFlatIdx = outer * (dimSize * innerSize) + group[i].dimIdx * innerSize + inner;
                     permutation[flatIdx] = originalFlatIdx;
@@ -1215,15 +1213,15 @@ export class Tensor {
             out.children.push(this);
             out.gradFn = () => {
                 const outGrad = out.grad as Tensor;
-            
+
                 // Scatter output gradients back to original positions
                 const inputGradValue = new TypedArray[this.dtype](outputSize);
-                
+
                 for (let sortedIdx = 0; sortedIdx < outputSize; sortedIdx++) {
                     const originalIdx = permutation[sortedIdx];
                     inputGradValue[originalIdx] = outGrad.value[sortedIdx];
                 }
-                
+
                 const inputGrad = new Tensor(inputGradValue, {
                     shape: outputShape,
                     strides: outputStrides,
@@ -1232,7 +1230,7 @@ export class Tensor {
                     device: this.device,
                     dtype: this.dtype
                 });
-                
+
                 Tensor.addGrad(this, inputGrad);
             }
         }
@@ -2575,6 +2573,149 @@ export class Tensor {
         return this.mul(mask.logicalNot()).add(mask.mul(value));
     }
 
+    // Multinomial sampling
+    multinomial(numSamples: number, replacement = false): Tensor {
+        // Validate input dimensions (1D or 2D only)
+        if (this.shape.length === 0 || this.shape.length > 2) {
+            throw new Error("multinomial only supports 1D or 2D probability tensors");
+        }
+
+        const is1D = this.shape.length === 1;
+        const numDist = is1D ? 1 : this.shape[0];
+        const numCategories = is1D ? this.shape[0] : this.shape[1];
+
+        // Validate numSamples
+        if (numSamples <= 0) {
+            throw new Error("Number of samples must be positive");
+        }
+        if (!replacement && numSamples > numCategories) {
+            throw new Error(`Cannot sample ${numSamples} without replacement from ${numCategories} categories`);
+        }
+
+        // Make contiguous copy of probabilities
+        const probsSize = this.numel;
+        const probs = new TypedArray[this.dtype](probsSize);
+
+        if (this.isContiguous()) {
+            // Fast path: direct copy
+            probs.set(this.value.subarray(this.offset, this.offset + probsSize));
+        } else {
+            // Slow path: coordinate conversion
+            const defaultStrides = Tensor.getStrides(this.shape);
+            for (let i = 0; i < probsSize; i++) {
+                const coords = Tensor.indexToCoords(i, defaultStrides);
+                const idx = Tensor.coordsToIndex(coords, this.strides);
+                probs[i] = this.value[idx + this.offset];
+            }
+        }
+
+        // Output setup
+        const outputShape = is1D ? [numSamples] : [numDist, numSamples];
+        const outputValue = new Int32Array(numDist * numSamples);
+
+        // Sample from each distribution
+        for (let dist = 0; dist < numDist; dist++) {
+            const offset = dist * numCategories;
+
+            // Extract this distribution's probabilities
+            const distProbs = probs.slice(offset, offset + numCategories);
+
+            // Validate and normalize
+            let sum = 0;
+            for (let i = 0; i < numCategories; i++) {
+                if (distProbs[i] < 0) {
+                    throw new Error("Probabilities cannot be negative");
+                }
+                sum += distProbs[i];
+            }
+
+            if (sum <= 0) {
+                throw new Error("Probabilities must sum to a positive value");
+            }
+
+            // Normalize
+            for (let i = 0; i < numCategories; i++) {
+                distProbs[i] /= sum;
+            }
+
+            if (replacement) {
+                // With replacement: use CDF for efficient sampling
+                const cdf = new Array(numCategories);
+                let cumSum = 0;
+
+                for (let i = 0; i < numCategories; i++) {
+                    cumSum += distProbs[i];
+                    cdf[i] = cumSum;
+                }
+
+                cdf[numCategories - 1] = 1;
+
+                for (let s = 0; s < numSamples; s++) {
+                    const r = Math.random();
+
+                    // Binary search for efficiency
+                    let left = 0;
+                    let right = numCategories - 1;
+                    while (left < right) {
+                        const mid = Math.floor((left + right) / 2);
+                        if (r <= cdf[mid]) {
+                            right = mid;
+                        } else {
+                            left = mid + 1;
+                        }
+                    }
+
+                    outputValue[dist * numSamples + s] = left;
+                }
+            } else {
+                // Without replacement: weighted sampling without replacement
+                const available = Array.from({ length: numCategories }, (_, i) => ({
+                    idx: i,
+                    prob: distProbs[i]
+                }));
+
+                for (let s = 0; s < numSamples; s++) {
+                    // Compute sum of remaining probabilities
+                    let remainingSum = 0;
+                    for (const item of available) {
+                        remainingSum += item.prob;
+                    }
+
+                    // Sample from remaining
+                    const r = Math.random() * remainingSum;
+                    let cumSum = 0;
+                    let selectedIdx = -1;
+
+                    for (let i = 0; i < available.length; i++) {
+                        cumSum += available[i].prob;
+                        if (r <= cumSum) {
+                            selectedIdx = i;
+                            break;
+                        }
+                    }
+
+                    // Handle floating point edge case
+                    if (selectedIdx === -1) {
+                        selectedIdx = available.length - 1;
+                    }
+
+                    // Store result and remove from available
+                    outputValue[dist * numSamples + s] = available[selectedIdx].idx;
+                    available.splice(selectedIdx, 1);
+                }
+            }
+        }
+
+        return new Tensor(outputValue, {
+            shape: outputShape,
+            strides: Tensor.getStrides(outputShape),
+            offset: 0,
+            numel: numDist * numSamples,
+            device: this.device,
+            dtype: "int32"
+        });
+    }
+
     // Utility to create a new tensor filled with a number
     static full(shape: number[], num: number, options: TensorOptions = {}): Tensor {
         if (shape.length === 0) return new Tensor(num, options);
@@ -2780,6 +2921,7 @@ export class Tensor {
             shape,
             offset: 0,
             numel: outputSize,
+            dtype: "int32",
             ...options
         });
     }
@@ -2823,6 +2965,7 @@ export class Tensor {
             shape: [n],
             offset: 0,
             numel: n,
+            dtype: "int32",
             ...options
         });
     }

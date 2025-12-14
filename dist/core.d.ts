@@ -201,6 +201,7 @@ export declare class Tensor {
     triu(diagonal?: number): Tensor;
     tril(diagonal?: number): Tensor;
     maskedFill(mask: Tensor | TensorValue, value: number): Tensor;
+    multinomial(numSamples: number, replacement?: boolean): Tensor;
     static full(shape: number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
     static ones(shape?: number[], options?: TensorOptions): Tensor;
