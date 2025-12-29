@@ -11,4 +11,4 @@ const optim = new Optim.Adam([w]);
 // Optimization step
 optim.step();
 
-console.log("Updated weight:", w.val());  // Should move toward 3.0
+console.log(`Updated weight: ${w}`);  // Should move toward 3.0

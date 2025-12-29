@@ -2396,6 +2396,53 @@ class Tensor {
         }
         return buildNested(this.value, this.shape, this.strides, this.offset);
     }
+    // Returns the nicely Pytorch-like formatted string form
+    toString() {
+        const val = this.val();
+        // Format a single number (integers get trailing dot)
+        const formatNum = (n) => {
+            if (Number.isInteger(n) && Math.abs(n) < 1e8) {
+                return n.toFixed(0) + ".";
+            }
+            return n.toString();
+        };
+        // Handle scalar
+        if (typeof val === "number") {
+            return `tensor(${formatNum(val)})`;
+        }
+        // Collect all numbers to find max width for alignment
+        const collectNumbers = (v) => {
+            if (typeof v === "number")
+                return [v];
+            return v.flatMap(collectNumbers);
+        };
+        const allNumbers = collectNumbers(val);
+        const maxWidth = Math.max(...allNumbers.map((n) => formatNum(n).length));
+        const ndim = this.shape.length;
+        const baseIndent = "tensor(".length; // 7
+        const formatNested = (v, depth) => {
+            if (typeof v === "number") {
+                return formatNum(v).padStart(maxWidth);
+            }
+            const arr = v;
+            // Innermost dimension: format as single line [x, y, z]
+            if (arr.length > 0 && typeof arr[0] === "number") {
+                const elements = arr.map((x) => formatNum(x).padStart(maxWidth));
+                return `[${elements.join(", ")}]`;
+            }
+            // Number of blank lines between elements at this depth
+            // Deeper = fewer blank lines (0 between rows, 1 between 2D blocks, etc.)
+            const blankLines = Math.max(0, ndim - depth - 2);
+            const separator = ",\n" + "\n".repeat(blankLines);
+            const innerIndent = " ".repeat(baseIndent + depth + 1);
+            const formatted = arr.map((item, i) => {
+                const str = formatNested(item, depth + 1);
+                return i === 0 ? "[" + str : innerIndent + str;
+            });
+            return formatted.join(separator) + "]";
+        };
+        return "tensor(" + formatNested(val, 0) + ")";
+    }
     // Returns a view of the tensor with gradient turned off and detaches from autograd
     detach() {
         return new Tensor(this.value, {

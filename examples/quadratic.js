@@ -5,4 +5,4 @@ const L = x.pow(2).add(x);
 
 L.backward();
 
-console.log(x.grad.val(), L.grad.val());
+console.log(x.grad.toString(), L.grad.toString());

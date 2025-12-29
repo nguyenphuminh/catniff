@@ -224,6 +224,7 @@ export declare class Tensor {
         zeroGrad?: boolean;
     }): void;
     val(): TensorValue;
+    toString(): string;
     detach(): Tensor;
     clone(): Tensor;
     replace(other: Tensor | TensorValue): Tensor;

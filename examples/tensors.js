@@ -23,4 +23,5 @@ const G = F.log();
 G.backward();
 
 // X.grad and Y.grad are tensor objects themselves, so we call .val() here to see their raw values
-console.log(X.grad.val(), Y.grad.val());
+console.log(X.grad.toString());
+console.log(Y.grad.toString());

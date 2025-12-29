@@ -39,7 +39,7 @@ const start = performance.now()
 train(xornet, 30000);
 console.log(`Finished training in ${performance.now() - start} ms`);
 
-console.log(xornet.forward([1,1]).val()); // 0-ish
-console.log(xornet.forward([1,0]).val()); // 1-ish
-console.log(xornet.forward([0,1]).val()); // 1-ish
-console.log(xornet.forward([0,0]).val()); // 0-ish
+console.log(xornet.forward([1,1]).toString()); // 0-ish
+console.log(xornet.forward([1,0]).toString()); // 1-ish
+console.log(xornet.forward([0,1]).toString()); // 1-ish
+console.log(xornet.forward([0,0]).toString()); // 0-ish

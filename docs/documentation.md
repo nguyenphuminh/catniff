@@ -196,6 +196,7 @@ Here are commonly used utilities:
 * `backward(options: { zeroGrad?: boolean } = {})`: Calling this will recursively accumulate gradients of nodes in the DAG you have built, with the tensor you call backward() on as the root node for gradient computation. Note that this will assume the gradient of the top node to be a tensor of same shape, filled with 1, and it will zero out the gradients of child nodes before calculation if not explicitly specified in `options.zeroGrad`.
 * `cast(dtype: dtype): Tensor`: Return a new tensor casted to `dtype`.
 * `val(): TensorValue`: Returns the raw nD array/number form of the tensor.
+* `toString(): string`: Returns the nicely Pytorch-like formatted string form.
 * `detach(): Tensor`: Returns a view of the tensor with requiresGrad changed to `false` and detaches from DAG.
 * `clone(): Tensor`: Returns a copy of the tensor (with new data allocation) and keeps grad connection.
 * `replace(other: Tensor | TensorValue): Tensor`: Returns this tensor with value replaced with the value of another tensor.
