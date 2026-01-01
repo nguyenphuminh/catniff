@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
+exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.BatchNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
 exports.scaledDotProductAttention = scaledDotProductAttention;
 const core_1 = require("./core");
 function linearTransform(input, weight, bias) {
@@ -149,6 +149,83 @@ class LSTMCell {
     }
 }
 exports.LSTMCell = LSTMCell;
+class BatchNorm {
+    weight;
+    bias;
+    runningMean;
+    runningVar;
+    eps;
+    momentum;
+    numFeatures;
+    affine;
+    trackRunningStats;
+    numBatchesTracked;
+    constructor(numFeatures, eps = 1e-5, momentum = 0.1, affine = true, trackRunningStats = true, device, dtype) {
+        this.numFeatures = numFeatures;
+        this.eps = eps;
+        this.momentum = momentum;
+        this.affine = affine;
+        this.trackRunningStats = trackRunningStats;
+        this.numBatchesTracked = 0;
+        if (this.affine) {
+            this.weight = core_1.Tensor.ones([numFeatures], { requiresGrad: true, device, dtype });
+            this.bias = core_1.Tensor.zeros([numFeatures], { requiresGrad: true, device, dtype });
+        }
+        if (this.trackRunningStats) {
+            this.runningMean = core_1.Tensor.zeros([numFeatures], { requiresGrad: false, device, dtype });
+            this.runningVar = core_1.Tensor.ones([numFeatures], { requiresGrad: false, device, dtype });
+        }
+    }
+    forward(input) {
+        // Input shape: (N, C, ...) where C = numFeatures
+        // Normalize over batch dimension and spatial dimensions (if any)
+        if (input.shape.length < 2) {
+            throw new Error("Input must have at least 2 dimensions (batch, features)");
+        }
+        if (input.shape[1] !== this.numFeatures) {
+            throw new Error(`Expected ${this.numFeatures} features, got ${input.shape[1]}`);
+        }
+        let mean;
+        let variance;
+        if (core_1.Tensor.training || !this.trackRunningStats) {
+            // Training or trackRunningStats disabled - calculate mean and variance from scratch
+            // Calculate mean and variance over batch and spatial dimensions
+            // Keep only the channel dimension
+            const dims = [0, ...Array.from({ length: input.shape.length - 2 }, (_, i) => i + 2)];
+            mean = input.mean(dims, true);
+            variance = input.sub(mean).pow(2).mean(dims, true);
+            // Update running statistics if enabled and in training mode
+            if (this.trackRunningStats && core_1.Tensor.training) {
+                const exponentialAverageFactor = this.momentum;
+                this.runningMean = this.runningMean
+                    .mul(1 - exponentialAverageFactor)
+                    .add(mean.squeeze().mul(exponentialAverageFactor));
+                // Use unbiased variance for running estimate
+                const n = input.shape.reduce((acc, val, idx) => idx === 1 ? acc : acc * val, 1);
+                const unbiasingFactor = n / (n - 1);
+                this.runningVar = this.runningVar
+                    .mul(1 - exponentialAverageFactor)
+                    .add(variance.squeeze().mul(exponentialAverageFactor * unbiasingFactor));
+                this.numBatchesTracked++;
+            }
+        }
+        else {
+            // Inference with trackRunningStats enabled - use running statistics
+            mean = this.runningMean.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+            variance = this.runningVar.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+        }
+        // Normalize
+        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
+        // Apply affine transformation
+        if (this.affine) {
+            const weightReshaped = this.weight.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+            const biasReshaped = this.bias.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+            normalized = normalized.mul(weightReshaped).add(biasReshaped);
+        }
+        return normalized;
+    }
+}
+exports.BatchNorm = BatchNorm;
 class LayerNorm {
     weight;
     bias;
@@ -383,6 +460,7 @@ exports.nn = {
     RNNCell,
     GRUCell,
     LSTMCell,
+    BatchNorm,
     LayerNorm,
     RMSNorm,
     Embedding,

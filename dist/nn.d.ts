@@ -50,6 +50,20 @@ export declare class LSTMCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string, dtype?: dtype);
     forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor];
 }
+export declare class BatchNorm {
+    weight?: Tensor;
+    bias?: Tensor;
+    runningMean?: Tensor;
+    runningVar?: Tensor;
+    eps: number;
+    momentum: number;
+    numFeatures: number;
+    affine: boolean;
+    trackRunningStats: boolean;
+    numBatchesTracked: number;
+    constructor(numFeatures: number, eps?: number, momentum?: number, affine?: boolean, trackRunningStats?: boolean, device?: string, dtype?: dtype);
+    forward(input: Tensor): Tensor;
+}
 export declare class LayerNorm {
     weight?: Tensor;
     bias?: Tensor;
@@ -91,6 +105,7 @@ export declare const nn: {
     RNNCell: typeof RNNCell;
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
+    BatchNorm: typeof BatchNorm;
     LayerNorm: typeof LayerNorm;
     RMSNorm: typeof RMSNorm;
     Embedding: typeof Embedding;

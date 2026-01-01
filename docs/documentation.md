@@ -481,6 +481,39 @@ constructor(
 
 * `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
 
+## nn.BatchNorm / BatchNorm
+
+### Constructor
+
+```ts
+constructor(
+    numFeatures: number,
+    eps: number = 1e-5,
+    momentum: number = 0.1,
+    affine: boolean = true,
+    trackRunningStats: boolean = true,
+    device?: string,
+    dtype?: dtype
+)
+```
+
+### Properties
+
+* `public weight?: Tensor;`: Weight for affine if enabled.
+* `public bias?: Tensor;`: Bias for affine if enabled.
+* `public runningMean?: Tensor;`: Running mean, used for inference if `trackRunningStats` is `true`, updated while training if `Tensor.training` is `true`.
+* `public runningVar?: Tensor;`: Same with `runningMean` but stores variance.
+* `public eps: number;`: Basically just `eps` from the constructor.
+* `public momentum: number;`: Momentum to update `runningMean` and `runningVar` if `trackRunningStats` is `true`.
+* `public numFeatures: number;`: Number of features/channels of input.
+* `public affine: boolean;`: Shows if affine is enabled or not.
+* `public trackRunningStats: boolean;`: Shows if layer is using/updating running stats.
+* `public numBatchesTracked: number;`: Shows number of batches we have gone through during training.
+
+### Methods
+
+* `forward(input: Tensor): Tensor`: Apply batch norm on input tensor.
+
 ## nn.LayerNorm / LayerNorm
 
 ### Constructor

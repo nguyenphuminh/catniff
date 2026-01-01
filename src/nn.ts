@@ -207,6 +207,111 @@ export class LSTMCell {
     }
 }
 
+export class BatchNorm {
+    public weight?: Tensor;
+    public bias?: Tensor;
+    public runningMean?: Tensor;
+    public runningVar?: Tensor;
+    public eps: number;
+    public momentum: number;
+    public numFeatures: number;
+    public affine: boolean;
+    public trackRunningStats: boolean;
+    public numBatchesTracked: number;
+
+    constructor(
+        numFeatures: number,
+        eps: number = 1e-5,
+        momentum: number = 0.1,
+        affine: boolean = true,
+        trackRunningStats: boolean = true,
+        device?: string,
+        dtype?: dtype
+    ) {
+        this.numFeatures = numFeatures;
+        this.eps = eps;
+        this.momentum = momentum;
+        this.affine = affine;
+        this.trackRunningStats = trackRunningStats;
+        this.numBatchesTracked = 0;
+
+        if (this.affine) {
+            this.weight = Tensor.ones([numFeatures], { requiresGrad: true, device, dtype });
+            this.bias = Tensor.zeros([numFeatures], { requiresGrad: true, device, dtype });
+        }
+
+        if (this.trackRunningStats) {
+            this.runningMean = Tensor.zeros([numFeatures], { requiresGrad: false, device, dtype });
+            this.runningVar = Tensor.ones([numFeatures], { requiresGrad: false, device, dtype });
+        }
+    }
+
+    forward(input: Tensor): Tensor {
+        // Input shape: (N, C, ...) where C = numFeatures
+        // Normalize over batch dimension and spatial dimensions (if any)
+
+        if (input.shape.length < 2) {
+            throw new Error("Input must have at least 2 dimensions (batch, features)");
+        }
+
+        if (input.shape[1] !== this.numFeatures) {
+            throw new Error(`Expected ${this.numFeatures} features, got ${input.shape[1]}`);
+        }
+
+        let mean: Tensor;
+        let variance: Tensor;
+
+        if (Tensor.training || !this.trackRunningStats) {
+            // Training or trackRunningStats disabled - calculate mean and variance from scratch
+
+            // Calculate mean and variance over batch and spatial dimensions
+            // Keep only the channel dimension
+            const dims = [0, ...Array.from({ length: input.shape.length - 2 }, (_, i) => i + 2)];
+
+            mean = input.mean(dims, true);
+            variance = input.sub(mean).pow(2).mean(dims, true);
+
+            // Update running statistics if enabled and in training mode
+            if (this.trackRunningStats && Tensor.training) {
+                const exponentialAverageFactor = this.momentum;
+
+                this.runningMean = this.runningMean!
+                    .mul(1 - exponentialAverageFactor)
+                    .add(mean.squeeze().mul(exponentialAverageFactor));
+
+                // Use unbiased variance for running estimate
+                const n = input.shape.reduce((acc, val, idx) =>
+                    idx === 1 ? acc : acc * val, 1
+                );
+                const unbiasingFactor = n / (n - 1);
+
+                this.runningVar = this.runningVar!
+                    .mul(1 - exponentialAverageFactor)
+                    .add(variance.squeeze().mul(exponentialAverageFactor * unbiasingFactor));
+
+                this.numBatchesTracked++;
+            }
+        } else {
+            // Inference with trackRunningStats enabled - use running statistics
+            mean = this.runningMean!.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+            variance = this.runningVar!.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+        }
+
+        // Normalize
+        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
+
+        // Apply affine transformation
+        if (this.affine) {
+            const weightReshaped = this.weight!.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+            const biasReshaped = this.bias!.reshape([1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)]);
+
+            normalized = normalized.mul(weightReshaped).add(biasReshaped);
+        }
+
+        return normalized;
+    }
+}
+
 export class LayerNorm {
     public weight?: Tensor;
     public bias?: Tensor;
@@ -347,9 +452,9 @@ export function scaledDotProductAttention(
     isCausal = false,
     scale?: number
 ) {
-    const targetLen = query.shape[query.shape.length-2];
-    const sourceLen = key.shape[key.shape.length-2];
-    const dimSize = query.shape[query.shape.length-1];
+    const targetLen = query.shape[query.shape.length - 2];
+    const sourceLen = key.shape[key.shape.length - 2];
+    const dimSize = query.shape[query.shape.length - 1];
 
     // Attention scores
     let scores = query.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
@@ -368,7 +473,7 @@ export function scaledDotProductAttention(
     let attnWeights = scores.softmax().dropout(dropout);
 
     // Apply attention to values
-    return attnWeights.matmul(value); 
+    return attnWeights.matmul(value);
 }
 
 export class MultiheadAttention {
@@ -539,6 +644,7 @@ export const nn = {
     RNNCell,
     GRUCell,
     LSTMCell,
+    BatchNorm,
     LayerNorm,
     RMSNorm,
     Embedding,
