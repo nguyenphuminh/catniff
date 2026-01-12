@@ -64,6 +64,23 @@ export declare class BatchNorm {
     constructor(numFeatures: number, eps?: number, momentum?: number, affine?: boolean, trackRunningStats?: boolean, device?: string, dtype?: dtype);
     forward(input: Tensor): Tensor;
 }
+export declare class InstanceNorm {
+    weight?: Tensor;
+    bias?: Tensor;
+    eps: number;
+    numFeatures: number;
+    constructor(numFeatures: number, eps?: number, affine?: boolean, device?: string, dtype?: dtype);
+    forward(input: Tensor): Tensor;
+}
+export declare class GroupNorm {
+    weight?: Tensor;
+    bias?: Tensor;
+    eps: number;
+    numGroups: number;
+    numChannels: number;
+    constructor(numGroups: number, numChannels: number, eps?: number, affine?: boolean, device?: string, dtype?: dtype);
+    forward(input: Tensor): Tensor;
+}
 export declare class LayerNorm {
     weight?: Tensor;
     bias?: Tensor;
@@ -106,6 +123,8 @@ export declare const nn: {
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
     BatchNorm: typeof BatchNorm;
+    InstanceNorm: typeof InstanceNorm;
+    GroupNorm: typeof GroupNorm;
     LayerNorm: typeof LayerNorm;
     RMSNorm: typeof RMSNorm;
     Embedding: typeof Embedding;

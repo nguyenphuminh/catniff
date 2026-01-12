@@ -540,6 +540,56 @@ constructor(
 
 * `forward(input: Tensor): Tensor`: Apply layer norm on input tensor.
 
+## nn.InstanceNorm / InstanceNorm
+
+### Constructor
+```ts
+constructor(
+    numFeatures: number,
+    eps: number = 1e-5,
+    affine: boolean = true,
+    device?: string,
+    dtype?: dtype
+)
+```
+
+### Properties
+
+* `public weight?: Tensor`: Weight to scale, available if `affine` is `true`. Shape: `[numFeatures]`.
+* `public bias?: Tensor`: Bias to shift, available if `affine` is `true`. Shape: `[numFeatures]`.
+* `public eps: number`: Small constant for numerical stability.
+* `public numFeatures: number`: Number of channels expected in input.
+
+### Methods
+
+* `forward(input: Tensor): Tensor`: Apply instance normalization on input tensor. Input must be at least 3D with shape `[N, C, ...spatial_dims]` where `C == numFeatures`. Normalizes across spatial dimensions independently for each sample and channel.
+
+## nn.GroupNorm / GroupNorm
+
+### Constructor
+```ts
+constructor(
+    numGroups: number,
+    numChannels: number,
+    eps: number = 1e-5,
+    affine: boolean = true,
+    device?: string,
+    dtype?: dtype
+)
+```
+
+### Properties
+
+* `public weight?: Tensor`: Weight to scale, available if `affine` is `true`. Shape: `[numChannels]`.
+* `public bias?: Tensor`: Bias to shift, available if `affine` is `true`. Shape: `[numChannels]`.
+* `public eps: number`: Small constant for numerical stability.
+* `public numGroups: number`: Number of groups to divide channels into.
+* `public numChannels: number`: Number of channels expected in input.
+
+### Methods
+
+* `forward(input: Tensor): Tensor`: Apply group normalization on input tensor. Input must be at least 3D with shape `[N, C, ...spatial_dims]` where `C == numChannels`. Channels are divided into `numGroups` groups, and normalization is applied independently within each group across spatial dimensions. Note: `numChannels` must be divisible by `numGroups`.
+
 ## nn.RMSNorm / RMSNorm
 
 ### Constructor

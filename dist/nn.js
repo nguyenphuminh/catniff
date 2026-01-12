@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.BatchNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
+exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.GroupNorm = exports.InstanceNorm = exports.BatchNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Linear = void 0;
 exports.scaledDotProductAttention = scaledDotProductAttention;
 const core_1 = require("./core");
 function linearTransform(input, weight, bias) {
@@ -226,6 +226,110 @@ class BatchNorm {
     }
 }
 exports.BatchNorm = BatchNorm;
+class InstanceNorm {
+    weight;
+    bias;
+    eps;
+    numFeatures;
+    constructor(numFeatures, eps = 1e-5, affine = true, device, dtype) {
+        this.numFeatures = numFeatures;
+        this.eps = eps;
+        if (affine) {
+            this.weight = core_1.Tensor.ones([numFeatures], { requiresGrad: true, device, dtype });
+            this.bias = core_1.Tensor.zeros([numFeatures], { requiresGrad: true, device, dtype });
+        }
+    }
+    forward(input) {
+        // Input should be at least 3D: [N, C, ...spatial dims]
+        if (input.shape.length < 3) {
+            throw new Error("InstanceNorm expects at least 3D input [N, C, ...spatial]");
+        }
+        if (input.shape[1] !== this.numFeatures) {
+            throw new Error(`Expected ${this.numFeatures} channels, got ${input.shape[1]}`);
+        }
+        // Normalize across spatial dimensions (all dims after channel dim)
+        const dims = [];
+        for (let i = 2; i < input.shape.length; i++) {
+            dims.push(i);
+        }
+        const mean = input.mean(dims, true);
+        const variance = input.sub(mean).pow(2).mean(dims, true);
+        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
+        if (this.weight) {
+            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
+            const weightShape = [1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)];
+            const weightReshaped = this.weight.reshape(weightShape);
+            normalized = normalized.mul(weightReshaped);
+        }
+        if (this.bias) {
+            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
+            const biasShape = [1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)];
+            const biasReshaped = this.bias.reshape(biasShape);
+            normalized = normalized.add(biasReshaped);
+        }
+        return normalized;
+    }
+}
+exports.InstanceNorm = InstanceNorm;
+class GroupNorm {
+    weight;
+    bias;
+    eps;
+    numGroups;
+    numChannels;
+    constructor(numGroups, numChannels, eps = 1e-5, affine = true, device, dtype) {
+        if (numChannels % numGroups !== 0) {
+            throw new Error(`num_channels (${numChannels}) must be divisible by num_groups (${numGroups})`);
+        }
+        this.numGroups = numGroups;
+        this.numChannels = numChannels;
+        this.eps = eps;
+        if (affine) {
+            this.weight = core_1.Tensor.ones([numChannels], { requiresGrad: true, device, dtype });
+            this.bias = core_1.Tensor.zeros([numChannels], { requiresGrad: true, device, dtype });
+        }
+    }
+    forward(input) {
+        // Input should be at least 3D: [N, C, ...spatial dims]
+        if (input.shape.length < 3) {
+            throw new Error("GroupNorm expects at least 3D input [N, C, ...spatial]");
+        }
+        if (input.shape[1] !== this.numChannels) {
+            throw new Error(`Expected ${this.numChannels} channels, got ${input.shape[1]}`);
+        }
+        const N = input.shape[0];
+        const C = input.shape[1];
+        const spatialDims = input.shape.slice(2);
+        const channelsPerGroup = C / this.numGroups;
+        // Reshape: [N, C, ...spatial] -> [N, G, C//G, ...spatial]
+        const reshapedInput = input.reshape([N, this.numGroups, channelsPerGroup, ...spatialDims]);
+        // Normalize across (C//G, ...spatial) dimensions for each group
+        // That's dims [2, 3, 4, ...] in the reshaped tensor
+        const dims = [];
+        for (let i = 2; i < reshapedInput.shape.length; i++) {
+            dims.push(i);
+        }
+        const mean = reshapedInput.mean(dims, true);
+        const variance = reshapedInput.sub(mean).pow(2).mean(dims, true);
+        let normalized = reshapedInput.sub(mean).div(variance.add(this.eps).sqrt());
+        // Reshape back: [N, G, C//G, ...spatial] -> [N, C, ...spatial]
+        normalized = normalized.reshape(input.shape);
+        if (this.weight) {
+            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
+            const weightShape = [1, this.numChannels, ...Array(spatialDims.length).fill(1)];
+            const weightReshaped = this.weight.reshape(weightShape);
+            normalized = normalized.mul(weightReshaped);
+        }
+        if (this.bias) {
+            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
+            const biasShape = [1, this.numChannels, ...Array(spatialDims.length).fill(1)];
+            const biasReshaped = this.bias.reshape(biasShape);
+            normalized = normalized.add(biasReshaped);
+        }
+        return normalized;
+    }
+}
+exports.GroupNorm = GroupNorm;
 class LayerNorm {
     weight;
     bias;
@@ -461,6 +565,8 @@ exports.nn = {
     GRUCell,
     LSTMCell,
     BatchNorm,
+    InstanceNorm,
+    GroupNorm,
     LayerNorm,
     RMSNorm,
     Embedding,
