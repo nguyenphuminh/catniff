@@ -700,7 +700,7 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension do not exist to chunk");
+            throw new Error("Dimension does not exist to chunk");
         }
         const sliceOpt = new Array(this.shape.length);
         for (let index = 0; index < sliceOpt.length; index++) {
@@ -944,7 +944,7 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension do not exist to sort");
+            throw new Error("Dimension does not exist to sort");
         }
         // Copy if not contiguous
         const outputSize = this.numel;
@@ -1032,7 +1032,7 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension do not exist to get topk");
+            throw new Error("Dimension does not exist to get topk");
         }
         const dimRanges = new Array(this.shape.length);
         for (let index = 0; index < dimRanges.length; index++) {
@@ -1207,7 +1207,7 @@ class Tensor {
     std(dims, keepDims = false) {
         return this.var(dims, keepDims).sqrt();
     }
-    // Tensor softmax
+    // Tensor (stable) softmax
     softmax(dim = -1) {
         if (this.shape.length === 0)
             return this;
@@ -1217,7 +1217,7 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension do not exist to apply softmax");
+            throw new Error("Dimension does not exist to apply softmax");
         }
         const maxVals = this.max(dim, true);
         const shifted = this.sub(maxVals);
@@ -1225,7 +1225,7 @@ class Tensor {
         const sumExp = expVals.sum(dim, true);
         return expVals.div(sumExp);
     }
-    // Tensor softmin
+    // Tensor (stable) softmin
     softmin(dim = -1) {
         if (this.shape.length === 0)
             return this;
@@ -1235,13 +1235,42 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension do not exist to apply softmin");
+            throw new Error("Dimension does not exist to apply softmin");
         }
         const maxVals = this.max(dim, true);
         const shifted = maxVals.sub(this);
         const expVals = shifted.exp();
         const sumExp = expVals.sum(dim, true);
         return expVals.div(sumExp);
+    }
+    // Tensor (stable) logsumexp
+    logsumexp(dim = -1) {
+        if (this.shape.length === 0)
+            return this;
+        // Handle negative indexing
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension does not exist to apply logsumexp");
+        }
+        const max = this.max(dim, true);
+        return max.add(this.sub(max).exp().sum(dim, true).log());
+    }
+    // Tensor (stable) logsumexp
+    logSoftmax(dim = -1) {
+        if (this.shape.length === 0)
+            return this;
+        // Handle negative indexing
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension does not exist to apply logsumexp");
+        }
+        return this.sub(this.logsumexp(dim));
     }
     // Tensor element-wise addition
     add(other) {
