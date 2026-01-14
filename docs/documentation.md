@@ -128,15 +128,19 @@ All autograd-supported tensor arithmetic methods:
 * `log10(): Tensor`: Returns log base 10 of `this` element-wise.
 * `log1p(): Tensor`: Returns natural log of 1 plus `this` element-wise.
 * `relu(): Tensor`: Returns relu of `this` element-wise.
+* `relu6(): Tensor`: Returns relu of `this` element-wise, clamped under 6.
 * `leakyRelu(negativeSlope = 0.01): Tensor`: Returns leaky relu of `this` element-wise.
 * `elu(alpha = 1): Tensor`: Returns elu of `this` element-wise.
 * `selu(): Tensor`: Returns selu of `this` element-wise.
 * `celu(alpha = 1): Tensor`: Returns celu of `this` element-wise.
 * `sigmoid(): Tensor`: Returns sigmoid of `this` element-wise.
+* `hardsigmoid(): Tensor`: Returns hardsigmoid of `this` element-wise.
 * `tanh(): Tensor`: Returns tanh of `this` element-wise.
+* `hardtanh(min = -1, max = 1): Tensor`: Returns hardtanh of `this` element-wise.
 * `softplus(): Tensor`: Returns softplus of `this` element-wise.
 * `softsign(): Tensor`: Returns softsign of `this` element-wise.
 * `silu(): Tensor`: Returns silu (swish) of `this` element-wise.
+* `hardswish(): Tensor`: Returns hardswish of `this` element-wise.
 * `mish(): Tensor`: Returns mish of `this` element-wise.
 * `gelu(approximate: string = "none"): Tensor`: Returns gelu of `this` element-wise. Use original gelu formula if `approximate` is `none`, use tanh approximation if set to `tanh`.
 * `maximum(other: TensorValue | Tensor): Tensor`: Returns maximum between `this` and `other` element-wise.

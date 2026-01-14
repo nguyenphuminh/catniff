@@ -2002,6 +2002,11 @@ export class Tensor {
         );
     }
 
+    // Tensor element-wise relu6
+    relu6(): Tensor {
+        return this.clamp(0, 6);
+    }
+
     // Tensor element-wise leaky relu
     leakyRelu(negativeSlope = 0.01): Tensor {
         return this.elementWiseSelfDAG(
@@ -2056,12 +2061,22 @@ export class Tensor {
         );
     }
 
+    // Tensor element-wise hardsigmoid
+    hardsigmoid(): Tensor {
+        return this.add(3).relu6().div(6);
+    }
+
     // Tensor element-wise tanh
     tanh(): Tensor {
         return this.elementWiseSelfDAG(
             (a) => Math.tanh(a),
             (self, outGrad) => outGrad.mul(self.tanh().square().neg().add(1))
         );
+    }
+
+    // Tensor element-wise hardtanh
+    hardtanh(min = -1, max = 1): Tensor {
+        return this.clamp(min, max);
     }
 
     // Tensor element-wise softplus
@@ -2089,6 +2104,13 @@ export class Tensor {
                 return outGrad.mul(sig.add(self.mul(sig).mul(sig.neg().add(1))));
             }
         );
+    }
+    
+    swish = this.silu;
+
+    // Tensor element-wise hardswish
+    hardswish(): Tensor {
+        return this.mul(this.add(3).relu6().div(6));
     }
 
     // Tensor element-wise mish
