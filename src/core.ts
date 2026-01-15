@@ -1549,6 +1549,25 @@ export class Tensor {
         return this.sub(this.logsumexp(dim));
     }
 
+    // Tensor (stable) logaddexp
+    logaddexp(other: TensorValue | Tensor): Tensor {
+        other = this.handleOther(other);
+
+        const max = this.maximum(other);
+        const exp1 = this.sub(max).exp();
+        const exp2 = other.sub(max).exp();
+
+        return max.add(exp1.add(exp2).log());
+    }
+
+    // Tensor linear interpolation
+    lerp(end: TensorValue | Tensor, weight: TensorValue | Tensor): Tensor {
+        end = this.handleOther(end);
+        weight = this.handleOther(weight);
+        
+        return this.add(weight.mul(end.sub(this)));
+    }
+
     // Tensor element-wise addition
     add(other: TensorValue | Tensor): Tensor {
         return this.elementWiseABDAG(

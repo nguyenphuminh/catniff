@@ -1272,6 +1272,20 @@ class Tensor {
         }
         return this.sub(this.logsumexp(dim));
     }
+    // Tensor (stable) logaddexp
+    logaddexp(other) {
+        other = this.handleOther(other);
+        const max = this.maximum(other);
+        const exp1 = this.sub(max).exp();
+        const exp2 = other.sub(max).exp();
+        return max.add(exp1.add(exp2).log());
+    }
+    // Tensor linear interpolation
+    lerp(end, weight) {
+        end = this.handleOther(end);
+        weight = this.handleOther(weight);
+        return this.add(weight.mul(end.sub(this)));
+    }
     // Tensor element-wise addition
     add(other) {
         return this.elementWiseABDAG(other, (a, b) => a + b, (self, other, outGrad) => outGrad, (self, other, outGrad) => outGrad);

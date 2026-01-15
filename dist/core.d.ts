@@ -101,6 +101,8 @@ export declare class Tensor {
     softmin(dim?: number): Tensor;
     logsumexp(dim?: number): Tensor;
     logSoftmax(dim?: number): Tensor;
+    logaddexp(other: TensorValue | Tensor): Tensor;
+    lerp(end: TensorValue | Tensor, weight: TensorValue | Tensor): Tensor;
     add(other: TensorValue | Tensor): Tensor;
     sub(other: TensorValue | Tensor): Tensor;
     subtract: (other: TensorValue | Tensor) => Tensor;

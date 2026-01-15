@@ -189,6 +189,8 @@ All autograd-supported tensor arithmetic methods:
 * `softmin(dim: number = -1): Tensor`: Apply numerically stable softmin on the specified dimension.
 * `logsumexp(dim: number = -1): Tensor`: Apply numerically stable log of sum of exponentials on the specified dimension.
 * `logSoftmax(dim: number = -1): Tensor`: Apply numerically stable log(softmax(x)) on the specified dimension.
+* `logaddexp(dim: number = -1): Tensor`: Apply numerically stable log of sum of two tensors exponentiated.
+* `lerp(end: TensorValue | Tensor, weight: TensorValue | Tensor): Tensor`: Apply linear interpolation (`this + weight * (end - this)` basically).
 * `sort(dim = -1, descending = false): Tensor`: Sort the specified dimension.
 * `topk(k: number, dim = -1, largest = true): Tensor`: Get top k elements of the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
