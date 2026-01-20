@@ -2316,25 +2316,26 @@ export class Tensor {
         if (matACols !== matBRows) throw new Error("Invalid matrices shape for multiplication");
 
         const matCDtype = Tensor.getResultDtype(this.dtype, other.dtype);
-        const matCShape = [matARows, matBCols];
-        const matCStrides = Tensor.getStrides(matCShape);
-        const matCSize = Tensor.shapeToSize(matCShape);
+        const matCSize = matARows * matBCols;
         const matC = new TypedArray[matCDtype](matCSize).fill(0);
 
         for (let i = 0; i < matARows; i++) {
-            for (let j = 0; j < matBCols; j++) {
-                for (let k = 0; k < matACols; k++) {
-                    // Tensor values are 1D arrays so we have to get real index using strides
-                    matC[i * matCStrides[0] + j * matCStrides[1]] +=
-                        matA[i * matAStrides[0] + k * matAStrides[1] + this.offset] *
-                        matB[k * matBStrides[0] + j * matBStrides[1] + other.offset];
+            const aRowOffset = i * matAStrides[0] + this.offset;
+            const cRowOffset = i * matBCols;
+
+            for (let k = 0; k < matACols; k++) {
+                const aVal = matA[aRowOffset + k * matAStrides[1]];
+                const bRowOffset = k * matBStrides[0] + other.offset;
+
+                for (let j = 0; j < matBCols; j++) {
+                    matC[cRowOffset + j] += aVal * matB[bRowOffset + j * matBStrides[1]];
                 }
             }
         }
 
         const out = new Tensor(matC, {
-            shape: matCShape,
-            strides: matCStrides,
+            shape: [matARows, matBCols],
+            strides: [matBCols, 1],
             offset: 0,
             numel: matCSize,
             device: this.device,
@@ -2388,27 +2389,33 @@ export class Tensor {
         if (batchACols !== batchBRows) throw new Error("Invalid matrices shape for multiplication");
 
         const batchCDtype = Tensor.getResultDtype(this.dtype, other.dtype);
-        const batchCShape = [batchSize, batchARows, batchBCols];
-        const batchCStrides = Tensor.getStrides(batchCShape);
-        const batchCSize = Tensor.shapeToSize(batchCShape);
+        const matrixSize = batchARows * batchBCols;
+        const batchCSize = batchSize * matrixSize;
         const batchC = new TypedArray[batchCDtype](batchCSize).fill(0);
 
         for (let q = 0; q < batchSize; q++) {
+            const aQOffset = q * batchAStrides[0] + this.offset;
+            const bQOffset = q * batchBStrides[0] + other.offset;
+            const cQOffset = q * matrixSize;
+
             for (let i = 0; i < batchARows; i++) {
-                for (let j = 0; j < batchBCols; j++) {
-                    for (let k = 0; k < batchACols; k++) {
-                        // Tensor values are 1D arrays so we have to get real index using strides
-                        batchC[q * batchCStrides[0] + i * batchCStrides[1] + j * batchCStrides[2]] +=
-                            batchA[q * batchAStrides[0] + i * batchAStrides[1] + k * batchAStrides[2] + this.offset] *
-                            batchB[q * batchBStrides[0] + k * batchBStrides[1] + j * batchBStrides[2] + other.offset];
+                const aRowOffset = aQOffset + i * batchAStrides[1];
+                const cRowOffset = cQOffset + i * batchBCols;
+
+                for (let k = 0; k < batchACols; k++) {
+                    const aVal = batchA[aRowOffset + k * batchAStrides[2]];
+                    const bRowOffset = bQOffset + k * batchBStrides[1];
+
+                    for (let j = 0; j < batchBCols; j++) {
+                        batchC[cRowOffset + j] += aVal * batchB[bRowOffset + j * batchBStrides[2]];
                     }
                 }
             }
         }
 
         const out = new Tensor(batchC, {
-            shape: batchCShape,
-            strides: batchCStrides,
+            shape: [batchSize, batchARows, batchBCols],
+            strides: [matrixSize, batchBCols, 1],
             offset: 0,
             numel: batchCSize,
             device: this.device,
@@ -2508,20 +2515,30 @@ export class Tensor {
             const outputOffsetStrides = outputStrides.slice(0, -2);
 
             // Loop through outer dims and do matmul on two outer-most dims
+            const outputRowStride = outputStrides[lastDim - 1];
+            const outputColStride = outputStrides[lastDim];
+            const selfRowStride = selfStrides[lastDim - 1];
+            const selfColStride = selfStrides[lastDim];
+            const otherRowStride = otherStrides[lastDim - 1];
+            const otherColStride = otherStrides[lastDim];
+
             for (let index = 0; index < offsetSize; index++) {
                 const coords = Tensor.indexToCoords(index, offsetStrides);
-                const offset = Tensor.coordsToIndex(coords, outputOffsetStrides);
-                const selfOffset = Tensor.coordsToUnbroadcastedIndex(coords, selfOffsetShape, selfOffsetStrides);
-                const otherOffset = Tensor.coordsToUnbroadcastedIndex(coords, otherOffsetShape, otherOffsetStrides);
+                const outBatchOffset = Tensor.coordsToIndex(coords, outputOffsetStrides);
+                const selfBatchOffset = Tensor.coordsToUnbroadcastedIndex(coords, selfOffsetShape, selfOffsetStrides) + this.offset;
+                const otherBatchOffset = Tensor.coordsToUnbroadcastedIndex(coords, otherOffsetShape, otherOffsetStrides) + other.offset;
 
                 for (let i = 0; i < batchARows; i++) {
-                    for (let j = 0; j < batchBCols; j++) {
-                        for (let k = 0; k < batchACols; k++) {
-                            const outputIdx = offset + i * outputStrides[lastDim - 1] + j * outputStrides[lastDim];
-                            const selfIdx = selfOffset + i * selfStrides[lastDim - 1] + k * selfStrides[lastDim];
-                            const otherIdx = otherOffset + k * otherStrides[lastDim - 1] + j * otherStrides[lastDim];
+                    const selfRowOffset = selfBatchOffset + i * selfRowStride;
+                    const outRowOffset = outBatchOffset + i * outputRowStride;
 
-                            outputValue[outputIdx] += batchA[selfIdx + this.offset] * batchB[otherIdx + other.offset];
+                    for (let k = 0; k < batchACols; k++) {
+                        const aVal = batchA[selfRowOffset + k * selfColStride];
+                        const otherRowOffset = otherBatchOffset + k * otherRowStride;
+
+                        for (let j = 0; j < batchBCols; j++) {
+                            outputValue[outRowOffset + j * outputColStride] += 
+                                aVal * batchB[otherRowOffset + j * otherColStride];
                         }
                     }
                 }
