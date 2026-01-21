@@ -61,7 +61,7 @@ export class Tensor {
     static flattenValue(tensorValue: TensorValue): ArrayLike<number> {
         // Handle scalar tensors
         if (typeof tensorValue === "number") return [tensorValue];
-        // If value is already 1D, we just need to return the value ("s reference)
+        // If value is already 1D, we just need to return the value ('s reference)
         if (typeof tensorValue[0] === "number") return tensorValue as ArrayLike<number>;
 
         // Or else recursively traverse through the nD array to flatten
@@ -280,9 +280,9 @@ export class Tensor {
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
             const coordsOutput = aFastPath && bFastPath ? [] : Tensor.indexToCoords(i, outputStrides);
-            // Convert the coordinates to 1D index of flattened A with respect to A"s shape
+            // Convert the coordinates to 1D index of flattened A with respect to A's shape
             const indexA = aFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
-            // Convert the coordinates to 1D index of flattened B with respect to B"s shape
+            // Convert the coordinates to 1D index of flattened B with respect to B's shape
             const indexB = bFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
 
             // Calculate with op
@@ -2497,7 +2497,7 @@ export class Tensor {
             if (batchACols !== batchBRows) throw new Error("Invalid matrices shape for multiplication");
 
             // Prepare shape, strides, size info, but more importantly the offset-related data to loop through the outer, non-matrix dims
-            // Self and other"s offset data
+            // Self and other's offset data
             const selfOffsetShape = selfShape.slice(0, -2);
             const otherOffsetShape = otherShape.slice(0, -2);
             const selfOffsetStrides = selfStrides.slice(0, -2);
@@ -2795,7 +2795,7 @@ export class Tensor {
         for (let dist = 0; dist < numDist; dist++) {
             const offset = dist * numCategories;
 
-            // Extract this distribution"s probabilities
+            // Extract this distribution's probabilities
             const distProbs = probs.slice(offset, offset + numCategories);
 
             // Validate and normalize
