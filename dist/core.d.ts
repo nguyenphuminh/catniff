@@ -206,6 +206,7 @@ export declare class Tensor {
     bmm(other: TensorValue | Tensor): Tensor;
     mv(other: TensorValue | Tensor): Tensor;
     matmul(other: TensorValue | Tensor): Tensor;
+    tensordot(other: TensorValue | Tensor, axes?: number | [number, number] | [number[], number[]]): Tensor;
     dropout(rate: number): Tensor;
     triu(diagonal?: number): Tensor;
     tril(diagonal?: number): Tensor;

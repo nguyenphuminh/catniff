@@ -61,7 +61,7 @@ export class Tensor {
     static flattenValue(tensorValue: TensorValue): ArrayLike<number> {
         // Handle scalar tensors
         if (typeof tensorValue === "number") return [tensorValue];
-        // If value is already 1D, we just need to return the value ('s reference)
+        // If value is already 1D, we just need to return the value ("s reference)
         if (typeof tensorValue[0] === "number") return tensorValue as ArrayLike<number>;
 
         // Or else recursively traverse through the nD array to flatten
@@ -280,9 +280,9 @@ export class Tensor {
         for (let i = 0; i < outputSize; i++) {
             // Get coordinates from 1D index
             const coordsOutput = aFastPath && bFastPath ? [] : Tensor.indexToCoords(i, outputStrides);
-            // Convert the coordinates to 1D index of flattened A with respect to A's shape
+            // Convert the coordinates to 1D index of flattened A with respect to A"s shape
             const indexA = aFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedAShape, paddedAStrides);
-            // Convert the coordinates to 1D index of flattened B with respect to B's shape
+            // Convert the coordinates to 1D index of flattened B with respect to B"s shape
             const indexB = bFastPath ? i : Tensor.coordsToUnbroadcastedIndex(coordsOutput, paddedBShape, paddedBStrides);
 
             // Calculate with op
@@ -1564,7 +1564,7 @@ export class Tensor {
     lerp(end: TensorValue | Tensor, weight: TensorValue | Tensor): Tensor {
         end = this.handleOther(end);
         weight = this.handleOther(weight);
-        
+
         return this.add(weight.mul(end.sub(this)));
     }
 
@@ -2124,7 +2124,7 @@ export class Tensor {
             }
         );
     }
-    
+
     swish = this.silu;
 
     // Tensor element-wise hardswish
@@ -2497,7 +2497,7 @@ export class Tensor {
             if (batchACols !== batchBRows) throw new Error("Invalid matrices shape for multiplication");
 
             // Prepare shape, strides, size info, but more importantly the offset-related data to loop through the outer, non-matrix dims
-            // Self and other's offset data
+            // Self and other"s offset data
             const selfOffsetShape = selfShape.slice(0, -2);
             const otherOffsetShape = otherShape.slice(0, -2);
             const selfOffsetStrides = selfStrides.slice(0, -2);
@@ -2537,7 +2537,7 @@ export class Tensor {
                         const otherRowOffset = otherBatchOffset + k * otherRowStride;
 
                         for (let j = 0; j < batchBCols; j++) {
-                            outputValue[outRowOffset + j * outputColStride] += 
+                            outputValue[outRowOffset + j * outputColStride] +=
                                 aVal * batchB[otherRowOffset + j * otherColStride];
                         }
                     }
@@ -2579,6 +2579,94 @@ export class Tensor {
         }
 
         throw new Error(`Shapes [${this.shape}] and [${other.shape}] are not supported`);
+    }
+
+    // General tensor dot product
+    tensordot(other: TensorValue | Tensor, axes: number | [number, number] | [number[], number[]] = 2): Tensor {
+        other = this.handleOther(other);
+
+        let axesA, axesB;
+
+        // If axes is a number
+        if (typeof axes === "number") {
+            axesA = new Array(axes);
+            axesB = new Array(axes);
+            for (let i = 0; i < axes; i++) {
+                axesA[i] = this.shape.length - axes + i;
+                axesB[i] = i;
+            }
+        }
+        // If axes is a pair of numbers or a pair of axes
+        else {
+            // axes is [axesA, axesB]
+            [axesA, axesB] = axes;
+
+            // Convert single numbers to arrays
+            if (typeof axesA === "number") axesA = [axesA];
+            if (typeof axesB === "number") axesB = [axesB];
+        }
+
+        // Normalize axes
+        axesA = Tensor.normalizeDims(axesA, this.shape.length);
+        axesB = Tensor.normalizeDims(axesB, other.shape.length);
+
+        // Validate axes
+        if (axesA.length !== axesB.length) {
+            throw new Error("Number of axes to contract must be the same for both tensors");
+        }
+
+        // Validate dimensions match
+        for (let i = 0; i < axesA.length; i++) {
+            if (this.shape[axesA[i]] !== other.shape[axesB[i]]) {
+                throw new Error(
+                    `Dimension mismatch: a.shape[${axesA[i]}]=${this.shape[axesA[i]]} ` +
+                    `!= b.shape[${axesB[i]}]=${other.shape[axesB[i]]}`
+                );
+            }
+        }
+
+        // Identify free (non-contracted) axes
+        const freeA = [];
+        for (let i = 0; i < this.shape.length; i++) {
+            if (!axesA.includes(i)) {
+                freeA.push(i);
+            }
+        }
+
+        const freeB = [];
+        for (let i = 0; i < other.shape.length; i++) {
+            if (!axesB.includes(i)) {
+                freeB.push(i);
+            }
+        }
+
+        // Permute a to move contracted axes to the end: [free_a, contract_a]
+        const aPermuted = this.permute([...freeA, ...axesA]);
+        // Permute b to move contracted axes to the beginning: [contract_b, free_b]
+        const bPermuted = other.permute([...axesB, ...freeB]);
+
+        // Reshape a to 2D matrix
+        // Shape: [product of free_a dims, product of contract_a dims]
+        const freeASize = freeA.reduce((prod, axis) => prod * this.shape[axis], 1);
+        const contractASize = axesA.reduce((prod, axis) => prod * this.shape[axis], 1);
+        const aReshaped = aPermuted.reshape([freeASize, contractASize]);
+        // Reshape b to 2D matrix
+        // Shape: [product of contract_b dims, product of free_b dims]
+        const contractBSize = axesB.reduce((prod, axis) => prod * other.shape[axis], 1);
+        const freeBSize = freeB.reduce((prod, axis) => prod * other.shape[axis], 1);
+        const bReshaped = bPermuted.reshape([contractBSize, freeBSize]);
+
+        // Use normal matmul, result shape: [freeASize, freeBSize]
+        const result2D = aReshaped.matmul(bReshaped);
+
+        // Reshape result back to proper n-dimensional form
+        // Final shape: [free_a_dims..., free_b_dims...]
+        const finalShape = [
+            ...freeA.map(i => this.shape[i]),
+            ...freeB.map(i => other.shape[i])
+        ];
+
+        return result2D.reshape(finalShape);
     }
 
     // Dropout
@@ -2707,7 +2795,7 @@ export class Tensor {
         for (let dist = 0; dist < numDist; dist++) {
             const offset = dist * numCategories;
 
-            // Extract this distribution's probabilities
+            // Extract this distribution"s probabilities
             const distProbs = probs.slice(offset, offset + numCategories);
 
             // Validate and normalize
