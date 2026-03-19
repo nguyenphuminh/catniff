@@ -1,4 +1,4 @@
-const { Tensor } = require("../index");
+const { Tensor } = require("../dist/index");
 
 const x = new Tensor(2, { requiresGrad: true });
 const L = x.pow(2).add(x);

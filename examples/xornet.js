@@ -1,4 +1,4 @@
-const { Tensor, Optim, nn } = require("../index");
+const { Tensor, Optim, nn } = require("../dist/index");
 
 // Our model
 class Xornet {

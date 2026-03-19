@@ -1,4 +1,4 @@
-const { Tensor } = require("../index");
+const { Tensor } = require("../dist/index");
 
 Tensor.createGraph = true;
 

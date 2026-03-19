@@ -1,8 +1,8 @@
 {
   "name": "catniff",
-  "version": "0.8.12",
+  "version": "0.8.13",
   "description": "Torch-like deep learning framework for Javascript",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -41,8 +41,6 @@
   },
   "files": [
     "dist/",
-    "index.d.ts",
-    "index.js",
     "LICENSE",
     "README.md"
   ]
