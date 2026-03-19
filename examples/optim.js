@@ -1,4 +1,4 @@
-const { Tensor, Optim } = require("../index");
+const { Tensor, Optim } = require("../dist/index");
 
 // Define some parameter
 const w = new Tensor([1.0], { requiresGrad: true });
