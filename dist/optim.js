@@ -4,10 +4,8 @@ exports.Optim = exports.AdamW = exports.Adam = exports.SGD = exports.BaseOptimiz
 const core_1 = require("./core");
 class BaseOptimizer {
     params;
-    lr;
     constructor(params, options) {
         this.params = params;
-        this.lr = options?.lr || 0.001;
     }
     zeroGrad() {
         for (let index = 0; index < this.params.length; index++) {
@@ -18,6 +16,7 @@ class BaseOptimizer {
 }
 exports.BaseOptimizer = BaseOptimizer;
 class SGD extends BaseOptimizer {
+    lr;
     momentumBuffers = new Map();
     momentum;
     dampening;
@@ -25,10 +24,11 @@ class SGD extends BaseOptimizer {
     nesterov;
     constructor(params, options) {
         super(params, options);
-        this.momentum = options?.momentum || 0;
-        this.dampening = options?.dampening || 0;
-        this.weightDecay = options?.weightDecay || 0;
-        this.nesterov = options?.nesterov || false;
+        this.lr = options?.lr ?? 0.001;
+        this.momentum = options?.momentum ?? 0;
+        this.dampening = options?.dampening ?? 0;
+        this.weightDecay = options?.weightDecay ?? 0;
+        this.nesterov = options?.nesterov ?? false;
     }
     step() {
         for (const param of this.params) {
@@ -69,6 +69,7 @@ class SGD extends BaseOptimizer {
 }
 exports.SGD = SGD;
 class Adam extends BaseOptimizer {
+    lr;
     momentumBuffers = new Map(); // First moment (m_t)
     velocityBuffers = new Map(); // Second moment (v_t)
     stepCount = 0;
@@ -77,9 +78,10 @@ class Adam extends BaseOptimizer {
     weightDecay;
     constructor(params, options) {
         super(params, options);
-        this.betas = options?.betas || [0.9, 0.999];
-        this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0;
+        this.lr = options?.lr ?? 0.001;
+        this.betas = options?.betas ?? [0.9, 0.999];
+        this.eps = options?.eps ?? 1e-8;
+        this.weightDecay = options?.weightDecay ?? 0;
     }
     step() {
         this.stepCount++;
@@ -128,6 +130,7 @@ class Adam extends BaseOptimizer {
 }
 exports.Adam = Adam;
 class AdamW extends BaseOptimizer {
+    lr;
     momentumBuffers = new Map(); // First moment (m_t)
     velocityBuffers = new Map(); // Second moment (v_t)
     stepCount = 0;
@@ -136,9 +139,10 @@ class AdamW extends BaseOptimizer {
     weightDecay;
     constructor(params, options) {
         super(params, options);
-        this.betas = options?.betas || [0.9, 0.999];
-        this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0.01;
+        this.lr = options?.lr ?? 0.001;
+        this.betas = options?.betas ?? [0.9, 0.999];
+        this.eps = options?.eps ?? 1e-8;
+        this.weightDecay = options?.weightDecay ?? 0.01;
     }
     step() {
         this.stepCount++;
