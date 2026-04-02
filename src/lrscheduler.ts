@@ -1,13 +1,13 @@
-import { BaseOptimizer } from "./optim";
+import { OptimizerWithLR } from "./optim";
 
 export class StepLR {
-    public optimizer: BaseOptimizer;
+    public optimizer: OptimizerWithLR;
     public stepSize: number;
     public gamma: number;
     public lastEpoch: number;
     public baseLR: number;
 
-    constructor(optimizer: BaseOptimizer, stepSize: number, gamma = 0.1, lastEpoch = -1) {
+    constructor(optimizer: OptimizerWithLR, stepSize: number, gamma = 0.1, lastEpoch = -1) {
         this.optimizer = optimizer;
         this.stepSize = stepSize;
         this.gamma = gamma;

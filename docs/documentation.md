@@ -265,16 +265,6 @@ Here are utilities (that might be deleted in the future) that you probably won't
 * `handleOther(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input that is on the same device as `this`. It will throw an error if the param is a tensor that is not on the same device as `this`.
 * `static addGrad(tensor: Tensor, accumGrad: Tensor)`: Add to the `grad` prop of a tensor. It can handle broadcasted shapes and make `accumGrad` fit `tensor`'s shape.
 
-## SGDOptions
-
-`SGDOptions` is an interface that contains options/configurations of an SGD optimizer passed into the `Optim.SGD` class constructor (more on that later). It includes:
-
-* `lr?: number`
-* `momentum?: number`
-* `dampening?: number`
-* `weightDecay?: number`
-* `nesterov?: boolean`
-
 ## Optim.BaseOptimizer / BaseOptimizer (abtract class)
 
 ### Constructor
@@ -290,6 +280,16 @@ constructor(params: Tensor[], options?: SGDOptions)
 ### Methods
 
 * `zeroGrad()`: Set the `grad` property of each param in `this.params` to `Tensor.zerosLike(param)`.
+
+## SGDOptions
+
+`SGDOptions` is an interface that contains options/configurations of an SGD optimizer passed into the `Optim.SGD` class constructor (more on that later). It includes:
+
+* `lr?: number`
+* `momentum?: number`
+* `dampening?: number`
+* `weightDecay?: number`
+* `nesterov?: boolean`
 
 ## Optim.SGD extends Optim.BaseOptimizer / SGD
 

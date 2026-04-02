@@ -1,6 +1,6 @@
 {
   "name": "catniff",
-  "version": "0.8.13",
+  "version": "0.8.14",
   "description": "Torch-like deep learning framework for Javascript",
   "main": "./dist/index.js",
   "scripts": {

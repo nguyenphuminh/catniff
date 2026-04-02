@@ -6,11 +6,9 @@ export interface BaseOptimizerOptions {
 
 export abstract class BaseOptimizer {
     public params: Tensor[];
-    public lr: number;
 
     constructor(params: Tensor[], options?: BaseOptimizerOptions) {
         this.params = params;
-        this.lr = options?.lr || 0.001;
     }
 
     zeroGrad() {
@@ -30,7 +28,12 @@ export interface SGDOptions {
     nesterov?: boolean;
 }
 
+export interface OptimizerWithLR extends BaseOptimizer {
+    lr: number;
+}
+
 export class SGD extends BaseOptimizer {
+    public lr: number;
     public momentumBuffers: Map<Tensor, Tensor> = new Map();
     public momentum: number;
     public dampening: number;
@@ -40,10 +43,11 @@ export class SGD extends BaseOptimizer {
     constructor(params: Tensor[], options?: SGDOptions) {
         super(params, options);
 
-        this.momentum = options?.momentum || 0;
-        this.dampening = options?.dampening || 0;
-        this.weightDecay = options?.weightDecay || 0;
-        this.nesterov = options?.nesterov || false;
+        this.lr = options?.lr ?? 0.001;
+        this.momentum = options?.momentum ?? 0;
+        this.dampening = options?.dampening ?? 0;
+        this.weightDecay = options?.weightDecay ?? 0;
+        this.nesterov = options?.nesterov ?? false;
     }
 
     step() {
@@ -95,6 +99,7 @@ export interface AdamOptions {
 }
 
 export class Adam extends BaseOptimizer {
+    public lr: number;
     public momentumBuffers: Map<Tensor, Tensor> = new Map(); // First moment (m_t)
     public velocityBuffers: Map<Tensor, Tensor> = new Map(); // Second moment (v_t)
     public stepCount = 0;
@@ -105,9 +110,10 @@ export class Adam extends BaseOptimizer {
     constructor(params: Tensor[], options?: AdamOptions) {
         super(params, options);
 
-        this.betas = options?.betas || [0.9, 0.999];
-        this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0;
+        this.lr = options?.lr ?? 0.001;
+        this.betas = options?.betas ?? [0.9, 0.999];
+        this.eps = options?.eps ?? 1e-8;
+        this.weightDecay = options?.weightDecay ?? 0;
     }
 
     step() {
@@ -176,6 +182,7 @@ export interface AdamWOptions {
 }
 
 export class AdamW extends BaseOptimizer {
+    public lr: number;
     public momentumBuffers: Map<Tensor, Tensor> = new Map(); // First moment (m_t)
     public velocityBuffers: Map<Tensor, Tensor> = new Map(); // Second moment (v_t)
     public stepCount = 0;
@@ -186,9 +193,10 @@ export class AdamW extends BaseOptimizer {
     constructor(params: Tensor[], options?: AdamWOptions) {
         super(params, options);
 
-        this.betas = options?.betas || [0.9, 0.999];
-        this.eps = options?.eps || 1e-8;
-        this.weightDecay = options?.weightDecay || 0.01;
+        this.lr = options?.lr ?? 0.001;
+        this.betas = options?.betas ?? [0.9, 0.999];
+        this.eps = options?.eps ?? 1e-8;
+        this.weightDecay = options?.weightDecay ?? 0.01;
     }
 
     step() {

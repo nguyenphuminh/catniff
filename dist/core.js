@@ -20,21 +20,21 @@ class Tensor {
     static createGraph = false;
     constructor(value, options = {}) {
         // Memory buffer
-        this.dtype = options.dtype || "float32";
+        this.dtype = options.dtype ?? "float32";
         const flatValue = Tensor.flattenValue(value);
         const TypedArrayConstructor = dtype_1.TypedArray[this.dtype];
         this.value = flatValue instanceof TypedArrayConstructor ? flatValue : TypedArrayConstructor.from(flatValue);
         // Tensor metadata
-        this.shape = options.shape || Tensor.getShape(value);
-        this.strides = options.strides || Tensor.getStrides(this.shape);
-        this.offset = options.offset || 0;
-        this.numel = options.numel || Tensor.shapeToSize(this.shape);
-        this.device = options.device || "cpu";
+        this.shape = options.shape ?? Tensor.getShape(value);
+        this.strides = options.strides ?? Tensor.getStrides(this.shape);
+        this.offset = options.offset ?? 0;
+        this.numel = options.numel ?? Tensor.shapeToSize(this.shape);
+        this.device = options.device ?? "cpu";
         // Autograd data
         this.grad = options.grad;
         this.requiresGrad = options.requiresGrad ?? false;
-        this.gradFn = options.gradFn || (() => { });
-        this.children = options.children || [];
+        this.gradFn = options.gradFn ?? (() => { });
+        this.children = options.children ?? [];
         // Move to device in-place
         this.to_(this.device);
     }
@@ -622,14 +622,14 @@ class Tensor {
             return this;
         const newShape = [];
         const newStrides = [];
-        let newOffset = this.offset || 0;
+        let newOffset = this.offset;
         // Pad ranges to match tensor dimensions
         const paddedRanges = [...ranges];
         while (paddedRanges.length < this.shape.length) {
             paddedRanges.push([]);
         }
         for (let i = 0; i < this.shape.length; i++) {
-            const range = paddedRanges[i] || [];
+            const range = paddedRanges[i] ?? [];
             const dimSize = this.shape[i];
             const stride = this.strides[i];
             // Default values
@@ -675,7 +675,7 @@ class Tensor {
                     const originalCoords = new Array(slicedCoords.length);
                     for (let dim = 0; dim < slicedCoords.length; dim++) {
                         const coord = slicedCoords[dim];
-                        const range = paddedRanges[dim] || [];
+                        const range = paddedRanges[dim] ?? [];
                         const start = range[0] ?? 0;
                         const step = range[2] ?? 1;
                         const normalizedStart = start < 0 ? start + this.shape[dim] : start;

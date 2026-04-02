@@ -4,7 +4,6 @@ export interface BaseOptimizerOptions {
 }
 export declare abstract class BaseOptimizer {
     params: Tensor[];
-    lr: number;
     constructor(params: Tensor[], options?: BaseOptimizerOptions);
     zeroGrad(): void;
 }
@@ -15,7 +14,11 @@ export interface SGDOptions {
     weightDecay?: number;
     nesterov?: boolean;
 }
+export interface OptimizerWithLR extends BaseOptimizer {
+    lr: number;
+}
 export declare class SGD extends BaseOptimizer {
+    lr: number;
     momentumBuffers: Map<Tensor, Tensor>;
     momentum: number;
     dampening: number;
@@ -31,6 +34,7 @@ export interface AdamOptions {
     weightDecay?: number;
 }
 export declare class Adam extends BaseOptimizer {
+    lr: number;
     momentumBuffers: Map<Tensor, Tensor>;
     velocityBuffers: Map<Tensor, Tensor>;
     stepCount: number;
@@ -47,6 +51,7 @@ export interface AdamWOptions {
     weightDecay?: number;
 }
 export declare class AdamW extends BaseOptimizer {
+    lr: number;
     momentumBuffers: Map<Tensor, Tensor>;
     velocityBuffers: Map<Tensor, Tensor>;
     stepCount: number;
