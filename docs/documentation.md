@@ -265,21 +265,39 @@ Here are utilities (that might be deleted in the future) that you probably won't
 * `handleOther(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input that is on the same device as `this`. It will throw an error if the param is a tensor that is not on the same device as `this`.
 * `static addGrad(tensor: Tensor, accumGrad: Tensor)`: Add to the `grad` prop of a tensor. It can handle broadcasted shapes and make `accumGrad` fit `tensor`'s shape.
 
+## BaseParamGroup
+
+`BaseParamGroup` is defined by:
+```ts
+export interface BaseParamGroup {
+    params: Tensor[];
+    [key: string]: any;
+}
+```
+
+It holds configurations for a param group and will be used in `BaseOptimizer`.
+
 ## Optim.BaseOptimizer / BaseOptimizer (abtract class)
+
+`BaseOptimizer` defines a common structure and utilities for all optimizers in Catniff.
 
 ### Constructor
 
 ```ts
-constructor(params: Tensor[], options?: SGDOptions)
+constructor(params: Tensor[] | BaseParamGroup[])
 ```
 
 ### Properties
 
-* `public params: Tensor[]`: Holds the params to be optimized, initialized with the `params` argument mentioned above.
+* `public paramGroups: BaseParamGroup[];`: Holds the param groups to be optimized, initialized with the `params` argument mentioned above. If `params` is `Tensor[]`, it will be converted into a `BaseParamGroup[]` with no configurations.
 
 ### Methods
 
-* `zeroGrad()`: Set the `grad` property of each param in `this.params` to `Tensor.zerosLike(param)`.
+* `zeroGrad(del = true)`: Delete the `grad` property of each param in the optimizer if `del` is `true`, set to `Tensor.zerosLike(param)` otherwise.
+
+## OptimizerWithLR
+
+`OptimizerWithLR` extends `BaseOptimizer`, adding a `lr: number;` property.
 
 ## SGDOptions
 
@@ -291,22 +309,27 @@ constructor(params: Tensor[], options?: SGDOptions)
 * `weightDecay?: number`
 * `nesterov?: boolean`
 
+## SGDParamGroup
+
+`SGDParamGroup` extends `SGDOptions`, adding a `params: Tensor[];` property.
+
 ## Optim.SGD extends Optim.BaseOptimizer / SGD
 
 ### Constructor
 
 ```ts
-constructor(params: Tensor[], options?: SGDOptions)
+constructor(params: Tensor[] | SGDParamGroup[], options?: SGDOptions)
 ```
 
 ### Properties
 
-* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum buffer of each param, updated per optimization iteration if `this.momentum` is not `0`.
+* `public paramGroups: SGDParamGroup[];`: Holds the param groups to be optimized, initialized with the `params` argument mentioned above. If `params` is `Tensor[]`, it will be converted into a `SGDParamGroup[]` with no configurations.
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
 * `public momentum: number`: Holds the momentum, uses `options.momentum` if available, `0` otherwise.
 * `public dampening: number`: Holds the dampening, uses `options.dampening` if available, `0` otherwise.
 * `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
 * `public nesterov: boolean`: Chooses whether to use nesterov (NAG) optimization or not, uses `options.nesterov` if available, `false` otherwise.
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum buffer of each param, updated per optimization iteration if `this.momentum` is not `0`.
 
 ### Methods
 
@@ -321,22 +344,28 @@ constructor(params: Tensor[], options?: SGDOptions)
 * `eps?: number`
 * `weightDecay?: number`
 
+## AdamParamGroup
+
+`AdamParamGroup` extends `AdamOptions`, adding a `params: Tensor[];` property.
+
 ## Optim.Adam extends Optim.BaseOptimizer / Adam
 
 ### Constructor
 
 ```ts
-constructor(params: Tensor[], options?: AdamOptions)
+constructor(params: Tensor[] | AdamParamGroup[], options?: AdamOptions)
 ```
 
 ### Properties
 
-* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
-* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public paramGroups: AdamParamGroup[];`: Holds the param groups to be optimized, initialized with the `params` argument mentioned above. If `params` is `Tensor[]`, it will be converted into a `AdamParamGroup[]` with no configurations.
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
 * `public betas: [number, number]`: Holds the momentum, uses `options.betas` if available, `[0.9, 0.999]` otherwise.
 * `public eps: number`: Holds the dampening, uses `options.eps` if available, `1e-8` otherwise.
 * `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0` otherwise.
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
+* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public stepCounts: Map<Tensor, number> = new Map()`: Holds the current step count of each param.
 
 ### Methods
 
@@ -351,22 +380,28 @@ constructor(params: Tensor[], options?: AdamOptions)
 * `eps?: number`
 * `weightDecay?: number`
 
+## AdamWParamGroup
+
+`AdamWParamGroup` extends `AdamWOptions`, adding a `params: Tensor[];` property.
+
 ## Optim.AdamW extends Optim.BaseOptimizer / AdamW
 
 ### Constructor
 
 ```ts
-constructor(params: Tensor[], options?: AdamWOptions)
+constructor(params: Tensor[] | AdamWParamGroup[], options?: AdamWOptions)
 ```
 
 ### Properties
 
-* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
-* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public paramGroups: AdamWParamGroup[];`: Holds the param groups to be optimized, initialized with the `params` argument mentioned above. If `params` is `Tensor[]`, it will be converted into a `AdamWParamGroup[]` with no configurations.
 * `public lr: number`: Holds the learning rate, uses `options.lr` if available, `0.001` otherwise.
 * `public betas: [number, number]`: Holds the momentum, uses `options.betas` if available, `[0.9, 0.999]` otherwise.
 * `public eps: number`: Holds the dampening, uses `options.eps` if available, `1e-8` otherwise.
 * `public weightDecay: number`: Holds the weight decay rate, uses `options.weightDecay` if available, `0.01` otherwise.
+* `public momentumBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current momentum (first moment) buffer of each param.
+* `public velocityBuffers: Map<Tensor, Tensor> = new Map()`: Holds the current velocity (second moment) buffer of each param.
+* `public stepCounts: Map<Tensor, number> = new Map()`: Holds the current step count of each param.
 
 ### Methods
 
@@ -727,11 +762,12 @@ constructor(
 
 ### Properties
 
-* `public optimizer: BaseOptimizer;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
+* `public optimizer: OptimizerWithLR;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
 * `public stepSize: number;`: Holds the number of steps before an LR update, initialized with the `stepSize` param.
 * `public gamma: number;`: Holds a number to multiply into LR , initialized with the `gamma` param.
 * `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
-* `public baseLR: number;`: Holds the original LR of optimizer.
+* `public baseLR: number;`: Holds the original LR of `optimizer`.
+* `public baseGroupLRs: number[];`: Holds the original LR of each param groups in `optimizer`.
 
 ### Methods
 

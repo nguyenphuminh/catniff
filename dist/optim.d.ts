@@ -1,11 +1,15 @@
 import { Tensor } from "./core";
-export interface BaseOptimizerOptions {
-    lr?: number;
+export interface BaseParamGroup {
+    params: Tensor[];
+    [key: string]: any;
 }
 export declare abstract class BaseOptimizer {
-    params: Tensor[];
-    constructor(params: Tensor[], options?: BaseOptimizerOptions);
-    zeroGrad(): void;
+    paramGroups: BaseParamGroup[];
+    constructor(params: Tensor[] | BaseParamGroup[]);
+    zeroGrad(del?: boolean): void;
+}
+export interface OptimizerWithLR extends BaseOptimizer {
+    lr: number;
 }
 export interface SGDOptions {
     lr?: number;
@@ -14,17 +18,18 @@ export interface SGDOptions {
     weightDecay?: number;
     nesterov?: boolean;
 }
-export interface OptimizerWithLR extends BaseOptimizer {
-    lr: number;
+export interface SGDParamGroup extends SGDOptions {
+    params: Tensor[];
 }
 export declare class SGD extends BaseOptimizer {
+    paramGroups: SGDParamGroup[];
     lr: number;
-    momentumBuffers: Map<Tensor, Tensor>;
     momentum: number;
     dampening: number;
     weightDecay: number;
     nesterov: boolean;
-    constructor(params: Tensor[], options?: SGDOptions);
+    momentumBuffers: Map<Tensor, Tensor>;
+    constructor(params: Tensor[] | SGDParamGroup[], options?: SGDOptions);
     step(): void;
 }
 export interface AdamOptions {
@@ -33,15 +38,19 @@ export interface AdamOptions {
     eps?: number;
     weightDecay?: number;
 }
+export interface AdamParamGroup extends AdamOptions {
+    params: Tensor[];
+}
 export declare class Adam extends BaseOptimizer {
+    paramGroups: AdamParamGroup[];
     lr: number;
-    momentumBuffers: Map<Tensor, Tensor>;
-    velocityBuffers: Map<Tensor, Tensor>;
-    stepCount: number;
     betas: [number, number];
     eps: number;
     weightDecay: number;
-    constructor(params: Tensor[], options?: AdamOptions);
+    momentumBuffers: Map<Tensor, Tensor>;
+    velocityBuffers: Map<Tensor, Tensor>;
+    stepCounts: Map<Tensor, number>;
+    constructor(params: Tensor[] | AdamParamGroup[], options?: AdamOptions);
     step(): void;
 }
 export interface AdamWOptions {
@@ -50,15 +59,19 @@ export interface AdamWOptions {
     eps?: number;
     weightDecay?: number;
 }
+export interface AdamWParamGroup extends AdamWOptions {
+    params: Tensor[];
+}
 export declare class AdamW extends BaseOptimizer {
+    paramGroups: AdamWParamGroup[];
     lr: number;
-    momentumBuffers: Map<Tensor, Tensor>;
-    velocityBuffers: Map<Tensor, Tensor>;
-    stepCount: number;
     betas: [number, number];
     eps: number;
     weightDecay: number;
-    constructor(params: Tensor[], options?: AdamWOptions);
+    momentumBuffers: Map<Tensor, Tensor>;
+    velocityBuffers: Map<Tensor, Tensor>;
+    stepCounts: Map<Tensor, number>;
+    constructor(params: Tensor[] | AdamWParamGroup[], options?: AdamWOptions);
     step(): void;
 }
 export declare const Optim: {

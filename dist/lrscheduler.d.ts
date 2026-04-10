@@ -5,6 +5,7 @@ export declare class StepLR {
     gamma: number;
     lastEpoch: number;
     baseLR: number;
+    baseGroupLRs: number[];
     constructor(optimizer: OptimizerWithLR, stepSize: number, gamma?: number, lastEpoch?: number);
     step(epoch?: number): void;
 }

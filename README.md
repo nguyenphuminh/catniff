@@ -143,9 +143,8 @@ All available APIs are in [`./src/`](./src/) if you want to dig deeper.
 
 * More general tensor ops.
 * More general neural net APIs.
-* GPU acceleration.
-* Comprehensive caching.
-* Bug fixes.
+* GPU acceleration, possibly through WebGPU, Libtorch bindings, or CUDA.
+* Proper optimization.
 * More detailed documentation.
 * Code refactoring.
 * Proper tests.

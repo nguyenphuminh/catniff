@@ -3269,7 +3269,7 @@ export class Tensor {
 
                 // Reset grad to zeros if specified
                 if (zeroGrad) {
-                    node.grad = Tensor.zerosLike(node);
+                    delete node.grad;
                 }
 
                 for (let child of node.children) build(child);

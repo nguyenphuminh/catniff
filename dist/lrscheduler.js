@@ -7,12 +7,14 @@ class StepLR {
     gamma;
     lastEpoch;
     baseLR;
+    baseGroupLRs;
     constructor(optimizer, stepSize, gamma = 0.1, lastEpoch = -1) {
         this.optimizer = optimizer;
         this.stepSize = stepSize;
         this.gamma = gamma;
         this.lastEpoch = lastEpoch;
-        this.baseLR = this.optimizer.lr;
+        this.baseLR = optimizer.lr;
+        this.baseGroupLRs = this.optimizer.paramGroups.map(paramGroup => paramGroup.lr ?? this.optimizer.lr);
     }
     step(epoch) {
         if (typeof epoch === "undefined") {
@@ -22,6 +24,11 @@ class StepLR {
         else {
             this.lastEpoch = epoch;
         }
+        // Update LR of each group
+        for (let index = 0; index < this.baseGroupLRs.length; index++) {
+            this.optimizer.paramGroups[index].lr = this.baseGroupLRs[index] * this.gamma ** Math.floor(epoch / this.stepSize);
+        }
+        // Update default LR
         this.optimizer.lr = this.baseLR * this.gamma ** Math.floor(epoch / this.stepSize);
     }
 }
