@@ -747,7 +747,7 @@ forward(
 
 `StateDict` is just an object with string keys and values of type `any`.
 
-## LRScheduler.StepLR
+## LRScheduler.StepLR / StepLR
 
 ### Constructor
 
@@ -771,7 +771,61 @@ constructor(
 
 ### Methods
 
-* `step(epoch?: number)`: Apply a scheduler run one time. If an `epoch` is passed, it will replace the current `lastEpoch` prop.
+* `step()`: Apply a scheduler run one time.
+
+## LRScheduler.LinearLR / LinearLR
+
+### Constructor
+
+```ts
+constructor(
+    optimizer: OptimizerWithLR,
+    startFactor = 0.3333333333333333,
+    endFactor = 1,
+    totalIters = 5,
+    lastEpoch = -1
+)
+```
+
+### Properties
+
+* `public optimizer: OptimizerWithLR;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
+* `public startFactor: number;`: Holds the start factor of the LR, initialized with the `startFactor` param.
+* `public endFactor: number;`: Holds the end factor of the LR, initialized with the `endFactor` param.
+* `public totalIters: number;`: Holds the total number of iterations of the scheduler, initialized with the `totalIters` param.
+* `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
+* `public baseLR: number;`: Holds the original LR of `optimizer`.
+* `public baseGroupLRs: number[];`: Holds the original LR of each param groups in `optimizer`.
+
+### Methods
+
+* `step()`: Apply a scheduler run one time.
+
+## LRScheduler.CosineAnnealingLR / CosineAnnealingLR
+
+### Constructor
+
+```ts
+constructor(
+    optimizer: OptimizerWithLR,
+    TMax: number,
+    etaMin = 0,
+    lastEpoch = -1
+)
+```
+
+### Properties
+
+* `public optimizer: OptimizerWithLR;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
+* `public TMax: number;`: Holds the maximum number of epochs in a cycle, initialized with the `TMax` param.
+* `public etaMin: number;`: Holds the minimum learning rate, initialized with the `etaMin` param.
+* `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
+* `public baseLR: number;`: Holds the original LR of `optimizer`.
+* `public baseGroupLRs: number[];`: Holds the original LR of each param groups in `optimizer`.
+
+### Methods
+
+* `step()`: Apply a scheduler run one time.
 
 # Custom backend
 

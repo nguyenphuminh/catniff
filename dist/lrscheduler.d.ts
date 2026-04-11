@@ -7,8 +7,31 @@ export declare class StepLR {
     baseLR: number;
     baseGroupLRs: number[];
     constructor(optimizer: OptimizerWithLR, stepSize: number, gamma?: number, lastEpoch?: number);
-    step(epoch?: number): void;
+    step(): void;
+}
+export declare class LinearLR {
+    optimizer: OptimizerWithLR;
+    startFactor: number;
+    endFactor: number;
+    totalIters: number;
+    lastEpoch: number;
+    baseLR: number;
+    baseGroupLRs: number[];
+    constructor(optimizer: OptimizerWithLR, startFactor?: number, endFactor?: number, totalIters?: number, lastEpoch?: number);
+    step(): void;
+}
+export declare class CosineAnnealingLR {
+    optimizer: OptimizerWithLR;
+    TMax: number;
+    etaMin: number;
+    lastEpoch: number;
+    baseLR: number;
+    baseGroupLRs: number[];
+    constructor(optimizer: OptimizerWithLR, TMax: number, etaMin?: number, lastEpoch?: number);
+    step(): void;
 }
 export declare const LRScheduler: {
     StepLR: typeof StepLR;
+    LinearLR: typeof LinearLR;
+    CosineAnnealingLR: typeof CosineAnnealingLR;
 };
