@@ -97,8 +97,42 @@ export class CosineAnnealingLR {
     }
 }
 
+export interface Scheduler {
+    step: Function;
+}
+
+export class SequentialLR {
+    public optimizer: OptimizerWithLR;
+    public schedulers: Scheduler[];
+    public milestones: number[];
+    public lastEpoch: number;
+
+    constructor(optimizer: OptimizerWithLR, schedulers: Scheduler[], milestones: number[], lastEpoch = -1) {
+        this.optimizer = optimizer;
+        this.schedulers = schedulers;
+        this.milestones = milestones;
+        this.lastEpoch = lastEpoch;
+    }
+
+    step() {
+        this.lastEpoch++;
+
+        let schedulerIndex = this.schedulers.length - 1; // default to last
+
+        for (let index = 0; index < this.milestones.length; index++) {
+            if (this.lastEpoch < this.milestones[index]) {
+                schedulerIndex = index;
+                break;
+            }
+        }
+
+        this.schedulers[schedulerIndex].step();
+    }
+}
+
 export const LRScheduler = {
     StepLR,
     LinearLR,
-    CosineAnnealingLR
+    CosineAnnealingLR,
+    SequentialLR
 }

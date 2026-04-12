@@ -747,6 +747,10 @@ forward(
 
 `StateDict` is just an object with string keys and values of type `any`.
 
+## Scheduler
+
+`Scheduler` is just an object with some callable `step` method.
+
 ## LRScheduler.StepLR / StepLR
 
 ### Constructor
@@ -822,6 +826,30 @@ constructor(
 * `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
 * `public baseLR: number;`: Holds the original LR of `optimizer`.
 * `public baseGroupLRs: number[];`: Holds the original LR of each param groups in `optimizer`.
+
+### Methods
+
+* `step()`: Apply a scheduler run one time.
+
+## LRScheduler.SequentialLR / SequentialLR
+
+### Constructor
+
+```ts
+constructor(
+    optimizer: OptimizerWithLR,
+    schedulers: Scheduler[],
+    milestones: number[],
+    lastEpoch = -1
+)
+```
+
+### Properties
+
+* `public optimizer: OptimizerWithLR;`: Holds the optimizer to get LR from, initialized with the `optimizer` param.
+* `public schedulers: Scheduler[];`: Holds the schedulers to be used, initialized with the `schedulers` param.
+* `public milestones: number[];`: Holds the milestone of each schedulers, initialized with the `milestones` param. Note that it will default to last scheduler if there are no milestones or all milestones are passed.
+* `public lastEpoch: number;`: Holds the last epoch, initialized with the `lastEpoch` param.
 
 ### Methods
 

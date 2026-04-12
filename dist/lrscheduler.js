@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LRScheduler = exports.CosineAnnealingLR = exports.LinearLR = exports.StepLR = void 0;
+exports.LRScheduler = exports.SequentialLR = exports.CosineAnnealingLR = exports.LinearLR = exports.StepLR = void 0;
 class StepLR {
     optimizer;
     stepSize;
@@ -84,8 +84,33 @@ class CosineAnnealingLR {
     }
 }
 exports.CosineAnnealingLR = CosineAnnealingLR;
+class SequentialLR {
+    optimizer;
+    schedulers;
+    milestones;
+    lastEpoch;
+    constructor(optimizer, schedulers, milestones, lastEpoch = -1) {
+        this.optimizer = optimizer;
+        this.schedulers = schedulers;
+        this.milestones = milestones;
+        this.lastEpoch = lastEpoch;
+    }
+    step() {
+        this.lastEpoch++;
+        let schedulerIndex = this.schedulers.length - 1; // default to last
+        for (let index = 0; index < this.milestones.length; index++) {
+            if (this.lastEpoch < this.milestones[index]) {
+                schedulerIndex = index;
+                break;
+            }
+        }
+        this.schedulers[schedulerIndex].step();
+    }
+}
+exports.SequentialLR = SequentialLR;
 exports.LRScheduler = {
     StepLR,
     LinearLR,
-    CosineAnnealingLR
+    CosineAnnealingLR,
+    SequentialLR
 };
