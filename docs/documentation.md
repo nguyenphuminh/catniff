@@ -168,7 +168,8 @@ All autograd-supported tensor arithmetic methods:
 * `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `chunk(chunks: number, dim = 0): Tensor[]`: Returns a `chunks` number of chunks split from `this`, at dimension `dim`.
 * `expand(newShape: number[]): Tensor`: Returns a new tensor expanded to `newShape`.
-* `cat(other: Tensor | TensorValue, dim = 0): Tensor`: Concatenate `this` tensor with `other` tensor along the specified dimension `dim`. 
+* `cat(other: Tensor | TensorValue, dim = 0): Tensor`: Concatenate `this` tensor with `other` tensor along the specified dimension `dim`.
+* `stack(others: (Tensor | TensorValue)[], dim = 0): Tensor`: Concatenate `this` tensor with `others` tensors along the newly created dimension `dim`. 
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
 * `mm(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other` 2D tensors (matrices). If the two are not 2D, it will throw an error.
 * `mv(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` 2D tensor (matrix) and `other` 1D tensor (vector). Basically if `other` is of size n, it will be reshaped into an nx1 matrix. If `this` is not 2D and `other` is not 1D, it will throw an error.
@@ -262,7 +263,7 @@ Here are utilities (that might be deleted in the future) that you probably won't
         * `op: (a: number) => number`: The custom op to do element-wise.
         * `thisGrad: (self: Tensor, outGrad: Tensor) => Tensor = () => new Tensor(0)`: Custom gradient for `this` tensor if `this.requiresGrad` is `true`, returns a tensor that will be assigned to `this.grad`. Note that `self` represents `this` tensor, and `outGrad` represents the upstream gradient, but all of these tensors have all gradient-related operations disabled and are not the original tensors.
     * returns: A new `Tensor`. If `this.requiresGrad` is `true`, then `this` will be a child of the new tensor`.
-* `handleOther(value: TensorValue | Tensor): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input that is on the same device as `this`. It will throw an error if the param is a tensor that is not on the same device as `this`.
+* `handleOther(other: Tensor | TensorValue, forceSameDevice = true): Tensor`: Returns the argument if it already is a `Tensor` instance, otherwise create a new `Tensor` instance with `value` as input that is on the same device as `this`. When `forceSameDevice` is `true`, it will throw an error if the param is a tensor that is not on the same device as `this`.
 * `static addGrad(tensor: Tensor, accumGrad: Tensor)`: Add to the `grad` prop of a tensor. It can handle broadcasted shapes and make `accumGrad` fit `tensor`'s shape.
 
 ## BaseParamGroup

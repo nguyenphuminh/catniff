@@ -44,7 +44,7 @@ export declare class Tensor {
     static coordsToIndex(coords: number[], strides: number[]): number;
     static shapeToSize(shape: number[]): number;
     static getResultDtype(type1: dtype, type2: dtype): dtype;
-    handleOther(other: Tensor | TensorValue): Tensor;
+    handleOther(other: Tensor | TensorValue, forceSameDevice?: boolean): Tensor;
     static elementWiseAB(tA: Tensor, tB: Tensor, op: (tA: number, tB: number) => number): Tensor;
     static elementWiseSelf(tA: Tensor, op: (tA: number) => number): Tensor;
     elementWiseABDAG(other: TensorValue | Tensor, op: (a: number, b: number) => number, thisGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor, otherGrad?: (self: Tensor, other: Tensor, outGrad: Tensor) => Tensor): Tensor;
@@ -67,6 +67,7 @@ export declare class Tensor {
     chunk(chunks: number, dim?: number): Tensor[];
     expand(newShape: number[]): Tensor;
     cat(other: Tensor | TensorValue, dim?: number): Tensor;
+    stack(others: (Tensor | TensorValue)[], dim?: number): Tensor;
     squeeze(dims?: number[] | number): Tensor;
     unsqueeze(dim: number): Tensor;
     sort(dim?: number, descending?: boolean): Tensor;

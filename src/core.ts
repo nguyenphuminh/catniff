@@ -223,10 +223,10 @@ export class Tensor {
         return type2;
     }
 
-    // Utility to handle other tensor if an op needs a second operand
-    handleOther(other: Tensor | TensorValue): Tensor {
+    // Utility to handle other tensor if an op needs other operands
+    handleOther(other: Tensor | TensorValue, forceSameDevice = true): Tensor {
         if (other instanceof Tensor) {
-            if (this.device !== other.device) {
+            if (forceSameDevice && this.device !== other.device) {
                 throw new Error("Can not operate on tensors that are not on the same device");
             }
 
@@ -746,7 +746,7 @@ export class Tensor {
 
     // Tensor indexing
     index(indices: Tensor | TensorValue): Tensor {
-        const tensorIndices = this.handleOther(indices).clone();
+        const tensorIndices = this.handleOther(indices, false).clone();
 
         if (tensorIndices.shape.length === 0) {
             return this.indexWithArray([tensorIndices.value[0]]).squeeze(0);
@@ -1023,6 +1023,19 @@ export class Tensor {
                 Tensor.addGrad(this, outGrad.slice(thisRanges));
                 Tensor.addGrad(other, outGrad.slice(otherRanges));
             };
+        }
+
+        return out;
+    }
+
+    // Tensor stack
+    stack(others: (Tensor | TensorValue)[], dim = 0): Tensor {
+        let out = this.unsqueeze(dim);
+        
+        for (let index = 0; index < others.length; index++) {
+            const other = this.handleOther(others[index]).unsqueeze(dim);
+
+            out = out.cat(other, dim);
         }
 
         return out;
