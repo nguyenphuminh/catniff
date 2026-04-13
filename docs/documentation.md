@@ -183,6 +183,8 @@ All autograd-supported tensor arithmetic methods:
 * `mean(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their means.
 * `max(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their maximums.
 * `min(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their minimums.
+* `argmax(dim: number, keepDims: boolean = false): Tensor`: Returns a new tensor with axis reduced to its maximum's index.
+* `argmin(dim: number, keepDims: boolean = false): Tensor`: Returns a new tensor with axis reduced to its minimum's index.
 * `any(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to 1 if a value in a dim is 1, 0 otherwise.
 * `all(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to 1 if all values in a dim are 1, 0 otherwise.
 * `var(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes reduced to their variances.

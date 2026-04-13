@@ -89,6 +89,12 @@ export declare class Tensor {
             outIndex: number;
         }) => number;
     }): Tensor;
+    static reduceArg(tensor: Tensor, dim: number, keepDim: boolean, config: {
+        identity: number;
+        isBetter: (accumulator: number, value: number) => boolean;
+    }): Tensor;
+    argmax(dim: number, keepDim?: boolean): Tensor;
+    argmin(dim: number, keepDim?: boolean): Tensor;
     sum(dims?: number[] | number, keepDims?: boolean): Tensor;
     prod(dims?: number[] | number, keepDims?: boolean): Tensor;
     mean(dims?: number[] | number, keepDims?: boolean): Tensor;

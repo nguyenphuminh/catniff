@@ -1155,6 +1155,67 @@ class Tensor {
         }
         return keepDims ? out : out.squeeze(dims);
     }
+    // Generic arg reduction operation handler
+    static reduceArg(tensor, dim, keepDim, config) {
+        if (tensor.shape.length === 0)
+            return tensor;
+        // Handle negative indexing
+        if (dim < 0) {
+            dim += tensor.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= tensor.shape.length || dim < 0) {
+            throw new Error("Dimension does not exist to apply arg reduction");
+        }
+        const dimSize = tensor.shape[dim];
+        const outputShape = tensor.shape.map((d, i) => dim === i ? 1 : d);
+        const outputStrides = Tensor.getStrides(outputShape);
+        const outputSize = tensor.numel / dimSize;
+        const bestValues = new dtype_1.TypedArray[tensor.dtype](outputSize).fill(config.identity);
+        const bestIndices = new Int32Array(outputSize).fill(0);
+        const linearStrides = Tensor.getStrides(tensor.shape);
+        // Forward pass
+        for (let flatIndex = 0; flatIndex < tensor.numel; flatIndex++) {
+            // Convert linear index to coordinates using contiguous strides
+            const coords = Tensor.indexToCoords(flatIndex, linearStrides);
+            // Coordinate in current dim
+            const dimCoord = coords[dim];
+            // Convert coordinates to actual strided index
+            const realFlatIndex = Tensor.coordsToIndex(coords, tensor.strides) + tensor.offset;
+            // Convert coords to reduced index
+            coords[dim] = 0;
+            const outFlatIndex = Tensor.coordsToIndex(coords, outputStrides);
+            // Check if current value is better to swap
+            const val = tensor.value[realFlatIndex];
+            if (config.isBetter(val, bestValues[outFlatIndex])) {
+                bestValues[outFlatIndex] = val;
+                bestIndices[outFlatIndex] = dimCoord;
+            }
+        }
+        const out = new Tensor(bestIndices, {
+            shape: outputShape,
+            strides: outputStrides,
+            offset: 0,
+            numel: outputSize,
+            device: tensor.device,
+            dtype: "int32"
+        });
+        return keepDim ? out : out.squeeze(dim);
+    }
+    // Tensor argmax
+    argmax(dim, keepDim = false) {
+        return Tensor.reduceArg(this, dim, keepDim, {
+            identity: -Infinity,
+            isBetter: (a, b) => a > b
+        });
+    }
+    // Tensor argmin
+    argmin(dim, keepDim = false) {
+        return Tensor.reduceArg(this, dim, keepDim, {
+            identity: Infinity,
+            isBetter: (a, b) => a < b
+        });
+    }
     // Simplified reduction operations
     sum(dims, keepDims = false) {
         return Tensor.reduce(this, dims, keepDims, {
@@ -2552,11 +2613,15 @@ class Tensor {
     // Returns the nicely Pytorch-like formatted string form
     toString() {
         const val = this.val();
-        // Format a single number (integers get trailing dot)
+        // Format a single number
         const formatNum = (n) => {
-            if (Number.isInteger(n) && Math.abs(n) < 1e8) {
+            // For ints with int dtype
+            if (this.dtype.includes("int"))
+                return n.toFixed(0);
+            // For ints with float dtype
+            if (Number.isInteger(n) && Math.abs(n) < 1e8)
                 return n.toFixed(0) + ".";
-            }
+            // For floats
             return n.toString();
         };
         // Handle scalar
