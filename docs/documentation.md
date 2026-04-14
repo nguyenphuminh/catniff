@@ -168,6 +168,7 @@ All autograd-supported tensor arithmetic methods:
 * `slice(ranges: number[][]): Tensor`: Slice a child tensor. Each range applies to each dimension and has a form of `[start, end, step]` where `start` is `0` by default; `end` is max dim size; and `step` is 1 by default.
 * `chunk(chunks: number, dim = 0): Tensor[]`: Returns a `chunks` number of chunks split from `this`, at dimension `dim`.
 * `expand(newShape: number[]): Tensor`: Returns a new tensor expanded to `newShape`.
+* `unfold(dim: number, size: number, step: number): Tensor`: Unfolds the tensor along dimension dim into overlapping windows.
 * `cat(other: Tensor | TensorValue, dim = 0): Tensor`: Concatenate `this` tensor with `other` tensor along the specified dimension `dim`.
 * `stack(others: (Tensor | TensorValue)[], dim = 0): Tensor`: Concatenate `this` tensor with `others` tensors along the newly created dimension `dim`. 
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.

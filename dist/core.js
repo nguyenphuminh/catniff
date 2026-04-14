@@ -551,6 +551,9 @@ class Tensor {
         if (this.shape.length === 0)
             return this;
         indices = Tensor.normalizeDims(indices, this.shape[0]);
+        if (indices.some(i => i < 0 || i >= this.shape[0])) {
+            throw new Error(`Index out of bounds for dimension 0 with size ${this.shape[0]}`);
+        }
         // Init necessary stuff for indexing
         const reducedShape = this.shape.slice(1);
         const reducedStrides = this.strides.slice(1);
@@ -618,8 +621,9 @@ class Tensor {
     // Tensor slicing
     slice(ranges) {
         // Handle scalars
-        if (this.shape.length === 0)
-            return this;
+        if (this.shape.length === 0) {
+            throw new Error("slice() cannot be applied to a 0-dim tensor");
+        }
         const newShape = [];
         const newStrides = [];
         let newOffset = this.offset;
@@ -754,6 +758,36 @@ class Tensor {
             };
         }
         return out;
+    }
+    // Tensor unfold
+    unfold(dim, size, step) {
+        // Handle negative indexing
+        if (dim < 0) {
+            dim += this.shape.length;
+        }
+        // If dimension out of bound, throw error
+        if (dim >= this.shape.length || dim < 0) {
+            throw new Error("Dimension does not exist to apply softmax");
+        }
+        // Verify size and step
+        if (size <= 0 || step <= 0)
+            throw new Error("size and step must be greater than 0");
+        const dimSize = this.shape[dim];
+        // Verify size against dimension size
+        if (size > dimSize)
+            throw new Error("size can not be greater than dimension size");
+        const outSize = Math.floor((dimSize - size) / step) + 1;
+        const newShape = [...this.shape, size];
+        const newStrides = [...this.strides, this.strides[dim]];
+        newShape[dim] = outSize;
+        newStrides[dim] = this.strides[dim] * step;
+        return new Tensor(this.value, {
+            shape: newShape,
+            strides: newStrides,
+            offset: this.offset,
+            dtype: this.dtype,
+            device: this.device
+        });
     }
     // Tensor concatentation
     cat(other, dim = 0) {
