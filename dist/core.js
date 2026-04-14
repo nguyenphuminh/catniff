@@ -767,7 +767,7 @@ class Tensor {
         }
         // If dimension out of bound, throw error
         if (dim >= this.shape.length || dim < 0) {
-            throw new Error("Dimension does not exist to apply softmax");
+            throw new Error("Dimension does not exist to apply unfold");
         }
         // Verify size and step
         if (size <= 0 || step <= 0)
@@ -781,13 +781,32 @@ class Tensor {
         const newStrides = [...this.strides, this.strides[dim]];
         newShape[dim] = outSize;
         newStrides[dim] = this.strides[dim] * step;
-        return new Tensor(this.value, {
+        const out = new Tensor(this.value, {
             shape: newShape,
             strides: newStrides,
             offset: this.offset,
             dtype: this.dtype,
             device: this.device
         });
+        if (this.requiresGrad) {
+            out.requiresGrad = true;
+            out.children.push(this);
+            out.gradFn = () => {
+                const outGrad = out.grad;
+                const grad = Tensor.zerosLike(this);
+                for (let i = 0; i < out.numel; i++) {
+                    const coords = Tensor.indexToCoords(i, newStrides);
+                    const windowIdx = coords[dim];
+                    const withinWindow = coords[coords.length - 1];
+                    coords[dim] = windowIdx * step + withinWindow;
+                    coords.pop();
+                    const sourceIdx = Tensor.coordsToIndex(coords, this.strides);
+                    grad.value[sourceIdx] += outGrad.value[i];
+                }
+                Tensor.addGrad(this, grad);
+            };
+        }
+        return out;
     }
     // Tensor concatentation
     cat(other, dim = 0) {
