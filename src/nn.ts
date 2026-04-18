@@ -1,15 +1,5 @@
-import { Tensor, TensorValue } from "./core";
+import { Callable, Tensor } from "./core";
 import { dtype } from "./dtype";
-
-function linearTransform(input: Tensor, weight: Tensor, bias?: Tensor): Tensor {
-    let output = input.matmul(weight.t());
-
-    if (bias) {
-        output = output.add(bias);
-    }
-
-    return output;
-}
 
 export class Linear {
     public weight: Tensor;
@@ -30,10 +20,20 @@ export class Linear {
         }
     }
 
-    forward(input: Tensor | TensorValue): Tensor {
-        input = this.weight.handleOther(input);
+    forward(input: Tensor): Tensor {
+        return input.linear(this.weight, this.bias);
+    }
+}
 
-        return linearTransform(input, this.weight, this.bias);
+export class Sequential {
+    public callables: Callable[];
+
+    constructor(callables: Callable[]) {
+        this.callables = callables;
+    }
+
+    forward(input: Tensor) {
+        return input.sequential(this.callables);
     }
 }
 
@@ -45,17 +45,7 @@ function rnnTransform(
     inputBias?: Tensor,
     hiddenBias?: Tensor
 ): Tensor {
-    let output = input.matmul(inputWeight.t()).add(hidden.matmul(hiddenWeight.t()));
-
-    if (inputBias) {
-        output = output.add(inputBias);
-    }
-
-    if (hiddenBias) {
-        output = output.add(hiddenBias);
-    }
-
-    return output;
+    return input.linear(inputWeight, inputBias).add(hidden.linear(hiddenWeight, hiddenBias));
 }
 
 export class RNNCell {
@@ -81,10 +71,7 @@ export class RNNCell {
         }
     }
 
-    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor {
-        input = this.weightIH.handleOther(input);
-        hidden = this.weightHH.handleOther(hidden);
-
+    forward(input: Tensor, hidden: Tensor): Tensor {
         return rnnTransform(input, hidden, this.weightIH, this.weightHH, this.biasIH, this.biasHH).tanh();
     }
 }
@@ -128,13 +115,10 @@ export class GRUCell {
         }
     }
 
-    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor {
-        input = this.weightIN.handleOther(input);
-        hidden = this.weightHN.handleOther(hidden);
-
+    forward(input: Tensor, hidden: Tensor): Tensor {
         const r = rnnTransform(input, hidden, this.weightIR, this.weightHR, this.biasIR, this.biasHR).sigmoid();
         const z = rnnTransform(input, hidden, this.weightIZ, this.weightHZ, this.biasIZ, this.biasHZ).sigmoid();
-        const n = linearTransform(input, this.weightIN, this.biasIN).add(r.mul(linearTransform(hidden, this.weightHN, this.biasHN))).tanh();
+        const n = input.linear(this.weightIN, this.biasIN).add(r.mul(hidden.linear(this.weightHN, this.biasHN))).tanh();
 
         return (z.neg().add(1).mul(n).add(z.mul(hidden)));
     }
@@ -188,14 +172,10 @@ export class LSTMCell {
     }
 
     forward(
-        input: Tensor | TensorValue,
-        hidden: Tensor | TensorValue,
-        cell: Tensor | TensorValue
+        input: Tensor,
+        hidden: Tensor,
+        cell: Tensor
     ): [Tensor, Tensor] {
-        input = this.weightII.handleOther(input);
-        hidden = this.weightHI.handleOther(hidden);
-        cell = this.weightHI.handleOther(cell);
-
         const i = rnnTransform(input, hidden, this.weightII, this.weightHI, this.biasII, this.biasHI).sigmoid();
         const f = rnnTransform(input, hidden, this.weightIF, this.weightHF, this.biasIF, this.biasHF).sigmoid();
         const g = rnnTransform(input, hidden, this.weightIG, this.weightHG, this.biasIG, this.biasHG).tanh();
@@ -335,40 +315,11 @@ export class InstanceNorm {
     }
     
     forward(input: Tensor): Tensor {
-        // Input should be at least 3D: [N, C, ...spatial dims]
-        if (input.shape.length < 3) {
-            throw new Error("InstanceNorm expects at least 3D input [N, C, ...spatial]");
-        }
-        
         if (input.shape[1] !== this.numFeatures) {
             throw new Error(`Expected ${this.numFeatures} channels, got ${input.shape[1]}`);
         }
-        
-        // Normalize across spatial dimensions (all dims after channel dim)
-        const dims = [];
-        for (let i = 2; i < input.shape.length; i++) {
-            dims.push(i);
-        }
-        
-        const mean = input.mean(dims, true);
-        const variance = input.sub(mean).pow(2).mean(dims, true);
-        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
-        
-        if (this.weight) {
-            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
-            const weightShape = [1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)];
-            const weightReshaped = this.weight.reshape(weightShape);
-            normalized = normalized.mul(weightReshaped);
-        }
-        
-        if (this.bias) {
-            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
-            const biasShape = [1, this.numFeatures, ...Array(input.shape.length - 2).fill(1)];
-            const biasReshaped = this.bias.reshape(biasShape);
-            normalized = normalized.add(biasReshaped);
-        }
-        
-        return normalized;
+
+        return input.instanceNorm(this.weight, this.bias, this.eps);
     }
 }
 
@@ -402,52 +353,11 @@ export class GroupNorm {
     }
     
     forward(input: Tensor): Tensor {
-        // Input should be at least 3D: [N, C, ...spatial dims]
-        if (input.shape.length < 3) {
-            throw new Error("GroupNorm expects at least 3D input [N, C, ...spatial]");
-        }
-        
         if (input.shape[1] !== this.numChannels) {
             throw new Error(`Expected ${this.numChannels} channels, got ${input.shape[1]}`);
         }
-        
-        const N = input.shape[0];
-        const C = input.shape[1];
-        const spatialDims = input.shape.slice(2);
-        const channelsPerGroup = C / this.numGroups;
-        
-        // Reshape: [N, C, ...spatial] -> [N, G, C//G, ...spatial]
-        const reshapedInput = input.reshape([N, this.numGroups, channelsPerGroup, ...spatialDims]);
-        
-        // Normalize across (C//G, ...spatial) dimensions for each group
-        // That's dims [2, 3, 4, ...] in the reshaped tensor
-        const dims = [];
-        for (let i = 2; i < reshapedInput.shape.length; i++) {
-            dims.push(i);
-        }
-        
-        const mean = reshapedInput.mean(dims, true);
-        const variance = reshapedInput.sub(mean).pow(2).mean(dims, true);
-        let normalized = reshapedInput.sub(mean).div(variance.add(this.eps).sqrt());
-        
-        // Reshape back: [N, G, C//G, ...spatial] -> [N, C, ...spatial]
-        normalized = normalized.reshape(input.shape);
-        
-        if (this.weight) {
-            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
-            const weightShape = [1, this.numChannels, ...Array(spatialDims.length).fill(1)];
-            const weightReshaped = this.weight.reshape(weightShape);
-            normalized = normalized.mul(weightReshaped);
-        }
-        
-        if (this.bias) {
-            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
-            const biasShape = [1, this.numChannels, ...Array(spatialDims.length).fill(1)];
-            const biasReshaped = this.bias.reshape(biasShape);
-            normalized = normalized.add(biasReshaped);
-        }
-        
-        return normalized;
+
+        return input.groupNorm(this.numGroups, this.weight, this.bias, this.eps);
     }
 }
 
@@ -482,37 +392,12 @@ export class LayerNorm {
     }
 
     forward(input: Tensor): Tensor {
-        // Normalize over the specified dimensions
-        const normalizedDims = this.normalizedShape.length;
-        const startDim = input.shape.length - normalizedDims;
-
-        if (startDim < 0) {
-            throw new Error("Input does not have enough dims to normalize");
-        }
-
-        const dims = [];
-
-        for (let i = 0; i < normalizedDims; i++) {
-            if (input.shape[startDim + i] !== this.normalizedShape[i]) {
-                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${this.normalizedShape[i]}, got ${input.shape[startDim + i]}`);
-            }
-
-            dims.push(startDim + i);
-        }
-
-        const mean = input.mean(dims, true);
-        const variance = input.sub(mean).pow(2).mean(dims, true);
-
-        let normalized = input.sub(mean).div(variance.add(this.eps).sqrt());
-
-        if (this.weight) {
-            normalized = normalized.mul(this.weight);
-        }
-        if (this.bias) {
-            normalized = normalized.add(this.bias);
-        }
-
-        return normalized;
+        return input.layerNorm(
+            this.normalizedShape,
+            this.weight,
+            this.bias,
+            this.eps
+        );
     }
 }
 
@@ -541,32 +426,7 @@ export class RMSNorm {
     }
 
     forward(input: Tensor): Tensor {
-        // Normalize over the specified dimensions
-        const normalizedDims = this.normalizedShape.length;
-        const startDim = input.shape.length - normalizedDims;
-
-        if (startDim < 0) {
-            throw new Error("Input does not have enough dims to normalize");
-        }
-
-        const dims = [];
-
-        for (let i = 0; i < normalizedDims; i++) {
-            if (input.shape[startDim + i] !== this.normalizedShape[i]) {
-                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${this.normalizedShape[i]}, got ${input.shape[startDim + i]}`);
-            }
-
-            dims.push(startDim + i);
-        }
-
-        let rms = input.square().mean(dims, true).add(this.eps).sqrt();
-        let normalized = input.div(rms);
-
-        if (this.weight) {
-            normalized = normalized.mul(this.weight);
-        }
-
-        return normalized;
+        return input.rmsNorm(this.normalizedShape, this.weight, this.eps);
     }
 }
 
@@ -577,42 +437,9 @@ export class Embedding {
         this.weight = Tensor.randn([numEmbeddings, embeddingDim], { requiresGrad: true, device, dtype });
     }
 
-    forward(input: Tensor | TensorValue): Tensor {
+    forward(input: Tensor): Tensor {
         return this.weight.index(input);
     }
-}
-
-export function scaledDotProductAttention(
-    query: Tensor,
-    key: Tensor,
-    value: Tensor,
-    attnMask?: Tensor,
-    dropout = 0,
-    isCausal = false,
-    scale?: number
-) {
-    const targetLen = query.shape[query.shape.length - 2];
-    const sourceLen = key.shape[key.shape.length - 2];
-    const dimSize = query.shape[query.shape.length - 1];
-
-    // Attention scores
-    let scores = query.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
-
-    // Set attention mask to causal mask if specified
-    if (isCausal) {
-        attnMask = Tensor.ones([targetLen, sourceLen], { device: query.device }).triu(1);
-    }
-
-    // Apply attention mask if specified
-    if (attnMask) {
-        scores = scores.maskedFill(attnMask, -Infinity);
-    }
-
-    // Calculate attention weights
-    let attnWeights = scores.softmax().dropout(dropout);
-
-    // Apply attention to values
-    return attnWeights.matmul(value);
 }
 
 export class MultiheadAttention {
@@ -780,6 +607,7 @@ const state = {
 
 export const nn = {
     Linear,
+    Sequential,
     RNNCell,
     GRUCell,
     LSTMCell,
@@ -789,7 +617,6 @@ export const nn = {
     LayerNorm,
     RMSNorm,
     Embedding,
-    scaledDotProductAttention,
     MultiheadAttention,
     state
 }

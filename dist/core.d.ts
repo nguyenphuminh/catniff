@@ -1,5 +1,8 @@
 import { Backend } from "./backend";
 import { dtype, MemoryBuffer } from "./dtype";
+export type Callable = ((input: Tensor) => Tensor) | {
+    forward: (input: Tensor) => Tensor;
+};
 export type TensorValue = number | ArrayLike<TensorValue>;
 export interface TensorOptions {
     shape?: number[];
@@ -220,6 +223,13 @@ export declare class Tensor {
     tril(diagonal?: number): Tensor;
     maskedFill(mask: Tensor | TensorValue, value: number): Tensor;
     multinomial(numSamples: number, replacement?: boolean): Tensor;
+    linear(weight: Tensor | TensorValue, bias?: Tensor | TensorValue): Tensor;
+    sequential(callables: Callable[]): Tensor;
+    layerNorm(normalizedShape: number[], weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps?: number): Tensor;
+    rmsNorm(normalizedShape: number[], weight?: Tensor | TensorValue, eps?: number): Tensor;
+    instanceNorm(weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps?: number): Tensor;
+    groupNorm(numGroups: number, weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps?: number): Tensor;
+    scaledDotProductAttention(key: Tensor | TensorValue, value: Tensor | TensorValue, attnMask?: Tensor, dropout?: number, isCausal?: boolean, scale?: number): Tensor;
     static full(shape: number[], num: number, options?: TensorOptions): Tensor;
     static fullLike(tensor: Tensor, num: number, options?: TensorOptions): Tensor;
     static ones(shape?: number[], options?: TensorOptions): Tensor;

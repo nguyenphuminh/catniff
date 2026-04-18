@@ -1,10 +1,15 @@
-import { Tensor, TensorValue } from "./core";
+import { Callable, Tensor } from "./core";
 import { dtype } from "./dtype";
 export declare class Linear {
     weight: Tensor;
     bias?: Tensor;
     constructor(inFeatures: number, outFeatures: number, bias?: boolean, device?: string, dtype?: dtype);
-    forward(input: Tensor | TensorValue): Tensor;
+    forward(input: Tensor): Tensor;
+}
+export declare class Sequential {
+    callables: Callable[];
+    constructor(callables: Callable[]);
+    forward(input: Tensor): Tensor;
 }
 export declare class RNNCell {
     weightIH: Tensor;
@@ -12,7 +17,7 @@ export declare class RNNCell {
     biasIH?: Tensor;
     biasHH?: Tensor;
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string, dtype?: dtype);
-    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
+    forward(input: Tensor, hidden: Tensor): Tensor;
 }
 export declare class GRUCell {
     weightIR: Tensor;
@@ -28,7 +33,7 @@ export declare class GRUCell {
     biasHZ?: Tensor;
     biasHN?: Tensor;
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string, dtype?: dtype);
-    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor;
+    forward(input: Tensor, hidden: Tensor): Tensor;
 }
 export declare class LSTMCell {
     weightII: Tensor;
@@ -48,7 +53,7 @@ export declare class LSTMCell {
     biasHG?: Tensor;
     biasHO?: Tensor;
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string, dtype?: dtype);
-    forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor];
+    forward(input: Tensor, hidden: Tensor, cell: Tensor): [Tensor, Tensor];
 }
 export declare class BatchNorm {
     weight?: Tensor;
@@ -99,9 +104,8 @@ export declare class RMSNorm {
 export declare class Embedding {
     weight: Tensor;
     constructor(numEmbeddings: number, embeddingDim: number, device?: string, dtype?: dtype);
-    forward(input: Tensor | TensorValue): Tensor;
+    forward(input: Tensor): Tensor;
 }
-export declare function scaledDotProductAttention(query: Tensor, key: Tensor, value: Tensor, attnMask?: Tensor, dropout?: number, isCausal?: boolean, scale?: number): Tensor;
 export declare class MultiheadAttention {
     qProjection: Linear;
     kProjection: Linear;
@@ -119,6 +123,7 @@ export interface StateDict {
 }
 export declare const nn: {
     Linear: typeof Linear;
+    Sequential: typeof Sequential;
     RNNCell: typeof RNNCell;
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
@@ -128,7 +133,6 @@ export declare const nn: {
     LayerNorm: typeof LayerNorm;
     RMSNorm: typeof RMSNorm;
     Embedding: typeof Embedding;
-    scaledDotProductAttention: typeof scaledDotProductAttention;
     MultiheadAttention: typeof MultiheadAttention;
     state: {
         getParameters(model: any, visited?: WeakSet<object>): Tensor[];

@@ -2302,6 +2302,174 @@ class Tensor {
             dtype: "int32"
         });
     }
+    // Functional linear projection
+    linear(weight, bias) {
+        weight = this.handleOther(weight);
+        let output = this.matmul(weight.transpose(-1, -2));
+        if (bias) {
+            bias = this.handleOther(bias);
+            output = output.add(bias);
+        }
+        return output;
+    }
+    // Functional sequential chaining
+    sequential(callables) {
+        let res = this;
+        for (let index = 0; index < callables.length; index++) {
+            const callable = callables[index];
+            if (typeof callable === "function") {
+                res = callable(res);
+            }
+            else if (typeof callable === "object" && typeof callable.forward === "function") {
+                res = callable.forward(res);
+            }
+        }
+        return res;
+    }
+    // Functional layer norm
+    layerNorm(normalizedShape, weight, bias, eps = 1e-05) {
+        // Normalize over the specified dimensions
+        const normalizedDims = normalizedShape.length;
+        const startDim = this.shape.length - normalizedDims;
+        if (startDim < 0) {
+            throw new Error("Input does not have enough dims to normalize");
+        }
+        const dims = [];
+        for (let i = 0; i < normalizedDims; i++) {
+            if (this.shape[startDim + i] !== normalizedShape[i]) {
+                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${normalizedShape[i]}, got ${this.shape[startDim + i]}`);
+            }
+            dims.push(startDim + i);
+        }
+        const mean = this.mean(dims, true);
+        const centered = this.sub(mean);
+        const variance = centered.pow(2).mean(dims, true);
+        let normalized = centered.div(variance.add(eps).sqrt());
+        if (weight) {
+            normalized = normalized.mul(weight);
+        }
+        if (bias) {
+            normalized = normalized.add(bias);
+        }
+        return normalized;
+    }
+    // Functional RMS norm
+    rmsNorm(normalizedShape, weight, eps = 1e-5) {
+        // Normalize over the specified dimensions
+        const normalizedDims = normalizedShape.length;
+        const startDim = this.shape.length - normalizedDims;
+        if (startDim < 0) {
+            throw new Error("Input does not have enough dims to normalize");
+        }
+        const dims = [];
+        for (let i = 0; i < normalizedDims; i++) {
+            if (this.shape[startDim + i] !== normalizedShape[i]) {
+                throw new Error(`Shape mismatch at dim ${startDim + i}: expected ${normalizedShape[i]}, got ${this.shape[startDim + i]}`);
+            }
+            dims.push(startDim + i);
+        }
+        let rms = this.square().mean(dims, true).add(eps).sqrt();
+        let normalized = this.div(rms);
+        if (weight) {
+            normalized = normalized.mul(weight);
+        }
+        return normalized;
+    }
+    // Functional instance norm
+    instanceNorm(weight, bias, eps = 1e-5) {
+        // Input should be at least 3D: [N, C, ...spatial dims]
+        if (this.shape.length < 3) {
+            throw new Error("InstanceNorm expects at least 3D input [N, C, ...spatial]");
+        }
+        // Normalize across spatial dimensions (all dims after channel dim)
+        const dims = [];
+        for (let i = 2; i < this.shape.length; i++) {
+            dims.push(i);
+        }
+        const mean = this.mean(dims, true);
+        const centered = this.sub(mean);
+        const variance = centered.pow(2).mean(dims, true);
+        let normalized = centered.div(variance.add(eps).sqrt());
+        const numFeatures = this.shape[1];
+        if (weight) {
+            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
+            weight = this.handleOther(weight);
+            const weightShape = [1, numFeatures, ...Array(this.shape.length - 2).fill(1)];
+            const weightReshaped = weight.reshape(weightShape);
+            normalized = normalized.mul(weightReshaped);
+        }
+        if (bias) {
+            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
+            bias = this.handleOther(bias);
+            const biasShape = [1, numFeatures, ...Array(this.shape.length - 2).fill(1)];
+            const biasReshaped = bias.reshape(biasShape);
+            normalized = normalized.add(biasReshaped);
+        }
+        return normalized;
+    }
+    // Functional group norm
+    groupNorm(numGroups, weight, bias, eps = 1e-5) {
+        // Input should be at least 3D: [N, C, ...spatial dims]
+        if (this.shape.length < 3) {
+            throw new Error("GroupNorm expects at least 3D input [N, C, ...spatial]");
+        }
+        const N = this.shape[0];
+        const C = this.shape[1];
+        const spatialDims = this.shape.slice(2);
+        const channelsPerGroup = C / numGroups;
+        // Reshape: [N, C, ...spatial] -> [N, G, C//G, ...spatial]
+        const reshapedInput = this.reshape([N, numGroups, channelsPerGroup, ...spatialDims]);
+        // Normalize across (C//G, ...spatial) dimensions for each group
+        // That's dims [2, 3, 4, ...] in the reshaped tensor
+        const dims = [];
+        for (let i = 2; i < reshapedInput.shape.length; i++) {
+            dims.push(i);
+        }
+        const mean = reshapedInput.mean(dims, true);
+        const centered = reshapedInput.sub(mean);
+        const variance = centered.pow(2).mean(dims, true);
+        let normalized = centered.div(variance.add(eps).sqrt());
+        // Reshape back: [N, G, C//G, ...spatial] -> [N, C, ...spatial]
+        normalized = normalized.reshape(this.shape);
+        const numChannels = this.shape[1];
+        if (weight) {
+            // Reshape weight to [1, C, 1, 1, ...] for broadcasting
+            weight = this.handleOther(weight);
+            const weightShape = [1, numChannels, ...Array(spatialDims.length).fill(1)];
+            const weightReshaped = weight.reshape(weightShape);
+            normalized = normalized.mul(weightReshaped);
+        }
+        if (bias) {
+            // Reshape bias to [1, C, 1, 1, ...] for broadcasting
+            bias = this.handleOther(bias);
+            const biasShape = [1, numChannels, ...Array(spatialDims.length).fill(1)];
+            const biasReshaped = bias.reshape(biasShape);
+            normalized = normalized.add(biasReshaped);
+        }
+        return normalized;
+    }
+    // Functional scaled dot product attention
+    scaledDotProductAttention(key, value, attnMask, dropout = 0, isCausal = false, scale) {
+        key = this.handleOther(key);
+        value = this.handleOther(value);
+        const targetLen = this.shape[this.shape.length - 2];
+        const sourceLen = key.shape[key.shape.length - 2];
+        const dimSize = this.shape[this.shape.length - 1];
+        // Attention scores
+        let scores = this.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
+        // Set attention mask to causal mask if specified
+        if (isCausal) {
+            attnMask = Tensor.ones([targetLen, sourceLen], { device: this.device }).triu(1);
+        }
+        // Apply attention mask if specified
+        if (attnMask) {
+            scores = scores.maskedFill(attnMask, -Infinity);
+        }
+        // Calculate attention weights
+        let attnWeights = scores.softmax().dropout(dropout);
+        // Apply attention to values
+        return attnWeights.matmul(value);
+    }
     // Utility to create a new tensor filled with a number
     static full(shape, num, options = {}) {
         if (shape.length === 0)
