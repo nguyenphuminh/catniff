@@ -200,6 +200,13 @@ All autograd-supported tensor arithmetic methods:
 * `topk(k: number, dim = -1, largest = true): Tensor`: Get top k elements of the specified dimension.
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 * `multinomial(numSamples: number, replacement = false): Tensor`: Apply multinomial sampling.
+* `linear(weight: Tensor | TensorValue, bias?: Tensor | TensorValue): Tensor`: Apply linear projection.
+* `sequential(callables: Callable[]): Tensor`: Chain multiple callables (ops/nn objects, `Callable` can be a function or an object with `forward` method).
+* `layerNorm(normalizedShape: number[], weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps=1e-05)`: Apply layer norm.
+* `rmsNorm(normalizedShape: number[], weight?: Tensor | TensorValue, eps = 1e-5) `: Apply rms norm.
+* `instanceNorm(weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps = 1e-5)`: Apply instance norm.
+* `groupNorm(numGroups: number, weight?: Tensor | TensorValue, bias?: Tensor | TensorValue, eps = 1e-5)`: Apply group norm.
+* `scaledDotProductAttention(key: Tensor | TensorValue, value: Tensor | TensorValue, attnMask?: Tensor, dropout = 0, isCausal = false, scale?: number): Tensor`: Apply scaled dot product attention.
 * `triu(diagonal=0): Tensor`: Get the upper triangular part with respect to main diagonal (the lower part is set to 0).
 * `tril(diagonal=0): Tensor`: Get the lower triangular part with respect to main diagonal (the upper part is set to 0).
 * `maskedFill(mask: Tensor | TensorValue, value: number): Tensor`: Fill specific positions of this tensor with a `value` through a `mask` (1 for fill, 0 for unchanged).
@@ -682,20 +689,6 @@ constructor(
 ### Methods
 
 * `forward(input: Tensor | TensorValue): Tensor`: Perform a lookup from the weight.
-
-## nn.scaledDotProductAttention / scaledDotProductAttention
-
-```ts
-function scaledDotProductAttention(
-    query: Tensor,
-    key: Tensor,
-    value: Tensor,
-    attnMask?: Tensor,
-    dropout = 0,
-    isCausal = false,
-    scale?: number
-)
-```
 
 ## nn.MultiheadAttention / MultiHeadAttention
 
