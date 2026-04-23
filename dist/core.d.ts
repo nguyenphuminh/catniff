@@ -70,6 +70,7 @@ export declare class Tensor {
     chunk(chunks: number, dim?: number): Tensor[];
     expand(newShape: number[]): Tensor;
     unfold(dim: number, size: number, step: number): Tensor;
+    pad(pad: number[], mode?: string, value?: number): Tensor;
     cat(other: Tensor | TensorValue, dim?: number): Tensor;
     stack(others: (Tensor | TensorValue)[], dim?: number): Tensor;
     squeeze(dims?: number[] | number): Tensor;

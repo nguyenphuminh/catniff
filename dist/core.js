@@ -328,8 +328,14 @@ class Tensor {
         }
         const reducedGrad = accumGrad.sum(axesToReduce, true);
         const squeezedGrad = reducedGrad.squeeze(axesToSqueeze);
+        // Enforce 0-offset contiguous grads and correct dtype
         if (typeof tensor.grad === "undefined") {
-            tensor.grad = squeezedGrad;
+            let grad = squeezedGrad;
+            // Handle potentially contiguous tensors with non zero offset
+            if (grad.offset !== 0) {
+                grad = grad.clone();
+            }
+            tensor.grad = grad.contiguous().cast(tensor.dtype);
         }
         else {
             tensor.grad = tensor.grad.add(squeezedGrad.cast(tensor.dtype));
@@ -807,6 +813,70 @@ class Tensor {
             };
         }
         return out;
+    }
+    // Tensor padding
+    pad(pad, mode = "constant", value = 0) {
+        const original = this.clone().contiguous(); // This is needed for index padding to work
+        const outputShape = [...original.shape];
+        const paddingPerDim = [];
+        for (let i = 0; i < original.shape.length; i++) {
+            const left = pad[(original.shape.length - 1 - i) * 2] || 0;
+            const right = pad[(original.shape.length - 1 - i) * 2 + 1] || 0;
+            paddingPerDim[i] = { left, right };
+            outputShape[i] += left + right;
+        }
+        const outputSize = Tensor.shapeToSize(outputShape);
+        if (mode === "constant") {
+            const outputValue = new dtype_1.TypedArray[original.dtype](outputSize).fill(value);
+            const outputStrides = Tensor.getStrides(outputShape);
+            for (let index = 0; index < original.numel; index++) {
+                const coords = Tensor.indexToCoords(index, original.strides);
+                let paddedIndex = 0;
+                // Pad each coord
+                for (let j = 0; j < original.shape.length; j++) {
+                    const shiftedCoord = coords[j] + paddingPerDim[j].left;
+                    paddedIndex += shiftedCoord * outputStrides[j];
+                }
+                outputValue[paddedIndex] = original.value[index];
+            }
+            const out = new Tensor(outputValue, {
+                shape: outputShape,
+                strides: outputStrides,
+                offset: 0,
+                dtype: original.dtype,
+                device: original.device
+            });
+            if (original.requiresGrad) {
+                out.requiresGrad = true;
+                out.children.push(original);
+                out.gradFn = () => {
+                    const outGrad = out.grad;
+                    const gradValue = new dtype_1.TypedArray[original.dtype](original.numel);
+                    const gradStrides = Tensor.getStrides(original.shape);
+                    for (let index = 0; index < gradValue.length; index++) {
+                        const coords = Tensor.indexToCoords(index, gradStrides);
+                        let paddedIndex = 0;
+                        // Pad each coord
+                        for (let j = 0; j < original.shape.length; j++) {
+                            const shiftedCoord = coords[j] + paddingPerDim[j].left;
+                            paddedIndex += shiftedCoord * outputStrides[j];
+                        }
+                        gradValue[index] = outGrad.value[paddedIndex];
+                    }
+                    Tensor.addGrad(original, new Tensor(gradValue, {
+                        shape: original.shape,
+                        strides: gradStrides,
+                        offset: 0,
+                        dtype: original.dtype,
+                        device: original.device
+                    }));
+                };
+            }
+            return out;
+        }
+        else {
+            throw new Error(`Padding mode not supported: "${mode}"`);
+        }
     }
     // Tensor concatentation
     cat(other, dim = 0) {

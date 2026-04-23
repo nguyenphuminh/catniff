@@ -169,6 +169,7 @@ All autograd-supported tensor arithmetic methods:
 * `chunk(chunks: number, dim = 0): Tensor[]`: Returns a `chunks` number of chunks split from `this`, at dimension `dim`.
 * `expand(newShape: number[]): Tensor`: Returns a new tensor expanded to `newShape`.
 * `unfold(dim: number, size: number, step: number): Tensor`: Unfolds the tensor along dimension dim into overlapping windows.
+* `pad(pad: number[], mode = "constant", value = 0): Tensor`: Pads the tensor based on `pad`, which is in the Torch-like format of `[padLeft, padRight, padTop, padBottom, padFront, padBack,...]`. Currently only `constant` mode is supported, which pads the tensor with `value`.
 * `cat(other: Tensor | TensorValue, dim = 0): Tensor`: Concatenate `this` tensor with `other` tensor along the specified dimension `dim`.
 * `stack(others: (Tensor | TensorValue)[], dim = 0): Tensor`: Concatenate `this` tensor with `others` tensors along the newly created dimension `dim`. 
 * `dot(other: TensorValue | Tensor): Tensor`: Returns the vector dot product of `this` and `other` 1D tensors (vectors). If the two are not 1D, it will throw an error.
