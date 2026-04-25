@@ -55,6 +55,16 @@ export declare class LSTMCell {
     constructor(inputSize: number, hiddenSize: number, bias?: boolean, device?: string, dtype?: dtype);
     forward(input: Tensor, hidden: Tensor, cell: Tensor): [Tensor, Tensor];
 }
+export declare class Conv2d {
+    weight: Tensor;
+    bias?: Tensor;
+    stride: number | [number, number];
+    padding: number | [number, number];
+    dilation: number | [number, number];
+    groups: number;
+    constructor(inChannels: number, outChannels: number, kernelSize: number, stride?: number | [number, number], padding?: number | [number, number], dilation?: number | [number, number], groups?: number, bias?: boolean, device?: string, dtype?: dtype);
+    forward(input: Tensor): Tensor;
+}
 export declare class BatchNorm {
     weight?: Tensor;
     bias?: Tensor;
@@ -127,6 +137,7 @@ export declare const nn: {
     RNNCell: typeof RNNCell;
     GRUCell: typeof GRUCell;
     LSTMCell: typeof LSTMCell;
+    Conv2d: typeof Conv2d;
     BatchNorm: typeof BatchNorm;
     InstanceNorm: typeof InstanceNorm;
     GroupNorm: typeof GroupNorm;

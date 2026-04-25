@@ -432,7 +432,7 @@ export class Tensor {
             if (grad.offset !== 0) {
                 grad = grad.clone();
             }
-            
+
             tensor.grad = grad.contiguous().cast(tensor.dtype);
         } else {
             tensor.grad = tensor.grad.add(squeezedGrad.cast(tensor.dtype));
@@ -987,12 +987,12 @@ export class Tensor {
                 const grad = Tensor.zerosLike(this);
 
                 for (let i = 0; i < out.numel; i++) {
-                    const coords = Tensor.indexToCoords(i, newStrides);
+                    const coords = Tensor.indexToCoords(i, Tensor.getStrides(outGrad.shape));
                     const windowIdx = coords[dim];
                     const withinWindow = coords[coords.length - 1];
                     coords[dim] = windowIdx * step + withinWindow;
                     coords.pop();
-                    const sourceIdx = Tensor.coordsToIndex(coords, this.strides);
+                    const sourceIdx = Tensor.coordsToIndex(coords, Tensor.getStrides(grad.shape));
                     grad.value[sourceIdx] += outGrad.value[i];
                 }
 
@@ -1008,7 +1008,7 @@ export class Tensor {
         const original = this.clone().contiguous(); // This is needed for index padding to work
         const outputShape = [...original.shape];
         const paddingPerDim: { left: number, right: number }[] = [];
-        
+
         for (let i = 0; i < original.shape.length; i++) {
             const left = pad[(original.shape.length - 1 - i) * 2] || 0;
             const right = pad[(original.shape.length - 1 - i) * 2 + 1] || 0;
@@ -2921,6 +2921,94 @@ export class Tensor {
         return result2D.reshape(finalShape);
     }
 
+    // 2D convolution
+    conv2d(
+        weight: Tensor | TensorValue,
+        bias?: Tensor | TensorValue,
+        stride: number | [number, number] = 1,
+        padding: number | [number, number] = 0,
+        dilation: number | [number, number] = 1,
+        groups = 1
+    ): Tensor {
+        weight = this.handleOther(weight);
+
+        const [sH, sW] = Array.isArray(stride) ? stride : [stride, stride];
+        const [pH, pW] = Array.isArray(padding) ? padding : [padding, padding];
+        const [dH, dW] = Array.isArray(dilation) ? dilation : [dilation, dilation];
+
+        const [N, Cin, H, W] = this.shape;
+        const [Cout, CinPerGroup, kH, kW] = weight.shape;
+
+        // Pad input
+        let x = (pH > 0 || pW > 0) ? this.pad([pW, pW, pH, pH]) : this;
+
+        const Hp = H + 2 * pH;
+        const Wp = W + 2 * pW;
+        const Hout = Math.floor((Hp - dH * (kH - 1) - 1) / sH + 1);
+        const Wout = Math.floor((Wp - dW * (kW - 1) - 1) / sW + 1);
+
+        // Unfold H with a window large enough to cover the dilated kernel extent,
+        // then slice every dH-th position to realise the dilation holes.
+        // x: [N, Cin, Hp, Wp]
+        //   -> unfold(2, dH*(kH-1)+1, sH)
+        //   -> [N, Cin, Hout, Wp, dH*(kH-1)+1]
+        //   -> slice step dH on last dim
+        //   -> [N, Cin, Hout, Wp, kH]
+        const dilKH = dH * (kH - 1) + 1;
+        x = x.unfold(2, dilKH, sH);
+        if (dH > 1) x = x.slice([[0, N], [0, Cin], [0, Hout], [0, Wp], [0, dilKH, dH]]);
+
+        // Unfold W
+        // x: [N, Cin, Hout, Wp, kH]
+        //   -> unfold(3, dW*(kW-1)+1, sW)
+        //   -> [N, Cin, Hout, Wout, kH, dW*(kW-1)+1]
+        //   -> slice step dW on last dim
+        //   -> [N, Cin, Hout, Wout, kH, kW]
+        const dilKW = dW * (kW - 1) + 1;
+        x = x.unfold(3, dilKW, sW);
+        if (dW > 1) x = x.slice([[0, N], [0, Cin], [0, Hout], [0, Wout], [0, kH], [0, dilKW, dW]]);
+
+        // Reshape patches to [N, Hout*Wout, Cin*kH*kW]
+        // permute [0,2,3,1,4,5] -> [N, Hout, Wout, Cin, kH, kW]
+        // then reshape merges the spatial and channel-kernel dims.
+        // reshape() forces contiguity internally so no explicit .contiguous() needed.
+        x = x.permute([0, 2, 3, 1, 4, 5]).reshape([N, Hout * Wout, Cin * kH * kW]);
+
+        // Matmul with weight
+        // weight: [Cout, CinPerGroup, kH, kW] -> [Cout, CinPerGroup*kH*kW]
+        const w = weight.reshape([Cout, CinPerGroup * kH * kW]);
+        let out;
+
+        if (groups === 1) {
+            // x: [N, Hout*Wout, Cin*kH*kW]  @  w.t(): [Cin*kH*kW, Cout]
+            // -> [N, Hout*Wout, Cout]
+            out = x.matmul(w.t());
+        } else {
+            // Each group handles Cin/groups input channels and Cout/groups output channels.
+            // chunk(groups, 2) splits the Cin*kH*kW axis into groups equal slices,
+            // each of size CinPerGroup*kH*kW — valid because reshape laid Cin outermost.
+            const patchChunks = x.chunk(groups, 2); // Tensor[groups], each [N, Hout*Wout, CinPerGroup*kH*kW]
+            const weightChunks = w.chunk(groups, 0); // Tensor[groups], each [Cout/groups, CinPerGroup*kH*kW]
+
+            const groupOuts = patchChunks.map((patch, i) =>
+                patch.matmul(weightChunks[i].t())    // [N, Hout*Wout, Cout/groups]
+            );
+
+            // Cat all group outputs along the channel axis (dim 2)
+            out = groupOuts.reduce((acc, g) => acc.cat(g, 2)); // [N, Hout*Wout, Cout]
+        }
+
+        // Restore [N, Cout, Hout, Wout]
+        out = out.permute([0, 2, 1]).reshape([N, Cout, Hout, Wout]);
+
+        // Bias
+        if (bias) {
+            out = out.add(this.handleOther(bias).reshape([1, Cout, 1, 1]));
+        }
+
+        return out;
+    }
+
     // Dropout
     dropout(rate: number): Tensor {
         if (!Tensor.training || rate === 0) return this;
@@ -3163,7 +3251,7 @@ export class Tensor {
     // Functional sequential chaining
     sequential(callables: Callable[]): Tensor {
         let res: Tensor = this;
-        
+
         for (let index = 0; index < callables.length; index++) {
             const callable = callables[index];
 
@@ -3182,7 +3270,7 @@ export class Tensor {
         normalizedShape: number[],
         weight?: Tensor | TensorValue,
         bias?: Tensor | TensorValue,
-        eps=1e-05
+        eps = 1e-05
     ): Tensor {
         // Normalize over the specified dimensions
         const normalizedDims = normalizedShape.length;
@@ -3262,13 +3350,13 @@ export class Tensor {
         if (this.shape.length < 3) {
             throw new Error("InstanceNorm expects at least 3D input [N, C, ...spatial]");
         }
-        
+
         // Normalize across spatial dimensions (all dims after channel dim)
         const dims = [];
         for (let i = 2; i < this.shape.length; i++) {
             dims.push(i);
         }
-        
+
         const mean = this.mean(dims, true);
         const centered = this.sub(mean);
         const variance = centered.pow(2).mean(dims, true);
@@ -3283,7 +3371,7 @@ export class Tensor {
             const weightReshaped = weight.reshape(weightShape);
             normalized = normalized.mul(weightReshaped);
         }
-        
+
         if (bias) {
             // Reshape bias to [1, C, 1, 1, ...] for broadcasting
             bias = this.handleOther(bias);
@@ -3291,7 +3379,7 @@ export class Tensor {
             const biasReshaped = bias.reshape(biasShape);
             normalized = normalized.add(biasReshaped);
         }
-        
+
         return normalized;
     }
 
@@ -3306,30 +3394,30 @@ export class Tensor {
         if (this.shape.length < 3) {
             throw new Error("GroupNorm expects at least 3D input [N, C, ...spatial]");
         }
-        
+
         const N = this.shape[0];
         const C = this.shape[1];
         const spatialDims = this.shape.slice(2);
         const channelsPerGroup = C / numGroups;
-        
+
         // Reshape: [N, C, ...spatial] -> [N, G, C//G, ...spatial]
         const reshapedInput = this.reshape([N, numGroups, channelsPerGroup, ...spatialDims]);
-        
+
         // Normalize across (C//G, ...spatial) dimensions for each group
         // That's dims [2, 3, 4, ...] in the reshaped tensor
         const dims = [];
         for (let i = 2; i < reshapedInput.shape.length; i++) {
             dims.push(i);
         }
-        
+
         const mean = reshapedInput.mean(dims, true);
         const centered = reshapedInput.sub(mean);
         const variance = centered.pow(2).mean(dims, true);
         let normalized = centered.div(variance.add(eps).sqrt());
-        
+
         // Reshape back: [N, G, C//G, ...spatial] -> [N, C, ...spatial]
         normalized = normalized.reshape(this.shape);
-        
+
         const numChannels = this.shape[1];
 
         if (weight) {
@@ -3339,7 +3427,7 @@ export class Tensor {
             const weightReshaped = weight.reshape(weightShape);
             normalized = normalized.mul(weightReshaped);
         }
-        
+
         if (bias) {
             // Reshape bias to [1, C, 1, 1, ...] for broadcasting
             bias = this.handleOther(bias);
@@ -3347,7 +3435,7 @@ export class Tensor {
             const biasReshaped = bias.reshape(biasShape);
             normalized = normalized.add(biasReshaped);
         }
-        
+
         return normalized;
     }
 
@@ -3366,23 +3454,23 @@ export class Tensor {
         const targetLen = this.shape[this.shape.length - 2];
         const sourceLen = key.shape[key.shape.length - 2];
         const dimSize = this.shape[this.shape.length - 1];
-    
+
         // Attention scores
         let scores = this.matmul(key.transpose(-2, -1)).div(scale ?? Math.sqrt(dimSize));
-    
+
         // Set attention mask to causal mask if specified
         if (isCausal) {
             attnMask = Tensor.ones([targetLen, sourceLen], { device: this.device }).triu(1);
         }
-    
+
         // Apply attention mask if specified
         if (attnMask) {
             scores = scores.maskedFill(attnMask, -Infinity);
         }
-    
+
         // Calculate attention weights
         let attnWeights = scores.softmax().dropout(dropout);
-    
+
         // Apply attention to values
         return attnWeights.matmul(value);
     }

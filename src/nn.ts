@@ -187,6 +187,50 @@ export class LSTMCell {
     }
 }
 
+export class Conv2d {
+    public weight: Tensor;
+    public bias?: Tensor;
+    public stride: number | [number, number];
+    public padding: number | [number, number];
+    public dilation: number | [number, number];
+    public groups: number;
+
+    constructor(
+        inChannels: number,
+        outChannels: number,
+        kernelSize: number,
+        stride: number | [number, number] = 1,
+        padding: number | [number, number] = 0,
+        dilation: number | [number, number] = 1,
+        groups = 1,
+        bias = true,
+        device?: string,
+        dtype?: dtype
+    ) {
+        this.stride = stride;
+        this.padding = padding;
+        this.dilation = dilation;
+        this.groups = groups;
+
+        const fanIn = (inChannels / groups) * kernelSize * kernelSize;
+        const bound = Math.sqrt(1 / fanIn);
+
+        this.weight = Tensor.uniform(
+            [outChannels, inChannels / groups, kernelSize, kernelSize],
+            -bound, bound,
+            { requiresGrad: true, device, dtype }
+        );
+
+        if (bias) {
+            this.bias = Tensor.uniform([outChannels], -bound, bound, { requiresGrad: true, device, dtype });
+        }
+    }
+
+    forward(input: Tensor): Tensor {
+        return input.conv2d(this.weight, this.bias, this.stride, this.padding, this.dilation, this.groups);
+    }
+}
+
 export class BatchNorm {
     public weight?: Tensor;
     public bias?: Tensor;
@@ -611,6 +655,7 @@ export const nn = {
     RNNCell,
     GRUCell,
     LSTMCell,
+    Conv2d,
     BatchNorm,
     InstanceNorm,
     GroupNorm,

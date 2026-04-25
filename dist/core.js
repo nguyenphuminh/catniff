@@ -801,12 +801,12 @@ class Tensor {
                 const outGrad = out.grad;
                 const grad = Tensor.zerosLike(this);
                 for (let i = 0; i < out.numel; i++) {
-                    const coords = Tensor.indexToCoords(i, newStrides);
+                    const coords = Tensor.indexToCoords(i, Tensor.getStrides(outGrad.shape));
                     const windowIdx = coords[dim];
                     const withinWindow = coords[coords.length - 1];
                     coords[dim] = windowIdx * step + withinWindow;
                     coords.pop();
-                    const sourceIdx = Tensor.coordsToIndex(coords, this.strides);
+                    const sourceIdx = Tensor.coordsToIndex(coords, Tensor.getStrides(grad.shape));
                     grad.value[sourceIdx] += outGrad.value[i];
                 }
                 Tensor.addGrad(this, grad);
@@ -2182,6 +2182,74 @@ class Tensor {
             ...freeB.map(i => other.shape[i])
         ];
         return result2D.reshape(finalShape);
+    }
+    // 2D convolution
+    conv2d(weight, bias, stride = 1, padding = 0, dilation = 1, groups = 1) {
+        weight = this.handleOther(weight);
+        const [sH, sW] = Array.isArray(stride) ? stride : [stride, stride];
+        const [pH, pW] = Array.isArray(padding) ? padding : [padding, padding];
+        const [dH, dW] = Array.isArray(dilation) ? dilation : [dilation, dilation];
+        const [N, Cin, H, W] = this.shape;
+        const [Cout, CinPerGroup, kH, kW] = weight.shape;
+        // Pad input
+        let x = (pH > 0 || pW > 0) ? this.pad([pW, pW, pH, pH]) : this;
+        const Hp = H + 2 * pH;
+        const Wp = W + 2 * pW;
+        const Hout = Math.floor((Hp - dH * (kH - 1) - 1) / sH + 1);
+        const Wout = Math.floor((Wp - dW * (kW - 1) - 1) / sW + 1);
+        // Unfold H with a window large enough to cover the dilated kernel extent,
+        // then slice every dH-th position to realise the dilation holes.
+        // x: [N, Cin, Hp, Wp]
+        //   -> unfold(2, dH*(kH-1)+1, sH)
+        //   -> [N, Cin, Hout, Wp, dH*(kH-1)+1]
+        //   -> slice step dH on last dim
+        //   -> [N, Cin, Hout, Wp, kH]
+        const dilKH = dH * (kH - 1) + 1;
+        x = x.unfold(2, dilKH, sH);
+        if (dH > 1)
+            x = x.slice([[0, N], [0, Cin], [0, Hout], [0, Wp], [0, dilKH, dH]]);
+        // Unfold W
+        // x: [N, Cin, Hout, Wp, kH]
+        //   -> unfold(3, dW*(kW-1)+1, sW)
+        //   -> [N, Cin, Hout, Wout, kH, dW*(kW-1)+1]
+        //   -> slice step dW on last dim
+        //   -> [N, Cin, Hout, Wout, kH, kW]
+        const dilKW = dW * (kW - 1) + 1;
+        x = x.unfold(3, dilKW, sW);
+        if (dW > 1)
+            x = x.slice([[0, N], [0, Cin], [0, Hout], [0, Wout], [0, kH], [0, dilKW, dW]]);
+        // Reshape patches to [N, Hout*Wout, Cin*kH*kW]
+        // permute [0,2,3,1,4,5] -> [N, Hout, Wout, Cin, kH, kW]
+        // then reshape merges the spatial and channel-kernel dims.
+        // reshape() forces contiguity internally so no explicit .contiguous() needed.
+        x = x.permute([0, 2, 3, 1, 4, 5]).reshape([N, Hout * Wout, Cin * kH * kW]);
+        // Matmul with weight
+        // weight: [Cout, CinPerGroup, kH, kW] -> [Cout, CinPerGroup*kH*kW]
+        const w = weight.reshape([Cout, CinPerGroup * kH * kW]);
+        let out;
+        if (groups === 1) {
+            // x: [N, Hout*Wout, Cin*kH*kW]  @  w.t(): [Cin*kH*kW, Cout]
+            // -> [N, Hout*Wout, Cout]
+            out = x.matmul(w.t());
+        }
+        else {
+            // Each group handles Cin/groups input channels and Cout/groups output channels.
+            // chunk(groups, 2) splits the Cin*kH*kW axis into groups equal slices,
+            // each of size CinPerGroup*kH*kW — valid because reshape laid Cin outermost.
+            const patchChunks = x.chunk(groups, 2); // Tensor[groups], each [N, Hout*Wout, CinPerGroup*kH*kW]
+            const weightChunks = w.chunk(groups, 0); // Tensor[groups], each [Cout/groups, CinPerGroup*kH*kW]
+            const groupOuts = patchChunks.map((patch, i) => patch.matmul(weightChunks[i].t()) // [N, Hout*Wout, Cout/groups]
+            );
+            // Cat all group outputs along the channel axis (dim 2)
+            out = groupOuts.reduce((acc, g) => acc.cat(g, 2)); // [N, Hout*Wout, Cout]
+        }
+        // Restore [N, Cout, Hout, Wout]
+        out = out.permute([0, 2, 1]).reshape([N, Cout, Hout, Wout]);
+        // Bias
+        if (bias) {
+            out = out.add(this.handleOther(bias).reshape([1, Cout, 1, 1]));
+        }
+        return out;
     }
     // Dropout
     dropout(rate) {

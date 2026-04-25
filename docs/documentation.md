@@ -178,6 +178,7 @@ All autograd-supported tensor arithmetic methods:
 * `bmm(other: TensorValue | Tensor): Tensor`: Returns the batched matrix multiplication of `this` and `other` 3D tensors (batches of matrices). If the two are not 3D, it will throw an error.
 * `matmul(other: TensorValue | Tensor): Tensor`: Returns the matrix multiplication of `this` and `other`. If both are 1D then `dot` is used; if both are 2D then `mm` is used; if `this` is 2D and `other` is 1D then `mv` is used; if `this` is 1D and `other` is 2D then a size-1 dimension will be padded into `this` to do `mm`, then the padded dimension will be removed; if at least one is nD, then output is broadcasted and then a batched matmul is done on two last axes.
 * `tensordot(other: TensorValue | Tensor, axes: number | [number, number] | [number[], number[]] = 2): Tensor`: Returns the general tensor dot product of `this` and `other` with respect to `axes`. If `axes` is a number, contraction will happen at the same axis for both `this` and `other`. If `axes` is an array of 2 numbers, contraction will happen at `axes[0]` for `this`, `axes[1]` for `other`. If axes is an array of 2 array of numbers, the axes in `axes[0]` will be used for `this`, and the ones in `axes[1]` will be used for `other`.
+* `conv2d(input: Tensor | TensorValue, weight: Tensor | TensorValue, bias?: Tensor | TensorValue, stride: number | [number, number] = 1, padding: number | [number, number] = 0, dilation: number | [number, number] = 1, groups = 1): Tensor`: Perform Torch-style 2D convolution.
 * `squeeze(dims?: number[] | number): Tensor`: Returns a new tensor with size-1 dims squeezed out. If `dims` is `undefined`, all size-1 dims are squeezed out. If `dims` is a number/number array, it will squeeze out dimensions at that/those positions. If a specified dimension is not size-1, it will throw an error.
 * `unsqueeze(dims?: number[] | number): Tensor`: Returns a new tensor with size-1 dims pushed into specified positions. If `dims` is `undefined`, a tensor with same value, shape, and strides will be returned. If `dims` is a number/number array, it will push size-1 dimensions into that/those positions.
 * `sum(dims?: number[] | number, keepDims: boolean = false): Tensor`: Returns a new tensor with axes summed. If `dims` is `undefined`, all axes will be summed into a scalar. If `dims` is a number/number array, it will sum dimensions at that/those positions. If `keepDims` is `true`, then the size-1 dimensions after summation will be kept, discarded otherwise.
@@ -440,7 +441,7 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue): Tensor`: Forward-pass `input` through the linear layer.
+* `forward(input: Tensor): Tensor`: Forward-pass `input` through the linear layer.
 
 ## nn.RNNCell / RNNCell
 
@@ -465,7 +466,7 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the recurrent cell, returning the new hidden state.
+* `forward(input: Tensor, hidden: Tensor): Tensor`: Forward-pass `input` through the recurrent cell, returning the new hidden state.
 
 ## nn.GRUCell / GRUCell
 
@@ -498,7 +499,7 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue): Tensor`: Forward-pass `input` through the GRU cell, returning the new hidden state.
+* `forward(input: Tensor, hidden: Tensor): Tensor`: Forward-pass `input` through the GRU cell, returning the new hidden state.
 
 ## nn.LSTMCell / LSTMCell
 
@@ -535,7 +536,39 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue, hidden: Tensor | TensorValue, cell: Tensor | TensorValue): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
+* `forward(input: Tensor, hidden: Tensor, cell: Tensor): [Tensor, Tensor]`: Forward-pass `input` through the LSTM cell, returning the new hidden state and cell state.
+
+## nn.Conv2d / Conv2d
+
+### Constructor
+
+```ts
+constructor(
+    inChannels: number,
+    outChannels: number,
+    kernelSize: number,
+    stride: number | [number, number] = 1,
+    padding: number | [number, number] = 0,
+    dilation: number | [number, number] = 1,
+    groups = 1,
+    bias = true,
+    device?: string,
+    dtype?: dtype
+)
+```
+
+### Properties
+
+* `public weight: Tensor;`
+* `public bias?: Tensor;`
+* `public stride: number | [number, number];`
+* `public padding: number | [number, number];`
+* `public dilation: number | [number, number];`
+* `public groups: number;`
+
+### Methods
+
+* `forward(input: Tensor)`
 
 ## nn.BatchNorm / BatchNorm
 
@@ -689,7 +722,7 @@ constructor(
 
 ### Methods
 
-* `forward(input: Tensor | TensorValue): Tensor`: Perform a lookup from the weight.
+* `forward(input: Tensor): Tensor`: Perform a lookup from the weight.
 
 ## nn.MultiheadAttention / MultiHeadAttention
 

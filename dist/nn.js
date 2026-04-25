@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.GroupNorm = exports.InstanceNorm = exports.BatchNorm = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Sequential = exports.Linear = void 0;
+exports.nn = exports.MultiheadAttention = exports.Embedding = exports.RMSNorm = exports.LayerNorm = exports.GroupNorm = exports.InstanceNorm = exports.BatchNorm = exports.Conv2d = exports.LSTMCell = exports.GRUCell = exports.RNNCell = exports.Sequential = exports.Linear = void 0;
 const core_1 = require("./core");
 class Linear {
     weight;
@@ -136,6 +136,30 @@ class LSTMCell {
     }
 }
 exports.LSTMCell = LSTMCell;
+class Conv2d {
+    weight;
+    bias;
+    stride;
+    padding;
+    dilation;
+    groups;
+    constructor(inChannels, outChannels, kernelSize, stride = 1, padding = 0, dilation = 1, groups = 1, bias = true, device, dtype) {
+        this.stride = stride;
+        this.padding = padding;
+        this.dilation = dilation;
+        this.groups = groups;
+        const fanIn = (inChannels / groups) * kernelSize * kernelSize;
+        const bound = Math.sqrt(1 / fanIn);
+        this.weight = core_1.Tensor.uniform([outChannels, inChannels / groups, kernelSize, kernelSize], -bound, bound, { requiresGrad: true, device, dtype });
+        if (bias) {
+            this.bias = core_1.Tensor.uniform([outChannels], -bound, bound, { requiresGrad: true, device, dtype });
+        }
+    }
+    forward(input) {
+        return input.conv2d(this.weight, this.bias, this.stride, this.padding, this.dilation, this.groups);
+    }
+}
+exports.Conv2d = Conv2d;
 class BatchNorm {
     weight;
     bias;
@@ -436,6 +460,7 @@ exports.nn = {
     RNNCell,
     GRUCell,
     LSTMCell,
+    Conv2d,
     BatchNorm,
     InstanceNorm,
     GroupNorm,
