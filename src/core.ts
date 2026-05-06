@@ -424,16 +424,9 @@ export class Tensor {
         const reducedGrad = accumGrad.sum(axesToReduce, true);
         const squeezedGrad = reducedGrad.squeeze(axesToSqueeze);
 
-        // Enforce 0-offset contiguous grads and correct dtype
         if (typeof tensor.grad === "undefined") {
-            let grad = squeezedGrad;
-
-            // Handle potentially contiguous tensors with non zero offset
-            if (grad.offset !== 0) {
-                grad = grad.clone();
-            }
-
-            tensor.grad = grad.contiguous().cast(tensor.dtype);
+            // Force default grad to have same shape and dtype as original tensor
+            tensor.grad = Tensor.zerosLike(tensor).add(squeezedGrad.cast(tensor.dtype));
         } else {
             tensor.grad = tensor.grad.add(squeezedGrad.cast(tensor.dtype));
         }
@@ -2463,6 +2456,16 @@ export class Tensor {
         );
     }
 
+    // Tensor element-wise copysign
+    copysign(other: TensorValue | Tensor): Tensor {
+        return this.elementWiseABDAG(
+            other,
+            (a, b) => Math.abs(a) * (Object.is(b, -0) || b < 0 ? -1 : 1),
+            (self, other, outGrad) => outGrad.mul(self.sign().mul(other.sign())),
+            (self, other, outGrad) => new Tensor(0)
+        );
+    }
+
     // Tensor element-wise round
     round(): Tensor {
         return this.elementWiseSelfDAG(
@@ -2986,7 +2989,7 @@ export class Tensor {
         } else {
             // Each group handles Cin/groups input channels and Cout/groups output channels.
             // chunk(groups, 2) splits the Cin*kH*kW axis into groups equal slices,
-            // each of size CinPerGroup*kH*kW — valid because reshape laid Cin outermost.
+            // each of size CinPerGroup*kH*kW - valid because reshape laid Cin outermost.
             const patchChunks = x.chunk(groups, 2); // Tensor[groups], each [N, Hout*Wout, CinPerGroup*kH*kW]
             const weightChunks = w.chunk(groups, 0); // Tensor[groups], each [Cout/groups, CinPerGroup*kH*kW]
 

@@ -202,6 +202,7 @@ export declare class Tensor {
     gelu(approximate?: string): Tensor;
     maximum(other: TensorValue | Tensor): Tensor;
     minimum(other: TensorValue | Tensor): Tensor;
+    copysign(other: TensorValue | Tensor): Tensor;
     round(): Tensor;
     floor(): Tensor;
     ceil(): Tensor;

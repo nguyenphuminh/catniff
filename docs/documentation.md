@@ -145,6 +145,7 @@ All autograd-supported tensor arithmetic methods:
 * `gelu(approximate: string = "none"): Tensor`: Returns gelu of `this` element-wise. Use original gelu formula if `approximate` is `none`, use tanh approximation if set to `tanh`.
 * `maximum(other: TensorValue | Tensor): Tensor`: Returns maximum between `this` and `other` element-wise.
 * `minimum(other: TensorValue | Tensor): Tensor`: Returns minimum between `this` and `other` element-wise.
+* `copysign(other: TensorValue | Tensor): Tensor`: Returns `this` but with `other`'s signs, copied element-wise.
 * `round(): Tensor`: Returns `this` rounded element-wise.
 * `floor(): Tensor`: Returns `this` floored element-wise.
 * `ceil(): Tensor`: Returns `this` ceiled element-wise.
