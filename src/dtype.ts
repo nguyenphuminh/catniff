@@ -1,3 +1,10 @@
+// Compatibility check
+const float16Supported = typeof Float16Array !== "undefined";
+
+if (!float16Supported) {
+    console.log("Warning: Your JS runtime does not support Float16Array, falling back to Float32Array...");
+}
+
 export type dtype = "float64" | "float32" | "float16" | "int32" | "int16" | "int8" | "uint32" | "uint16" | "uint8";
 
 export const dtypeHiearchy: Record<dtype, number> = {
@@ -37,7 +44,7 @@ export type TypedArrayConstructor =
 export const TypedArray: Record<dtype, TypedArrayConstructor> = {
     "float64": Float64Array,
     "float32": Float32Array,
-    "float16": Float16Array,
+    "float16": float16Supported ? Float16Array : Float32Array,
     "int32": Int32Array,
     "int16": Int16Array,
     "int8": Int8Array,
