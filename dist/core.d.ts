@@ -221,6 +221,7 @@ export declare class Tensor {
     matmul(other: TensorValue | Tensor): Tensor;
     tensordot(other: TensorValue | Tensor, axes?: number | [number, number] | [number[], number[]]): Tensor;
     conv2d(weight: Tensor | TensorValue, bias?: Tensor | TensorValue, stride?: number | [number, number], padding?: number | [number, number], dilation?: number | [number, number], groups?: number): Tensor;
+    where(x: Tensor | TensorValue, y: Tensor | TensorValue): Tensor;
     dropout(rate: number): Tensor;
     triu(diagonal?: number): Tensor;
     tril(diagonal?: number): Tensor;

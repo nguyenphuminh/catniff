@@ -201,6 +201,7 @@ All autograd-supported tensor arithmetic methods:
 * `lerp(end: TensorValue | Tensor, weight: TensorValue | Tensor): Tensor`: Apply linear interpolation (`this + weight * (end - this)` basically).
 * `sort(dim = -1, descending = false): Tensor`: Sort the specified dimension.
 * `topk(k: number, dim = -1, largest = true): Tensor`: Get top k elements of the specified dimension.
+* `where(x: Tensor, y: Tensor): Tensor`: Returns a new tensor with each element chosen conditionally from `x` and `y`, with the condition being `this` tensor. Take from `x` if true (1), `y` if false (0).
 * `dropout(rate: number): Tensor`: Apply dropout with `rate`, only works when `Tensor.training` is `true`.
 * `multinomial(numSamples: number, replacement = false): Tensor`: Apply multinomial sampling.
 * `linear(weight: Tensor | TensorValue, bias?: Tensor | TensorValue): Tensor`: Apply linear projection.

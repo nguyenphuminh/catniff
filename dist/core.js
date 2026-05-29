@@ -2250,6 +2250,12 @@ class Tensor {
         }
         return out;
     }
+    // Conditionally select elements from x and y
+    where(x, y) {
+        x = this.handleOther(x);
+        y = this.handleOther(y);
+        return this.mul(x).add(this.neg().add(1).mul(y));
+    }
     // Dropout
     dropout(rate) {
         if (!Tensor.training || rate === 0)

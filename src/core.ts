@@ -3011,6 +3011,14 @@ export class Tensor {
 
         return out;
     }
+    
+    // Conditionally select elements from x and y
+    where(x: Tensor | TensorValue, y: Tensor | TensorValue) {
+        x = this.handleOther(x);
+        y = this.handleOther(y);
+
+        return this.mul(x).add(this.neg().add(1).mul(y));
+    }
 
     // Dropout
     dropout(rate: number): Tensor {
