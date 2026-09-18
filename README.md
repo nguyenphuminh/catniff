@@ -1,6 +1,6 @@
 # Catniff 😺🌿
 
-Catniff is a small deep learning framework for Javacript, built to be Torch-like, but more direct on tensors and autograd usage like Tinygrad. This project is under development currently, so keep in mind that APIs can be unstable and backwards-incompatible. On a side-note, the name is a play on "catnip" and "differentiation".
+Catniff is a small deep learning framework for Javacript, built to be Torch-like, originally inspired by Tinygrad APIs. This project is under development currently, so keep in mind that APIs can be unstable and backwards-incompatible. On a side-note, the name is a play on "catnip" and "differentiation".
 
 ## Setup
 
@@ -9,7 +9,7 @@ Install through npm:
 npm install catniff
 ```
 
-Ensure you have Node v24 as well for things like float16 to work.
+You should have Node v24 as well for things like float16 to work, but it will gracefully fall back to float32 otherwise.
 
 ## Tensors
 

@@ -261,6 +261,11 @@ export declare class Tensor {
     clone(): Tensor;
     replace(other: Tensor | TensorValue): Tensor;
     cast(dtype: dtype): Tensor;
+    float(): Tensor;
+    double(): Tensor;
+    half(): Tensor;
+    int(): Tensor;
+    short(): Tensor;
     static backends: Map<string, Backend>;
     to(device: string): Tensor;
     to_(device: string): Tensor;

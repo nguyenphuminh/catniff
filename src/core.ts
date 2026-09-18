@@ -3011,7 +3011,7 @@ export class Tensor {
 
         return out;
     }
-    
+
     // Conditionally select elements from x and y
     where(x: Tensor | TensorValue, y: Tensor | TensorValue) {
         x = this.handleOther(x);
@@ -4080,6 +4080,27 @@ export class Tensor {
             device: this.device,
             dtype: dtype
         });
+    }
+
+    // Aliases for type casting
+    float(): Tensor {
+        return this.cast("float32");
+    }
+
+    double(): Tensor {
+        return this.cast("float64");
+    }
+
+    half(): Tensor {
+        return this.cast("float16");
+    }
+
+    int(): Tensor {
+        return this.cast("int32");
+    }
+
+    short(): Tensor {
+        return this.cast("int16");
     }
 
     // Holds all available backends

@@ -3118,6 +3118,22 @@ class Tensor {
             dtype: dtype
         });
     }
+    // Aliases for type casting
+    float() {
+        return this.cast("float32");
+    }
+    double() {
+        return this.cast("float64");
+    }
+    half() {
+        return this.cast("float16");
+    }
+    int() {
+        return this.cast("int32");
+    }
+    short() {
+        return this.cast("int16");
+    }
     // Holds all available backends
     static backends = new Map();
     // Op to transfer tensor to another device
